@@ -1,0 +1,43 @@
+# Flutter 관련
+apps/darak_app/.dart_tool/
+apps/darak_app/.flutter-plugins
+apps/darak_app/.flutter-plugins-dependencies
+apps/darak_app/.packages
+apps/darak_app/build/
+
+# Firebase 관련
+backend/firebase/functions/node_modules/
+backend/firebase/functions/lib/
+backend/firebase/.firebase/
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# IDE 설정
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# 기타
+*.log
+*.swp
+*.bak
+*~
+.env
+.env.local
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# 사용자 설정 파일
+.claude/
