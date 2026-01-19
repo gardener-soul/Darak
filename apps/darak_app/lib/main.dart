@@ -1,9 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 /// 앱 엔트리포인트
-/// Riverpod의 ProviderScope로 앱 전체를 감싸서 상태 관리 활성화
-void main() {
+/// Firebase 초기화 후 Riverpod의 ProviderScope로 앱 전체를 감싸서 상태 관리 활성화
+void main() async {
+  // Flutter 엔진과 위젯 바인딩 초기화
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Firebase 초기화
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(
     const ProviderScope(
       child: DarakApp(),
@@ -58,7 +68,7 @@ class HomeScreen extends StatelessWidget {
         title: const Text('Darak'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: Center(
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
