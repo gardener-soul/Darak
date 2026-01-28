@@ -18,6 +18,5 @@ class MeetUp with _$MeetUp {
     DateTime? deletedAt, // 삭제일시 (Soft Delete)
   }) = _MeetUp;
 
-  factory MeetUp.fromJson(Map<String, dynamic> json) =>
-      _$MeetUpFromJson(json);
+  factory MeetUp.fromJson(Map<String, dynamic> json) => _$MeetUpFromJson(json);
 }

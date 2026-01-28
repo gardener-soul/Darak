@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'core/providers/firebase_providers.dart';
+import 'views/auth/sign_up_screen.dart';
 
 /// 앱 엔트리포인트
 /// Firebase 초기화 후 Riverpod의 ProviderScope로 앱 전체를 감싸서 상태 관리 활성화
@@ -10,23 +12,17 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Firebase 초기화
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(
-    const ProviderScope(
-      child: DarakApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: DarakApp()));
 }
 
 /// Darak 앱의 루트 위젯
-class DarakApp extends StatelessWidget {
+class DarakApp extends ConsumerWidget {
   const DarakApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
       title: 'Darak - 교회 공동체 관리',
       debugShowCheckedModeBanner: false,
@@ -39,10 +35,7 @@ class DarakApp extends StatelessWidget {
         useMaterial3: true,
 
         // 앱바 테마
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 0,
-        ),
+        appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
 
         // 카드 테마
         cardTheme: CardThemeData(
@@ -51,22 +44,77 @@ class DarakApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
+
+        // 입력 필드 테마
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+
+        // 버튼 테마
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(48),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
       ),
-      home: const HomeScreen(),
+      home: const AuthWrapper(),
+    );
+  }
+}
+
+/// 인증 상태에 따라 화면 분기
+class AuthWrapper extends ConsumerWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateChangesProvider);
+
+    return authState.when(
+      data: (user) {
+        // 로그인 O → 홈 화면
+        if (user != null) {
+          return const HomeScreen();
+        }
+        // 로그인 X → 회원가입 화면
+        return const SignUpScreen();
+      },
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => Scaffold(
+        body: Center(child: Text('오류: $error')),
+      ),
     );
   }
 }
 
 /// 홈 화면
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Darak'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              final auth = ref.read(firebaseAuthProvider);
+              await auth.signOut();
+            },
+            tooltip: '로그아웃',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -85,20 +133,14 @@ class HomeScreen extends StatelessWidget {
               // 앱 타이틀
               const Text(
                 '교회 공동체 관리 앱',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
 
               // 환영 메시지
               Text(
                 'Darak 앱에 오신 것을 환영합니다!',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               ),
               const SizedBox(height: 48),
 
@@ -154,11 +196,7 @@ class _FeatureCard extends StatelessWidget {
         child: Row(
           children: [
             // 아이콘
-            Icon(
-              icon,
-              size: 40,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            Icon(icon, size: 40, color: Theme.of(context).colorScheme.primary),
             const SizedBox(width: 16),
 
             // 텍스트 정보
@@ -176,10 +214,7 @@ class _FeatureCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     description,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                 ],
               ),
