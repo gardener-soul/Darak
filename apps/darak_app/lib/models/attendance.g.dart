@@ -40,7 +40,7 @@ const _$AttendanceTypeEnumMap = {
   AttendanceType.onlySundayService: 'onlySundayService',
   AttendanceType.onlyDarak: 'onlyDarak',
   AttendanceType.both: 'both',
-  AttendanceType.specialEvent: 'specialEvent',
+  AttendanceType.specialEvent: 'special_event',
 };
 
 const _$AttendanceStatusEnumMap = {
@@ -48,4 +48,5 @@ const _$AttendanceStatusEnumMap = {
   AttendanceStatus.absent: 'absent',
   AttendanceStatus.late: 'late',
   AttendanceStatus.excused: 'excused',
+  AttendanceStatus.etc: 'etc',
 };
