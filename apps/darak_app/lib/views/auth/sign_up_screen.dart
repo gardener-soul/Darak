@@ -29,7 +29,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   Future<void> _handleSignUp() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final success = await ref.read(authViewModelProvider.notifier).signUp(
+    final success = await ref
+        .read(authViewModelProvider.notifier)
+        .signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text,
           name: _nameController.text.trim(),
@@ -67,10 +69,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     final isLoading = authState.isLoading;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('회원가입'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('회원가입'), centerTitle: true),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -81,17 +80,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               children: [
                 const SizedBox(height: 32),
                 // 앱 로고/타이틀
-                const Icon(
-                  Icons.church,
-                  size: 64,
-                  color: Colors.blue,
-                ),
+                const Icon(Icons.church, size: 64, color: Colors.blue),
                 const SizedBox(height: 16),
                 Text(
                   'Darak',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
@@ -123,7 +118,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   controller: _passwordController,
                   decoration: const InputDecoration(
                     labelText: '비밀번호',
-                    hintText: '6자 이상',
+                    hintText: '8자 이상, 대/소문자, 숫자, 특수문자 포함',
                     prefixIcon: Icon(Icons.lock_outlined),
                   ),
                   obscureText: true,
@@ -132,8 +127,20 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     if (value == null || value.isEmpty) {
                       return '비밀번호를 입력해주세요';
                     }
-                    if (value.length < 6) {
-                      return '비밀번호는 6자 이상이어야 합니다';
+                    if (value.length < 8) {
+                      return '비밀번호는 8자 이상이어야 합니다';
+                    }
+                    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+                      return '대문자를 1개 이상 포함해주세요';
+                    }
+                    if (!RegExp(r'[a-z]').hasMatch(value)) {
+                      return '소문자를 1개 이상 포함해주세요';
+                    }
+                    if (!RegExp(r'[0-9]').hasMatch(value)) {
+                      return '숫자를 1개 이상 포함해주세요';
+                    }
+                    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(value)) {
+                      return '특수문자를 1개 이상 포함해주세요';
                     }
                     return null;
                   },
