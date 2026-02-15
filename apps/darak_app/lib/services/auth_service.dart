@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -18,9 +19,15 @@ AuthService authService(Ref ref) {
   );
 }
 
+@riverpod
+Stream<firebase_auth.User?> authStateChanges(Ref ref) {
+  return ref.watch(authServiceProvider).authStateChanges;
+}
+
 class AuthService {
   final firebase_auth.FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   AuthService({
     required firebase_auth.FirebaseAuth auth,
@@ -28,29 +35,26 @@ class AuthService {
   }) : _auth = auth,
        _firestore = firestore;
 
-  // 현재 로그인된 사용자
   firebase_auth.User? get currentUser => _auth.currentUser;
-
-  // 인증 상태 스트림
   Stream<firebase_auth.User?> get authStateChanges => _auth.authStateChanges();
+  bool get isEmailVerified => _auth.currentUser?.emailVerified ?? false;
 
-  // 회원가입
+  // ─── 이메일 회원가입 ─────────────────────────────────────
   Future<User> signUp({
     required String email,
     required String password,
     required String name,
     required String phone,
   }) async {
-    // 1. Firebase Auth 계정 생성
     final credential = await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
+    await credential.user!.updateDisplayName(name);
 
     final uid = credential.user!.uid;
     final now = DateTime.now();
 
-    // 2. User 모델 생성
     final user = User(
       id: uid,
       name: name,
@@ -61,20 +65,17 @@ class AuthService {
       updatedAt: now,
     );
 
-    // 3. Firestore에 User 문서 저장
     await _firestore
         .collection(FirestorePaths.users)
         .doc(uid)
         .set(user.toJson());
 
-    // 4. 이메일 인증 발송
     await credential.user!.sendEmailVerification();
 
     return user;
   }
 
-  /// 로그인
-  /// 보안: Firebase의 구체적인 에러 메시지를 일반화하여 공격자에게 힌트를 주지 않음
+  // ─── 이메일 로그인 ───────────────────────────────────────
   Future<User?> signIn({
     required String email,
     required String password,
@@ -89,22 +90,22 @@ class AuthService {
         throw Exception('로그인에 실패했습니다');
       }
 
-      // Firestore에서 사용자 정보 가져오기
+      if (!credential.user!.emailVerified) {
+        throw Exception('email-not-verified');
+      }
+
       final doc = await _firestore
           .collection(FirestorePaths.users)
           .doc(credential.user!.uid)
           .get();
 
       if (!doc.exists) {
-        // 계정은 있지만 Firestore에 데이터가 없는 경우 (비정상 상태)
         await _auth.signOut();
-        throw Exception('사용자 정보를 찾을 수 없습니다. 관리자에게 문의하세요.');
+        throw Exception('사용자 정보를 찾을 수 없습니다.');
       }
 
       return User.fromJson(doc.data()!);
     } on firebase_auth.FirebaseAuthException catch (e) {
-      // 보안: 구체적인 에러 코드를 일반화된 메시지로 변환
-      // 공격자가 "이메일이 존재하는지" 또는 "비밀번호가 틀린지" 알 수 없도록 함
       switch (e.code) {
         case 'user-not-found':
         case 'wrong-password':
@@ -112,24 +113,77 @@ class AuthService {
         case 'invalid-credential':
           throw Exception('이메일 또는 비밀번호가 올바르지 않습니다');
         case 'user-disabled':
-          throw Exception('비활성화된 계정입니다. 관리자에게 문의하세요.');
+          throw Exception('비활성화된 계정입니다.');
         case 'too-many-requests':
-          throw Exception('로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.');
+          throw Exception('잠시 후 다시 시도해주세요.');
         default:
-          throw Exception('로그인에 실패했습니다. 다시 시도해주세요.');
+          throw Exception('로그인에 실패했습니다.');
       }
+    } catch (e) {
+      if (e.toString().contains('email-not-verified')) rethrow;
+      throw Exception('로그인 중 오류가 발생했습니다: $e');
     }
   }
 
-  // 로그아웃
+  // ─── 구글 로그인 ─────────────────────────────────────────
+  Future<User?> signInWithGoogle() async {
+    try {
+      // 1. 구글 인증 흐름 시작
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null; // 사용자 취소
+
+      // 2. 구글 인증 정보 획득
+      final googleAuth = await googleUser.authentication;
+      final credential = firebase_auth.GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // 3. Firebase Auth 로그인
+      final userCredential = await _auth.signInWithCredential(credential);
+      final firebaseUser = userCredential.user!;
+      final uid = firebaseUser.uid;
+
+      // 4. Firestore 사용자 확인
+      final doc = await _firestore
+          .collection(FirestorePaths.users)
+          .doc(uid)
+          .get();
+
+      if (!doc.exists) {
+        // 5. 신규 사용자 생성
+        final now = DateTime.now();
+        final newUser = User(
+          id: uid,
+          name: firebaseUser.displayName ?? '이름 없음',
+          email: firebaseUser.email ?? '',
+          phone: firebaseUser.phoneNumber ?? '',
+          role: UserRole.member,
+          createdAt: now,
+          updatedAt: now,
+        );
+        await _firestore
+            .collection(FirestorePaths.users)
+            .doc(uid)
+            .set(newUser.toJson());
+        return newUser;
+      }
+
+      // 6. 성공 시 사용자 정보 갱신 (중요: AuthWrapper 감지용)
+      await firebaseUser.reload();
+      return User.fromJson(doc.data()!);
+    } catch (e) {
+      throw Exception('구글 로그인 실패: $e');
+    }
+  }
+
+  // ─── 로그아웃 ────────────────────────────────────────────
   Future<void> signOut() async {
+    await _googleSignIn.signOut();
     await _auth.signOut();
   }
 
-  /// 이메일 인증 여부 확인
-  bool get isEmailVerified => _auth.currentUser?.emailVerified ?? false;
-
-  /// 이메일 인증 재발송
+  // ─── 이메일 인증 ─────────────────────────────────────────
   Future<void> resendEmailVerification() async {
     final user = _auth.currentUser;
     if (user != null && !user.emailVerified) {
@@ -137,7 +191,6 @@ class AuthService {
     }
   }
 
-  /// 사용자 정보 새로고침 (이메일 인증 상태 업데이트용)
   Future<void> reloadUser() async {
     await _auth.currentUser?.reload();
   }
