@@ -7,7 +7,6 @@ import '../../widgets/common/bouncy_button.dart';
 
 import '../../widgets/common/soft_text_field.dart';
 import 'sign_up_screen.dart';
-import 'verification_waiting_screen.dart';
 
 /// 로그인 화면
 class LoginScreen extends ConsumerStatefulWidget {
@@ -46,13 +45,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!success) {
       final error = ref.read(authViewModelProvider).error;
 
-      // 이메일 미인증 → 인증 대기 화면
-      if (error.toString().contains('email-not-verified')) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const VerificationWaitingScreen()),
-        );
-        return;
-      }
+      // 이메일 미인증 → 인증 대기 화면 (더 이상 강제하지 않음)
+      // if (error.toString().contains('email-not-verified')) { ... }
 
       _showError(_formatError(error));
     }
@@ -79,20 +73,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _showError(String message) {
+    // 스낵바 대신 다이얼로그로 친절하게 안내 (선택사항, 일단 스낵바 유지하되 스타일 개선)
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
         backgroundColor: AppColors.softCoral,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        margin: const EdgeInsets.all(16),
       ),
     );
   }
 
   String _formatError(Object? error) {
     final message = error?.toString() ?? '로그인에 실패했습니다';
+    if (message.contains('user-not-found')) return '가입되지 않은 이메일이에요';
+    if (message.contains('wrong-password')) return '비밀번호가 맞지 않아요';
+    if (message.contains('invalid-email')) return '이메일 형식을 확인해주세요';
+    if (message.contains('user-disabled')) return '계정이 비활성화되었습니다';
+    if (message.contains('too-many-requests')) return '잠시 후 다시 시도해주세요';
+    if (message.contains('network-request-failed')) return '인터넷 연결을 확인해주세요';
     if (message.startsWith('Exception: ')) return message.substring(11);
-    return message;
+    return '로그인 중 오류가 발생했어요 ($message)';
   }
 
   @override
@@ -101,7 +109,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isLoading = authState.isLoading;
 
     return Scaffold(
-      backgroundColor: AppColors.creamWhite,
+      appBar: AppBar(
+        title: const Text('로그인'),
+        backgroundColor: AppColors.creamWhite,
+        leading: IconButton(
+          // 뒤로가기 버튼 추가
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -124,7 +140,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           color: AppColors.pureWhite,
                           boxShadow: AppDecorations.floatingShadow,
                         ),
-                        child: Icon(
+                        child: const Icon(
+                          // const 추가
                           Icons.church_rounded,
                           size: 50,
                           color: AppColors.softCoral,
@@ -132,13 +149,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'Welcome to Darak! 👋',
+                        '다시 오셨네요! 👋',
                         style: AppTextStyles.headlineLarge,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '로그인하고 우리 공동체를 다시 만나요',
+                        '로그인하고 다락과 함께 해요',
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: AppColors.textGrey,
                         ),
@@ -147,46 +164,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ],
                   ),
                   const SizedBox(height: 40),
-
-                  // ─── 구글 로그인 (맨 위) ────────────────
-                  BouncyButton(
-                    onPressed: isLoading ? null : _handleGoogleLogin,
-                    text: 'Google로 계속하기',
-                    icon: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Text(
-                        'G',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ), // Placeholder for Google Icon
-                    ),
-                    color: Colors.white,
-                    textColor: AppColors.textDark,
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // ─── 구분선 ──────────────────────────────
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: AppColors.divider)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          '또는 이메일로 로그인',
-                          style: AppTextStyles.bodySmall,
-                        ),
-                      ),
-                      Expanded(child: Divider(color: AppColors.divider)),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
 
                   // ─── 이메일 입력 ─────────────────────────
                   SoftTextField(
@@ -238,6 +215,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     color: AppColors.softCoral,
                     textColor: Colors.white,
                   ),
+
+                  const SizedBox(height: 24),
+
+                  // ─── 구글 로그인 ──────────────────────────
+                  BouncyButton(
+                    onPressed: isLoading ? null : _handleGoogleLogin,
+                    text: 'Google ID로 시작하기',
+                    icon: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Text(
+                        'G',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                    color: Colors.white,
+                    textColor: AppColors.textDark,
+                  ),
+
                   const SizedBox(height: 24),
 
                   // ─── 회원가입 링크 ───────────────────────

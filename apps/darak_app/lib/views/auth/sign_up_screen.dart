@@ -5,7 +5,6 @@ import '../../viewmodels/auth/auth_view_model.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/bouncy_button.dart';
 import '../../widgets/common/soft_text_field.dart';
-import 'verification_waiting_screen.dart';
 
 /// 회원가입 화면
 /// 흐름: 정보 입력 → 가입 & 인증메일 발송 → VerificationWaitingScreen
@@ -53,11 +52,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     if (!mounted) return;
 
     if (success) {
-      // 가입 성공 → 인증 대기 화면으로 이동 (이전 화면 모두 교체)
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const VerificationWaitingScreen()),
-        (route) => false,
-      );
+      // 가입 성공 → 홈 화면으로 바로 이동 (선사용 후인증)
+      // 스택을 모두 비우고 홈으로 이동
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } else {
       final error = ref.read(authViewModelProvider).error;
       _showError(_formatError(error));
@@ -95,12 +92,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   }
 
   String _formatError(Object? error) {
+    // 친절한 한글 에러 메시지로 변환
     final message = error?.toString() ?? '회원가입에 실패했습니다';
-    if (message.contains('email-already-in-use')) return '이미 사용 중인 이메일입니다';
-    if (message.contains('weak-password')) return '비밀번호가 너무 약합니다 (6자 이상)';
-    if (message.contains('invalid-email')) return '유효하지 않은 이메일 형식입니다';
+    if (message.contains('email-already-in-use')) return '이미 가입된 이메일이에요!';
+    if (message.contains('weak-password')) return '비밀번호는 6자 이상이어야 안전해요';
+    if (message.contains('invalid-email')) return '이메일 형식이 올바르지 않아요';
+    if (message.contains('network-request-failed')) return '인터넷 연결을 확인해주세요';
     if (message.startsWith('Exception: ')) return message.substring(11);
-    return message;
+    return '잠시 후 다시 시도해주세요 ($message)';
   }
 
   @override
@@ -113,6 +112,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       appBar: AppBar(
         title: const Text('회원가입'),
         backgroundColor: AppColors.creamWhite,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -143,7 +146,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 // ─── 구글 가입 ──────────────────────────
                 BouncyButton(
                   onPressed: isLoading ? null : _handleGoogleSignUp,
-                  text: 'Google로 간편 시작',
+                  text: 'Google ID로 회원 가입',
                   icon: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
@@ -233,7 +236,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 // ─── 비밀번호 ──────────────────────────
                 SoftTextField(
                   controller: _passwordController,
-                  hintText: '비밀번호 (8자 이상)',
+                  hintText: '비밀번호 (영문, 숫자, 특수문자 포함 8자 이상)',
                   obscureText: _obscurePassword,
                   prefixIcon: Icon(
                     Icons.lock_rounded,
@@ -252,6 +255,24 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   validator: (v) {
                     if (v == null || v.isEmpty) return '비밀번호를 입력해주세요';
                     if (v.length < 8) return '비밀번호는 8자 이상이어야 합니다';
+
+                    // 영문, 숫자, 특수문자 포함 여부 확인 정규식
+                    // (?=.*[A-Za-z]): 영문 포함
+                    // (?=.*\d): 숫자 포함
+                    // (?=.*[@$!%*#?&]): 특수문자 포함
+
+                    // 조금 더 유연한 특수문자 허용 (모든 특수문자) - 위 패턴은 특정 문자만 허용함.
+                    // 개선된 패턴: 영문, 숫자, 특수문자 각각 하나 이상 포함
+                    bool hasLetter = RegExp(r'[A-Za-z]').hasMatch(v);
+                    bool hasDigit = RegExp(r'\d').hasMatch(v);
+                    bool hasSpecial = RegExp(
+                      r'[!@#\$%^&*(),.?":{}|<>]',
+                    ).hasMatch(v);
+
+                    if (!hasLetter || !hasDigit || !hasSpecial) {
+                      return '영문, 숫자, 특수문자를 모두 포함해야 합니다';
+                    }
+
                     return null;
                   },
                 ),
@@ -288,12 +309,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 // ─── 가입 버튼 ─────────────────────────
                 BouncyButton(
                   onPressed: isLoading ? null : _handleSignUp,
-                  text: isLoading ? '가입 처리 중...' : '가입하고 인증 메일 받기',
+                  text: isLoading ? '가입 처리 중...' : '회원가입 완료하기',
                   color: AppColors.softCoral,
                   textColor: Colors.white,
                   icon: isLoading
                       ? null
-                      : const Icon(Icons.mail_rounded, color: Colors.white),
+                      : const Icon(Icons.check_rounded, color: Colors.white),
                 ),
                 const SizedBox(height: 24),
 
@@ -314,7 +335,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          '가입 후메일함에서 인증 링크를 꼭 클릭해주세요!',
+                          '가입 후 이메일 인증을 완료해야 모든 기능을 사용할 수 있습니다.',
                           style: AppTextStyles.bodySmall.copyWith(
                             color: AppColors.textDark,
                           ),

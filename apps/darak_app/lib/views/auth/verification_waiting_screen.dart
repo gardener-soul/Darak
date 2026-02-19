@@ -118,6 +118,17 @@ class _VerificationWaitingScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
+      // 닫기 버튼을 상단에 추가 (모달/페이지 종료)
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close_rounded, color: AppColors.textGrey),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),

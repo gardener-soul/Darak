@@ -27,7 +27,6 @@ Stream<firebase_auth.User?> authStateChanges(Ref ref) {
 class AuthService {
   final firebase_auth.FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   AuthService({
     required firebase_auth.FirebaseAuth auth,
@@ -100,24 +99,43 @@ class AuthService {
           .get();
 
       if (!doc.exists) {
-        await _auth.signOut();
-        throw Exception('사용자 정보를 찾을 수 없습니다.');
+        // 데이터 정합성 문제 해결: Auth에는 있지만 Firestore에 없는 경우 복구
+        final now = DateTime.now();
+        final newUser = User(
+          id: credential.user!.uid,
+          name: credential.user!.displayName ?? '복구된 사용자', // 이름 정보가 없을 수 있음
+          email: credential.user!.email ?? '',
+          phone: '', // 전화번호는 다시 받아야 함
+          role: UserRole.member,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        await _firestore
+            .collection(FirestorePaths.users)
+            .doc(credential.user!.uid)
+            .set(newUser.toJson());
+
+        return newUser;
       }
 
       return User.fromJson(doc.data()!);
     } on firebase_auth.FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'user-not-found':
+          throw Exception('가입되지 않은 이메일입니다.');
         case 'wrong-password':
+          throw Exception('비밀번호가 일치하지 않습니다.');
         case 'invalid-email':
+          throw Exception('유효하지 않은 이메일 형식입니다.');
         case 'invalid-credential':
-          throw Exception('이메일 또는 비밀번호가 올바르지 않습니다');
+          throw Exception('인증 정보가 올바르지 않습니다.');
         case 'user-disabled':
-          throw Exception('비활성화된 계정입니다.');
+          throw Exception('비활성화된 계정입니다. 관리자에게 문의하세요.');
         case 'too-many-requests':
-          throw Exception('잠시 후 다시 시도해주세요.');
+          throw Exception('너무 많은 시도가 있었습니다. 잠시 후 다시 시도해주세요.');
         default:
-          throw Exception('로그인에 실패했습니다.');
+          throw Exception('로그인에 실패했습니다. (${e.code})');
       }
     } catch (e) {
       if (e.toString().contains('email-not-verified')) rethrow;
@@ -128,8 +146,9 @@ class AuthService {
   // ─── 구글 로그인 ─────────────────────────────────────────
   Future<User?> signInWithGoogle() async {
     try {
-      // 1. 구글 인증 흐름 시작
-      final googleUser = await _googleSignIn.signIn();
+      // 1. 구글 인증 흐름 시작 (필요할 때 인스턴스 생성)
+      final googleSignIn = GoogleSignIn();
+      final googleUser = await googleSignIn.signIn();
       if (googleUser == null) return null; // 사용자 취소
 
       // 2. 구글 인증 정보 획득
@@ -179,7 +198,7 @@ class AuthService {
 
   // ─── 로그아웃 ────────────────────────────────────────────
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
+    await GoogleSignIn().signOut();
     await _auth.signOut();
   }
 
