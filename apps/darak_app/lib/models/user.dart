@@ -17,6 +17,7 @@ class User with _$User {
     String? groupId, // 소속 다락방 ID
     List<String>? clubIds, // 소속 클럽/동아리 ID 리스트 (여러 개 가능)
     String? profileImageUrl, // 프로필 이미지 URL
+    String? bio, // 상태 메시지 (마이페이지)
     required DateTime createdAt, // 생성일시
     required DateTime updatedAt, // 수정일시
     DateTime? deletedAt, // 삭제일시 (Soft Delete)

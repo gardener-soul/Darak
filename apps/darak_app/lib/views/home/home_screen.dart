@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/firebase_providers.dart';
 import '../auth/verification_waiting_screen.dart';
+import '../user/user_profile_screen.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/clay_card.dart';
 
@@ -44,8 +45,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             _buildPlaceholder('게시판'),
             // 3. 채팅 (준비 중)
             _buildPlaceholder('채팅'),
-            // 4. 마이페이지 (준비 중)
-            _buildPlaceholder('마이페이지'),
+            // 4. 마이페이지
+            const UserProfileScreen(),
           ],
         ),
       ),
