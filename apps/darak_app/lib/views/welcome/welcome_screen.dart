@@ -1,117 +1,115 @@
 import 'package:flutter/material.dart';
-
+import '../../theme/app_theme.dart';
+import '../../widgets/common/bouncy_button.dart';
 import '../auth/login_screen.dart';
 import '../home/home_screen.dart';
 
 /// 앱 첫 진입 시 보여주는 환영 화면
-/// 로그인 없이도 미리보기가 가능하도록 두 가지 경로를 제공
+/// "Soft Pop & Claymorphism" 디자인 적용
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
+      backgroundColor: AppColors.creamWhite,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
-              const Spacer(flex: 2),
+              const Spacer(flex: 3),
 
-              // 앱 로고 & 타이틀
-              Icon(Icons.church, size: 100, color: colorScheme.primary),
-              const SizedBox(height: 24),
-              Text(
-                'Darak',
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.primary,
+              // ─── Header Illustration ─────────────────────────────
+              Container(
+                width: 160,
+                height: 160,
+                decoration: BoxDecoration(
+                  color: AppColors.pureWhite,
+                  shape: BoxShape.circle,
+                  boxShadow: AppDecorations.floatingShadow,
+                ),
+                child: const Icon(
+                  Icons.church_rounded,
+                  size: 80,
+                  color: AppColors.softCoral,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 32),
+
               Text(
-                '당신의 모든 완전한 나눔',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
+                'Darak',
+                style: AppTextStyles.headlineLarge.copyWith(
+                  fontSize: 48,
+                  color: AppColors.softCoral,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
-                '교회 공동체를 위한 출석, 소그룹, 행사 관리 앱',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
-                textAlign: TextAlign.center,
+                '공동체를 위한 따뜻한 연결',
+                style: AppTextStyles.bodyLarge.copyWith(
+                  color: AppColors.textGrey,
+                ),
               ),
 
               const Spacer(flex: 2),
 
-              // 기능 하이라이트 (간단한 아이콘 Row)
+              // ─── Feature Icons (Simple & Cute) ───────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _FeatureIcon(
-                    icon: Icons.check_circle_outline,
+                  _CuteFeatureIcon(
+                    icon: Icons.check_circle_rounded,
                     label: '출석',
-                    color: colorScheme.primary,
+                    color: AppColors.sageGreen,
                   ),
-                  _FeatureIcon(
-                    icon: Icons.menu_book,
-                    label: '경건',
-                    color: colorScheme.primary,
+                  _CuteFeatureIcon(
+                    icon: Icons.menu_book_rounded,
+                    label: '말씀',
+                    color: AppColors.warmTangerine,
                   ),
-                  _FeatureIcon(
-                    icon: Icons.people,
-                    label: '공동체',
-                    color: colorScheme.primary,
-                  ),
-                  _FeatureIcon(
-                    icon: Icons.event,
-                    label: '행사',
-                    color: colorScheme.primary,
+                  _CuteFeatureIcon(
+                    icon: Icons.people_rounded,
+                    label: '다락방',
+                    color: AppColors.skyBlue,
                   ),
                 ],
               ),
 
-              const Spacer(flex: 1),
+              const Spacer(flex: 3),
 
-              // 미리보기 버튼
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const HomeScreen(isPreview: true),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.visibility),
-                  label: const Text('미리보기'),
+              // ─── Action Buttons ──────────────────────────────────
+
+              // 1. Preview Mode
+              BouncyButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const HomeScreen(isPreview: true),
+                    ),
+                  );
+                },
+                text: '다락 둘러보기',
+                color: AppColors.softLavender,
+                textColor: AppColors.textDark,
+                icon: const Icon(
+                  Icons.visibility_rounded,
+                  color: AppColors.textDark,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-              // 로그인 버튼
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    );
-                  },
-                  icon: const Icon(Icons.login),
-                  label: const Text('로그인'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
+              // 2. Login / Sign Up
+              BouncyButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  );
+                },
+                text: '로그인 / 시작하기',
+                color: AppColors.softCoral,
+                textColor: Colors.white,
+                icon: const Icon(Icons.login_rounded, color: Colors.white),
               ),
 
               const Spacer(flex: 1),
@@ -123,13 +121,12 @@ class WelcomeScreen extends StatelessWidget {
   }
 }
 
-/// 기능 아이콘 위젯 (환영 화면용)
-class _FeatureIcon extends StatelessWidget {
+class _CuteFeatureIcon extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
 
-  const _FeatureIcon({
+  const _CuteFeatureIcon({
     required this.icon,
     required this.label,
     required this.color,
@@ -140,15 +137,18 @@ class _FeatureIcon extends StatelessWidget {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
+            color: color.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(20),
           ),
-          child: Icon(icon, size: 28, color: color),
+          child: Icon(icon, size: 32, color: color),
         ),
-        const SizedBox(height: 6),
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.bold),
+        ),
       ],
     );
   }

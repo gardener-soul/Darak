@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../viewmodels/auth/auth_view_model.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/common/bouncy_button.dart';
+
+import '../../widgets/common/soft_text_field.dart';
 import 'sign_up_screen.dart';
 import 'verification_waiting_screen.dart';
 
@@ -78,7 +82,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Theme.of(context).colorScheme.error,
+        backgroundColor: AppColors.softCoral,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -95,216 +99,173 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authViewModelProvider);
     final isLoading = authState.isLoading;
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      backgroundColor: AppColors.creamWhite,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 48),
-
-                // ─── 로고 & 타이틀 ──────────────────────
-                Hero(
-                  tag: 'app-logo',
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          colorScheme.primary,
-                          colorScheme.primary.withValues(alpha: 0.7),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ─── 로고 & 타이틀 ──────────────────────
+                  Column(
+                    children: [
+                      // Floating Animation Mockup (Static for now, can be animated with defined widget)
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.pureWhite,
+                          boxShadow: AppDecorations.floatingShadow,
+                        ),
+                        child: Icon(
+                          Icons.church_rounded,
+                          size: 50,
+                          color: AppColors.softCoral,
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(
-                      Icons.church,
-                      size: 44,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  '다시 만나서 반갑습니다',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '로그인하고 공동체를 이어가세요',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 36),
-
-                // ─── 구글 로그인 (맨 위) ────────────────
-                _GoogleSignInButton(
-                  onPressed: isLoading ? null : _handleGoogleLogin,
-                ),
-                const SizedBox(height: 20),
-
-                // ─── 구분선 ──────────────────────────────
-                Row(
-                  children: [
-                    Expanded(child: Divider(color: Colors.grey[300])),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      child: Text(
-                        '또는 이메일로 로그인',
-                        style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Welcome to Darak! 👋',
+                        style: AppTextStyles.headlineLarge,
+                        textAlign: TextAlign.center,
                       ),
-                    ),
-                    Expanded(child: Divider(color: Colors.grey[300])),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                // ─── 이메일 입력 ─────────────────────────
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: '이메일',
-                    hintText: 'example@email.com',
-                    prefixIcon: Icon(Icons.email_outlined),
+                      const SizedBox(height: 8),
+                      Text(
+                        '로그인하고 우리 공동체를 다시 만나요',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textGrey,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return '이메일을 입력해주세요';
-                    if (!v.contains('@')) return '유효한 이메일을 입력해주세요';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 14),
+                  const SizedBox(height: 40),
 
-                // ─── 비밀번호 입력 ───────────────────────
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: '비밀번호',
-                    prefixIcon: const Icon(Icons.lock_outlined),
+                  // ─── 구글 로그인 (맨 위) ────────────────
+                  BouncyButton(
+                    onPressed: isLoading ? null : _handleGoogleLogin,
+                    text: 'Google로 계속하기',
+                    icon: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Text(
+                        'G',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ), // Placeholder for Google Icon
+                    ),
+                    color: Colors.white,
+                    textColor: AppColors.textDark,
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // ─── 구분선 ──────────────────────────────
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: AppColors.divider)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          '또는 이메일로 로그인',
+                          style: AppTextStyles.bodySmall,
+                        ),
+                      ),
+                      Expanded(child: Divider(color: AppColors.divider)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ─── 이메일 입력 ─────────────────────────
+                  SoftTextField(
+                    controller: _emailController,
+                    hintText: '이메일 주소',
+                    keyboardType: TextInputType.emailAddress,
+                    prefixIcon: Icon(
+                      Icons.email_rounded,
+                      color: AppColors.textGrey,
+                    ),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return '이메일을 입력해주세요';
+                      if (!v.contains('@')) return '유효한 이메일을 입력해주세요';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ─── 비밀번호 입력 ───────────────────────
+                  SoftTextField(
+                    controller: _passwordController,
+                    hintText: '비밀번호',
+                    obscureText: _obscurePassword,
+                    prefixIcon: Icon(
+                      Icons.lock_rounded,
+                      color: AppColors.textGrey,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
+                        color: AppColors.textGrey,
                       ),
                       onPressed: () =>
                           setState(() => _obscurePassword = !_obscurePassword),
                     ),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return '비밀번호를 입력해주세요';
+                      return null;
+                    },
                   ),
-                  obscureText: _obscurePassword,
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _handleLogin(),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return '비밀번호를 입력해주세요';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 32),
 
-                // ─── 로그인 버튼 ─────────────────────────
-                FilledButton(
-                  onPressed: isLoading ? null : _handleLogin,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(50),
+                  // ─── 로그인 버튼 ─────────────────────────
+                  BouncyButton(
+                    onPressed: isLoading ? null : _handleLogin,
+                    text: isLoading ? '로그인 중...' : '이메일로 로그인',
+                    color: AppColors.softCoral,
+                    textColor: Colors.white,
                   ),
-                  child: isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+                  const SizedBox(height: 24),
+
+                  // ─── 회원가입 링크 ───────────────────────
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('아직 계정이 없으신가요?', style: AppTextStyles.bodySmall),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const SignUpScreen(),
                           ),
-                        )
-                      : const Text('로그인', style: TextStyle(fontSize: 16)),
-                ),
-                const SizedBox(height: 20),
-
-                // ─── 회원가입 링크 ───────────────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '계정이 없으신가요?',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const SignUpScreen()),
+                        ),
+                        child: Text(
+                          '회원가입',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.softCoral,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      child: const Text('회원가입'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 구글 로그인 버튼 (커스텀 디자인)
-class _GoogleSignInButton extends StatelessWidget {
-  final VoidCallback? onPressed;
-
-  const _GoogleSignInButton({this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(50),
-        side: BorderSide(color: Colors.grey[300]!),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Google "G" 아이콘 (텍스트로 대체 — 실제 배포 시 SVG 사용)
-          Container(
-            width: 22,
-            height: 22,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(4)),
-            child: const Text(
-              'G',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF4285F4), // Google Blue
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          const Text(
-            'Google로 계속하기',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF3C4043),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
