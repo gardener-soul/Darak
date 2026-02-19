@@ -5,7 +5,6 @@ import 'firebase_options.dart';
 import 'core/providers/firebase_providers.dart';
 import 'views/home/home_screen.dart';
 import 'views/welcome/welcome_screen.dart';
-import 'views/auth/verification_waiting_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,7 +73,8 @@ class AuthWrapper extends ConsumerWidget {
     return authState.when(
       data: (user) {
         if (user == null) return const WelcomeScreen();
-        if (!user.emailVerified) return const VerificationWaitingScreen();
+        // [Refactor] 이메일 미인증 상태여도 일단 홈으로 진입시킵니다.
+        // 대신 홈 화면 상단에 인증 배너를 띄웁니다.
         return const HomeScreen();
       },
       loading: () =>

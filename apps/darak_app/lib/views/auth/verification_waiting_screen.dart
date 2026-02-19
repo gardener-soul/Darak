@@ -4,15 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../services/auth_service.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/common/bouncy_button.dart';
+import '../../widgets/common/clay_card.dart';
 
 /// 이메일 인증 대기 화면
-/// - 회원가입 직후 자동 진입 (signup → pushAndRemoveUntil)
-/// - 미인증 로그인 시 자동 진입 (login → pushReplacement)
-/// - AuthWrapper에서도 미인증 유저 감지 시 표시
-///
-/// 3초마다 자동 확인 + 수동 확인 가능
-/// 인증 완료 시: signOut 후 AuthWrapper가 WelcomeScreen을 다시 보여줌
-///   → 유저가 인증된 상태로 로그인할 수 있도록.
 class VerificationWaitingScreen extends ConsumerStatefulWidget {
   const VerificationWaitingScreen({super.key});
 
@@ -58,33 +54,25 @@ class _VerificationWaitingScreenState
       if (authService.isEmailVerified && mounted) {
         _timer?.cancel();
 
-        // 인증 완료 메시지 표시 후 로그아웃 → 다시 로그인하게 유도
-        // (AuthWrapper가 다시 WelcomeScreen 표시)
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('이메일 인증이 완료되었습니다! 로그인해주세요.'),
-            backgroundColor: Colors.green[600],
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
+            backgroundColor: AppColors.sageGreen,
           ),
         );
 
-        // 약간의 딜레이 후 로그아웃 (스낵바를 볼 수 있도록)
         await Future.delayed(const Duration(milliseconds: 500));
         await authService.signOut();
-        // AuthWrapper가 자동으로 WelcomeScreen을 표시
       } else if (!auto && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('아직 인증이 완료되지 않았습니다. 메일함을 확인해주세요.'),
-            behavior: SnackBarBehavior.floating,
+          SnackBar(
+            content: const Text('아직 인증이 완료되지 않았습니다. 메일함을 확인해주세요.'),
+            backgroundColor: AppColors.warmTangerine,
           ),
         );
       }
     } catch (e) {
-      // 무시 (네트워크 오류 등)
+      // Ignore
     } finally {
       if (mounted) setState(() => _isChecking = false);
     }
@@ -102,11 +90,7 @@ class _VerificationWaitingScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('인증 메일을 다시 보냈습니다. 스팸함도 확인해주세요!'),
-            backgroundColor: Colors.green[600],
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
+            backgroundColor: AppColors.sageGreen,
           ),
         );
       }
@@ -115,8 +99,7 @@ class _VerificationWaitingScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('메일 전송 실패: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.softCoral,
           ),
         );
       }
@@ -129,139 +112,135 @@ class _VerificationWaitingScreenState
   Future<void> _handleCancel() async {
     final authService = ref.read(authServiceProvider);
     await authService.signOut();
-    // AuthWrapper가 자동으로 WelcomeScreen을 표시
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
+      backgroundColor: AppColors.creamWhite,
+      // 닫기 버튼을 상단에 추가 (모달/페이지 종료)
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close_rounded, color: AppColors.textGrey),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Spacer(flex: 2),
+              const Spacer(),
 
-              // ─── 아이콘 ──────────────────────────────
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Icon(
-                  Icons.mark_email_unread_outlined,
-                  size: 50,
-                  color: colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // ─── 타이틀 ──────────────────────────────
-              Text(
-                '인증 메일을 확인해주세요',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 14),
-
-              // ─── 설명 ────────────────────────────────
-              Text(
-                '가입하신 이메일로 인증 링크를 보냈습니다.\n메일의 링크를 클릭하면 자동으로 인증됩니다.',
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Colors.grey[600],
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-
-              // 힌트
-              Container(
-                margin: const EdgeInsets.only(top: 8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: Colors.amber.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
+              // ─── Main Content Card ────────────────────────────────
+              ClayCard(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 18,
-                      color: Colors.amber[800],
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: const BoxDecoration(
+                        color: AppColors.softLavender,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.mark_email_unread_rounded,
+                        size: 48,
+                        color: AppColors.pureWhite,
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '메일이 안 오면 스팸함을 확인해주세요!',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.amber[900],
-                        ),
+                    const SizedBox(height: 24),
+                    Text(
+                      '메일함을 확인해주세요',
+                      style: AppTextStyles.headlineMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '가입하신 이메일로 인증 링크를 보냈어요.\n링크를 누르면 자동으로 시작됩니다!',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textGrey,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.warmTangerine.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.info_outline_rounded,
+                            color: AppColors.warmTangerine,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '메일이 안 오면 스팸함을 꼭 확인해주세요!',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.warmTangerine,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
 
-              const Spacer(flex: 2),
+              const SizedBox(height: 32),
 
-              // ─── 인증 확인 버튼 ──────────────────────
-              FilledButton.icon(
+              // ─── Action Buttons ───────────────────────────────────
+
+              // 1. Check Verification
+              BouncyButton(
                 onPressed: _isChecking
                     ? null
                     : () => _checkEmailVerified(auto: false),
+                text: _isChecking ? '확인 중...' : '인증 완료 확인하기',
+                color: AppColors.softCoral,
+                textColor: Colors.white,
                 icon: _isChecking
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.refresh),
-                label: const Text('인증 완료 확인'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50),
-                ),
+                    ? null
+                    : const Icon(
+                        Icons.check_circle_rounded,
+                        color: Colors.white,
+                      ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-              // ─── 메일 재전송 ─────────────────────────
-              OutlinedButton.icon(
+              // 2. Resend Email
+              BouncyButton(
                 onPressed: _isChecking ? null : _resendEmail,
-                icon: const Icon(Icons.send_outlined, size: 18),
-                label: Text(_emailSent ? '인증 메일 다시 보내기 ✓' : '인증 메일 다시 보내기'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50),
-                ),
+                text: _emailSent ? '메일 다시 보내기 ✓' : '인증 메일 다시 보내기',
+                color: AppColors.pureWhite,
+                textColor: AppColors.textDark,
+                icon: const Icon(Icons.send_rounded, color: AppColors.textDark),
               ),
-              const SizedBox(height: 20),
 
-              // ─── 취소 / 다른 계정 ────────────────────
+              const Spacer(),
+
+              // ─── Cancel Link ─────────────────────────────────────
               TextButton(
                 onPressed: _handleCancel,
                 child: Text(
-                  '다른 계정으로 로그인',
-                  style: TextStyle(color: Colors.grey[600]),
+                  '다른 이메일로 시작하기',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    decoration: TextDecoration.underline,
+                  ),
                 ),
               ),
-
-              const Spacer(flex: 1),
+              const SizedBox(height: 16),
             ],
           ),
         ),
