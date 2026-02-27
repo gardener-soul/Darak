@@ -35,6 +35,10 @@ mixin _$User {
   String? get profileImageUrl =>
       throw _privateConstructorUsedError; // 프로필 이미지 URL
   String? get bio => throw _privateConstructorUsedError; // 상태 메시지 (마이페이지)
+  List<String>? get prayerRequests =>
+      throw _privateConstructorUsedError; // 개인 기도 제목 리스트
+  Map<String, dynamic>? get attendanceStats =>
+      throw _privateConstructorUsedError; // 출석 통계 캐시 (예: {"total": 12, "attended": 10})
   DateTime get createdAt => throw _privateConstructorUsedError; // 생성일시
   DateTime get updatedAt => throw _privateConstructorUsedError; // 수정일시
   DateTime? get deletedAt => throw _privateConstructorUsedError;
@@ -65,6 +69,8 @@ abstract class $UserCopyWith<$Res> {
     List<String>? clubIds,
     String? profileImageUrl,
     String? bio,
+    List<String>? prayerRequests,
+    Map<String, dynamic>? attendanceStats,
     DateTime createdAt,
     DateTime updatedAt,
     DateTime? deletedAt,
@@ -97,6 +103,8 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? clubIds = freezed,
     Object? profileImageUrl = freezed,
     Object? bio = freezed,
+    Object? prayerRequests = freezed,
+    Object? attendanceStats = freezed,
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? deletedAt = freezed,
@@ -147,6 +155,14 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
                 ? _value.bio
                 : bio // ignore: cast_nullable_to_non_nullable
                       as String?,
+            prayerRequests: freezed == prayerRequests
+                ? _value.prayerRequests
+                : prayerRequests // ignore: cast_nullable_to_non_nullable
+                      as List<String>?,
+            attendanceStats: freezed == attendanceStats
+                ? _value.attendanceStats
+                : attendanceStats // ignore: cast_nullable_to_non_nullable
+                      as Map<String, dynamic>?,
             createdAt: null == createdAt
                 ? _value.createdAt
                 : createdAt // ignore: cast_nullable_to_non_nullable
@@ -185,6 +201,8 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
     List<String>? clubIds,
     String? profileImageUrl,
     String? bio,
+    List<String>? prayerRequests,
+    Map<String, dynamic>? attendanceStats,
     DateTime createdAt,
     DateTime updatedAt,
     DateTime? deletedAt,
@@ -214,6 +232,8 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? clubIds = freezed,
     Object? profileImageUrl = freezed,
     Object? bio = freezed,
+    Object? prayerRequests = freezed,
+    Object? attendanceStats = freezed,
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? deletedAt = freezed,
@@ -264,6 +284,14 @@ class __$$UserImplCopyWithImpl<$Res>
             ? _value.bio
             : bio // ignore: cast_nullable_to_non_nullable
                   as String?,
+        prayerRequests: freezed == prayerRequests
+            ? _value._prayerRequests
+            : prayerRequests // ignore: cast_nullable_to_non_nullable
+                  as List<String>?,
+        attendanceStats: freezed == attendanceStats
+            ? _value._attendanceStats
+            : attendanceStats // ignore: cast_nullable_to_non_nullable
+                  as Map<String, dynamic>?,
         createdAt: null == createdAt
             ? _value.createdAt
             : createdAt // ignore: cast_nullable_to_non_nullable
@@ -296,10 +324,14 @@ class _$UserImpl implements _User {
     final List<String>? clubIds,
     this.profileImageUrl,
     this.bio,
+    final List<String>? prayerRequests,
+    final Map<String, dynamic>? attendanceStats,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
-  }) : _clubIds = clubIds;
+  }) : _clubIds = clubIds,
+       _prayerRequests = prayerRequests,
+       _attendanceStats = attendanceStats;
 
   factory _$UserImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserImplFromJson(json);
@@ -346,6 +378,30 @@ class _$UserImpl implements _User {
   @override
   final String? bio;
   // 상태 메시지 (마이페이지)
+  final List<String>? _prayerRequests;
+  // 상태 메시지 (마이페이지)
+  @override
+  List<String>? get prayerRequests {
+    final value = _prayerRequests;
+    if (value == null) return null;
+    if (_prayerRequests is EqualUnmodifiableListView) return _prayerRequests;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
+
+  // 개인 기도 제목 리스트
+  final Map<String, dynamic>? _attendanceStats;
+  // 개인 기도 제목 리스트
+  @override
+  Map<String, dynamic>? get attendanceStats {
+    final value = _attendanceStats;
+    if (value == null) return null;
+    if (_attendanceStats is EqualUnmodifiableMapView) return _attendanceStats;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(value);
+  }
+
+  // 출석 통계 캐시 (예: {"total": 12, "attended": 10})
   @override
   final DateTime createdAt;
   // 생성일시
@@ -357,7 +413,7 @@ class _$UserImpl implements _User {
 
   @override
   String toString() {
-    return 'User(id: $id, name: $name, phone: $phone, email: $email, role: $role, birthDate: $birthDate, registerDate: $registerDate, groupId: $groupId, clubIds: $clubIds, profileImageUrl: $profileImageUrl, bio: $bio, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
+    return 'User(id: $id, name: $name, phone: $phone, email: $email, role: $role, birthDate: $birthDate, registerDate: $registerDate, groupId: $groupId, clubIds: $clubIds, profileImageUrl: $profileImageUrl, bio: $bio, prayerRequests: $prayerRequests, attendanceStats: $attendanceStats, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
   }
 
   @override
@@ -379,6 +435,14 @@ class _$UserImpl implements _User {
             (identical(other.profileImageUrl, profileImageUrl) ||
                 other.profileImageUrl == profileImageUrl) &&
             (identical(other.bio, bio) || other.bio == bio) &&
+            const DeepCollectionEquality().equals(
+              other._prayerRequests,
+              _prayerRequests,
+            ) &&
+            const DeepCollectionEquality().equals(
+              other._attendanceStats,
+              _attendanceStats,
+            ) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -402,6 +466,8 @@ class _$UserImpl implements _User {
     const DeepCollectionEquality().hash(_clubIds),
     profileImageUrl,
     bio,
+    const DeepCollectionEquality().hash(_prayerRequests),
+    const DeepCollectionEquality().hash(_attendanceStats),
     createdAt,
     updatedAt,
     deletedAt,
@@ -434,6 +500,8 @@ abstract class _User implements User {
     final List<String>? clubIds,
     final String? profileImageUrl,
     final String? bio,
+    final List<String>? prayerRequests,
+    final Map<String, dynamic>? attendanceStats,
     required final DateTime createdAt,
     required final DateTime updatedAt,
     final DateTime? deletedAt,
@@ -463,6 +531,10 @@ abstract class _User implements User {
   String? get profileImageUrl; // 프로필 이미지 URL
   @override
   String? get bio; // 상태 메시지 (마이페이지)
+  @override
+  List<String>? get prayerRequests; // 개인 기도 제목 리스트
+  @override
+  Map<String, dynamic>? get attendanceStats; // 출석 통계 캐시 (예: {"total": 12, "attended": 10})
   @override
   DateTime get createdAt; // 생성일시
   @override
