@@ -41,11 +41,22 @@ class UserRepository {
   // ─── 실시간 스트림 구독 ─────────────────────────────────────
   /// [uid]에 해당하는 유저 문서를 실시간으로 구독합니다.
   /// 마이페이지 진입 시 매번 get()하지 않고 이 스트림을 watch합니다.
+  ///
+  /// [includeMetadataChanges: true] → 오프라인 캐시 데이터도 즉시 전달
+  /// [handleError] → Firestore JSON ↔ Freezed 역직렬화 실패 시 스트림 끊김 방지
   Stream<User?> watchUser(String uid) {
-    return _usersRef.doc(uid).snapshots().map((snapshot) {
-      if (!snapshot.exists || snapshot.data() == null) return null;
-      return User.fromJson(snapshot.data()!);
-    });
+    return _usersRef
+        .doc(uid)
+        .snapshots(includeMetadataChanges: true)
+        .map((snapshot) {
+          if (!snapshot.exists || snapshot.data() == null) return null;
+          return User.fromJson(snapshot.data()!);
+        })
+        .handleError((error) {
+          // 역직렬화 실패 시에도 스트림을 끊지 않고 null 반환
+          // (예: Firestore 문서에 예상치 못한 필드 타입이 들어온 경우)
+          return null;
+        });
   }
 
   // ─── 프로필 정보 수정 (bio, profileImageUrl) ────────────────

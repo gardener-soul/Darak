@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/providers/firebase_providers.dart';
+import '../../core/providers/user_providers.dart';
+import '../../models/user.dart' as app_user;
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/clay_card.dart';
@@ -12,8 +14,8 @@ import 'widgets/profile_edit_bottom_sheet.dart';
 
 /// 마이페이지 (사용자 프로필) 화면
 ///
-/// Phase 2: 새 UI 컴포넌트들을 조립한 레이아웃
-/// Phase 3에서 currentUserProvider 바인딩으로 전환 예정
+/// Phase 3: currentUserProvider 바인딩으로 Firestore 실데이터 연동
+/// AsyncValue 기반 로딩/에러/데이터 3분기 처리
 class UserProfileScreen extends ConsumerStatefulWidget {
   const UserProfileScreen({super.key});
 
@@ -23,6 +25,23 @@ class UserProfileScreen extends ConsumerStatefulWidget {
 
 class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   bool _isLoggingOut = false;
+  Timer? _shimmerTimer;
+  bool _shimmerFlag = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 800ms 주기로 Shimmer 깜빡임 애니메이션 (Pulse) 강제 발생
+    _shimmerTimer = Timer.periodic(const Duration(milliseconds: 800), (timer) {
+      if (mounted) setState(() => _shimmerFlag = !_shimmerFlag);
+    });
+  }
+
+  @override
+  void dispose() {
+    _shimmerTimer?.cancel();
+    super.dispose();
+  }
 
   // ─── 로그아웃 ───────────────────────────────────────────────
   Future<void> _handleLogout() async {
@@ -90,21 +109,42 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => ProfileEditBottomSheet(
         currentBio: currentBio,
-        onSave: () {
-          // Phase 3에서 낙관적 UI 업데이트 추가 예정
-        },
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Phase 2: Firebase Auth 데이터 사용 (Phase 3에서 currentUserProvider로 전환)
-    final user = ref.watch(firebaseAuthProvider).currentUser;
-    final displayName = user?.displayName ?? '사용자';
-    final email = user?.email ?? '';
-    final photoUrl = user?.photoURL;
-    final createdAt = user?.metadata.creationTime;
+    // ═══════════════════════════════════════════════════════════
+    // Phase 3 핵심: currentUserProvider (AsyncValue<User?>) 구독
+    // ═══════════════════════════════════════════════════════════
+    final userAsync = ref.watch(currentUserProvider);
+
+    return userAsync.when(
+      // ─── 로딩 상태: Shimmer 스켈레톤 UI ─────────────────────
+      loading: () => _buildLoadingState(),
+      // ─── 에러 상태: Fallback UI ────────────────────────────
+      error: (error, stack) => _buildErrorState(error),
+      // ─── 데이터 상태: 메인 UI ──────────────────────────────
+      data: (user) {
+        if (user == null) {
+          // Firestore에 유저 문서가 아직 없거나 로그아웃 진행 중
+          return _buildLoadingState();
+        }
+        return _buildProfileContent(user);
+      },
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 정상 데이터 UI (메인 프로필 화면)
+  // ═══════════════════════════════════════════════════════════════
+  Widget _buildProfileContent(app_user.User user) {
+    // 출석 통계 파싱 (null 안전)
+    final stats = user.attendanceStats;
+    final attendanceTotal = stats?['total'] as int?;
+    final attendanceAttended = stats?['attended'] as int?;
+    final prayerCount = user.prayerRequests?.length ?? 0;
 
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
@@ -118,25 +158,24 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
 
           // ─── 프로필 헤더 카드 (§6.1 Clay Avatar) ──────────────
           UserProfileHeader(
-            displayName: displayName,
-            email: email,
-            photoUrl: photoUrl,
-            registerDate: createdAt,
-            // Phase 2: bio는 아직 더미 / Phase 3에서 Firestore 연동
-            bio: null,
-            onEditPressed: () => _openEditProfileSheet(),
+            displayName: user.name,
+            email: user.email ?? '',
+            photoUrl: user.profileImageUrl,
+            registerDate: user.registerDate ?? user.createdAt,
+            bio: user.bio,
+            onEditPressed: () => _openEditProfileSheet(currentBio: user.bio),
           ),
           const SizedBox(height: 24),
 
           // ─── 통계 대시보드 (§6.2 Stats Dashboard) ─────────────
           Text('내 활동 요약', style: AppTextStyles.headlineMedium),
           const SizedBox(height: 16),
-          const UserStatsDashboard(
-            // Phase 2: 더미 데이터 / Phase 3에서 실제 데이터 바인딩
-            groupName: null,
-            attendanceTotal: null,
-            attendanceAttended: null,
-            prayerRequestCount: 0,
+          UserStatsDashboard(
+            // Phase 3: Firestore 실데이터 바인딩
+            groupName: null, // TODO: groupId로 group name 조회 (추후 구현)
+            attendanceTotal: attendanceTotal,
+            attendanceAttended: attendanceAttended,
+            prayerRequestCount: prayerCount,
           ),
           const SizedBox(height: 24),
 
@@ -146,6 +185,123 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
           _buildMenuSection(),
           const SizedBox(height: 32),
         ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 로딩 상태 UI (Shimmer 스켈레톤)
+  // ═══════════════════════════════════════════════════════════════
+  Widget _buildLoadingState() {
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('마이페이지', style: AppTextStyles.headlineLarge),
+          const SizedBox(height: 24),
+          // 프로필 헤더 스켈레톤
+          ClayCard(
+            child: Row(
+              children: [
+                _shimmerBox(80, 80, isCircle: true),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _shimmerBox(160, 20),
+                      const SizedBox(height: 8),
+                      _shimmerBox(120, 14),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          // 통계 대시보드 스켈레톤
+          _shimmerBox(double.infinity, 16, width: 100),
+          const SizedBox(height: 16),
+          _shimmerBox(double.infinity, 140),
+          const SizedBox(height: 24),
+          // 메뉴 스켈레톤
+          _shimmerBox(double.infinity, 16, width: 60),
+          const SizedBox(height: 16),
+          _shimmerBox(double.infinity, 200),
+        ],
+      ),
+    );
+  }
+
+  /// Shimmer 효과를 내는 네모/원 스켈레톤 박스
+  Widget _shimmerBox(double maxWidth, double height,
+      {double? width, bool isCircle = false}) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 800),
+      curve: Curves.easeInOut,
+      width: width ?? maxWidth,
+      height: height,
+      decoration: BoxDecoration(
+        color: AppColors.divider.withValues(alpha: _shimmerFlag ? 0.2 : 0.6),
+        borderRadius: isCircle ? null : BorderRadius.circular(12),
+        shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 에러 상태 Fallback UI
+  // ═══════════════════════════════════════════════════════════════
+  Widget _buildErrorState(Object error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(48),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.softCoral.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.cloud_off_rounded,
+                size: 64,
+                color: AppColors.softCoral,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              '프로필을 불러올 수 없어요',
+              style: AppTextStyles.headlineMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '네트워크 연결을 확인하고 다시 시도해주세요.',
+              style: AppTextStyles.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: () => ref.invalidate(currentUserProvider),
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('다시 시도'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.softCoral,
+                side: const BorderSide(color: AppColors.softCoral),
+                shape: RoundedRectangleBorder(
+                  borderRadius: AppDecorations.buttonRadius,
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -239,7 +395,8 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                   ),
                 ),
                 children: [
-                  Text('교회 청년부를 위한 공동체 앱', style: AppTextStyles.bodyMedium),
+                  Text('교회 청년부를 위한 공동체 앱',
+                      style: AppTextStyles.bodyMedium),
                 ],
               );
             },
