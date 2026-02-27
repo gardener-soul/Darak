@@ -6,11 +6,14 @@ import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/clay_card.dart';
 import 'widgets/user_profile_header.dart';
-import 'widgets/user_stats_card.dart';
+import 'widgets/user_stats_dashboard.dart';
 import 'widgets/user_menu_tile.dart';
 import 'widgets/profile_edit_bottom_sheet.dart';
 
 /// 마이페이지 (사용자 프로필) 화면
+///
+/// Phase 2: 새 UI 컴포넌트들을 조립한 레이아웃
+/// Phase 3에서 currentUserProvider 바인딩으로 전환 예정
 class UserProfileScreen extends ConsumerStatefulWidget {
   const UserProfileScreen({super.key});
 
@@ -20,12 +23,6 @@ class UserProfileScreen extends ConsumerStatefulWidget {
 
 class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   bool _isLoggingOut = false;
-
-  // ─── 가입일 포맷 헬퍼 ───────────────────────────────────────
-  String _formatDate(DateTime? date) {
-    if (date == null) return '-';
-    return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
-  }
 
   // ─── 로그아웃 ───────────────────────────────────────────────
   Future<void> _handleLogout() async {
@@ -86,14 +83,15 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   }
 
   // ─── 프로필 수정 바텀시트 열기 ────────────────────────────────
-  void _openEditProfileSheet() {
+  void _openEditProfileSheet({String? currentBio}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => ProfileEditBottomSheet(
+        currentBio: currentBio,
         onSave: () {
-          // 저장 후 추가 동작 필요 시 여기에 작성
+          // Phase 3에서 낙관적 UI 업데이트 추가 예정
         },
       ),
     );
@@ -101,11 +99,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Phase 2: Firebase Auth 데이터 사용 (Phase 3에서 currentUserProvider로 전환)
     final user = ref.watch(firebaseAuthProvider).currentUser;
     final displayName = user?.displayName ?? '사용자';
     final email = user?.email ?? '';
     final photoUrl = user?.photoURL;
-    // Firebase Auth의 creationTime 사용
     final createdAt = user?.metadata.creationTime;
 
     return SingleChildScrollView(
@@ -118,64 +116,37 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
           Text('마이페이지', style: AppTextStyles.headlineLarge),
           const SizedBox(height: 24),
 
-          // ─── 프로필 헤더 카드 ─────────────────────────────────
+          // ─── 프로필 헤더 카드 (§6.1 Clay Avatar) ──────────────
           UserProfileHeader(
             displayName: displayName,
             email: email,
             photoUrl: photoUrl,
-            onEditPressed: _openEditProfileSheet,
+            registerDate: createdAt,
+            // Phase 2: bio는 아직 더미 / Phase 3에서 Firestore 연동
+            bio: null,
+            onEditPressed: () => _openEditProfileSheet(),
           ),
           const SizedBox(height: 24),
 
-          // ─── 통계 섹션 ───────────────────────────────────────
+          // ─── 통계 대시보드 (§6.2 Stats Dashboard) ─────────────
           Text('내 활동 요약', style: AppTextStyles.headlineMedium),
           const SizedBox(height: 16),
-          _buildStatsRow(createdAt: createdAt),
+          const UserStatsDashboard(
+            // Phase 2: 더미 데이터 / Phase 3에서 실제 데이터 바인딩
+            groupName: null,
+            attendanceTotal: null,
+            attendanceAttended: null,
+            prayerRequestCount: 0,
+          ),
           const SizedBox(height: 24),
 
-          // ─── 메뉴 리스트 ─────────────────────────────────────
+          // ─── 메뉴 리스트 (§6.3 Bouncing Animation) ────────────
           Text('설정', style: AppTextStyles.headlineMedium),
           const SizedBox(height: 16),
           _buildMenuSection(),
           const SizedBox(height: 32),
         ],
       ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════
-  // 통계 카드 Row
-  // ═══════════════════════════════════════════════════════════════
-  Widget _buildStatsRow({DateTime? createdAt}) {
-    return Row(
-      children: [
-        Expanded(
-          child: UserStatsCard(
-            icon: Icons.calendar_today_rounded,
-            label: '가입일',
-            value: _formatDate(createdAt),
-            color: AppColors.skyBlue,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: UserStatsCard(
-            icon: Icons.check_circle_rounded,
-            label: '출석률',
-            value: '--%',
-            color: AppColors.sageGreen,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: UserStatsCard(
-            icon: Icons.favorite_rounded,
-            label: '기도 제목',
-            value: '0건',
-            color: AppColors.softLavender,
-          ),
-        ),
-      ],
     );
   }
 
@@ -192,6 +163,25 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             title: '내 다락방(공동체)',
             subtitle: '소속 공동체 확인',
             color: AppColors.softLavender,
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('준비 중인 기능입니다 🔜'),
+                  backgroundColor: AppColors.warmTangerine,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              );
+            },
+          ),
+          _buildDivider(),
+          UserMenuTile(
+            icon: Icons.menu_book_rounded,
+            title: '내 기도 제목',
+            subtitle: '기도 제목 관리',
+            color: AppColors.sageGreen,
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -272,7 +262,10 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   Widget _buildDivider() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Divider(height: 1, color: AppColors.divider.withOpacity(0.5)),
+      child: Divider(
+        height: 1,
+        color: AppColors.divider.withValues(alpha: 0.5),
+      ),
     );
   }
 }
