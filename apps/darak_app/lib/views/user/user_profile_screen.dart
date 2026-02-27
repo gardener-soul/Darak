@@ -7,9 +7,11 @@ import '../../models/user.dart' as app_user;
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/clay_card.dart';
+import '../../widgets/common/core/app_bottom_sheet.dart';
+import '../../widgets/common/core/clay_list_tile.dart';
+import '../../widgets/common/core/soft_dialog.dart';
 import 'widgets/user_profile_header.dart';
 import 'widgets/user_stats_dashboard.dart';
-import 'widgets/user_menu_tile.dart';
 import 'widgets/profile_edit_bottom_sheet.dart';
 
 /// 마이페이지 (사용자 프로필) 화면
@@ -45,37 +47,22 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
 
   // ─── 로그아웃 ───────────────────────────────────────────────
   Future<void> _handleLogout() async {
-    final confirm = await showDialog<bool>(
+    // Phase 3 Migration: SoftDialog로 교체
+    final confirm = await SoftDialog.show<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: AppDecorations.defaultRadius,
+      title: '로그아웃',
+      content: '정말 로그아웃 하시겠어요?',
+      actions: [
+        SoftDialogAction(
+          label: '취소',
+          onPressed: () => Navigator.of(context).pop(false),
         ),
-        backgroundColor: AppColors.creamWhite,
-        title: Text('로그아웃', style: AppTextStyles.headlineMedium),
-        content: Text('정말 로그아웃 하시겠어요?', style: AppTextStyles.bodyMedium),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              '취소',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textGrey,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(
-              '로그아웃',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.softCoral,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
+        SoftDialogAction(
+          label: '로그아웃',
+          isDestructive: true,
+          onPressed: () => Navigator.of(context).pop(true),
+        ),
+      ],
     );
 
     if (confirm == true && mounted) {
@@ -103,13 +90,10 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
 
   // ─── 프로필 수정 바텀시트 열기 ────────────────────────────────
   void _openEditProfileSheet({String? currentBio}) {
-    showModalBottomSheet(
+    // Phase 3 Migration: AppBottomSheet.show()로 교체
+    AppBottomSheet.show(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ProfileEditBottomSheet(
-        currentBio: currentBio,
-      ),
+      child: ProfileEditBottomSheet(currentBio: currentBio),
     );
   }
 
@@ -236,8 +220,12 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   }
 
   /// Shimmer 효과를 내는 네모/원 스켈레톤 박스
-  Widget _shimmerBox(double maxWidth, double height,
-      {double? width, bool isCircle = false}) {
+  Widget _shimmerBox(
+    double maxWidth,
+    double height, {
+    double? width,
+    bool isCircle = false,
+  }) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 800),
       curve: Curves.easeInOut,
@@ -296,8 +284,10 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: AppDecorations.buttonRadius,
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 14,
+                ),
               ),
             ),
           ],
@@ -314,11 +304,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
       child: Column(
         children: [
-          UserMenuTile(
-            icon: Icons.people_rounded,
+          ClayListTile(
+            leadingIcon: Icons.people_rounded,
             title: '내 다락방(공동체)',
             subtitle: '소속 공동체 확인',
-            color: AppColors.softLavender,
+            leadingColor: AppColors.softLavender,
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -333,11 +323,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             },
           ),
           _buildDivider(),
-          UserMenuTile(
-            icon: Icons.menu_book_rounded,
+          ClayListTile(
+            leadingIcon: Icons.menu_book_rounded,
             title: '내 기도 제목',
             subtitle: '기도 제목 관리',
-            color: AppColors.sageGreen,
+            leadingColor: AppColors.sageGreen,
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -352,11 +342,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             },
           ),
           _buildDivider(),
-          UserMenuTile(
-            icon: Icons.notifications_rounded,
+          ClayListTile(
+            leadingIcon: Icons.notifications_rounded,
             title: '알림 설정',
             subtitle: '푸시 알림 관리',
-            color: AppColors.warmTangerine,
+            leadingColor: AppColors.warmTangerine,
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -371,11 +361,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             },
           ),
           _buildDivider(),
-          UserMenuTile(
-            icon: Icons.info_rounded,
+          ClayListTile(
+            leadingIcon: Icons.info_rounded,
             title: '앱 정보',
             subtitle: '버전 1.0.0 (MVP)',
-            color: AppColors.skyBlue,
+            leadingColor: AppColors.skyBlue,
             onTap: () {
               showAboutDialog(
                 context: context,
@@ -395,18 +385,17 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                   ),
                 ),
                 children: [
-                  Text('교회 청년부를 위한 공동체 앱',
-                      style: AppTextStyles.bodyMedium),
+                  Text('교회 청년부를 위한 공동체 앱', style: AppTextStyles.bodyMedium),
                 ],
               );
             },
           ),
           _buildDivider(),
-          UserMenuTile(
-            icon: Icons.logout_rounded,
+          ClayListTile(
+            leadingIcon: Icons.logout_rounded,
             title: '로그아웃',
             subtitle: '계정에서 로그아웃',
-            color: AppColors.softCoral,
+            leadingColor: AppColors.softCoral,
             isDestructive: true,
             isLoading: _isLoggingOut,
             onTap: _isLoggingOut ? null : _handleLogout,
