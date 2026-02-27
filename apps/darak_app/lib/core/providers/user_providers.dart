@@ -31,7 +31,7 @@ Stream<User?> currentUser(Ref ref) {
     },
     // 로딩 또는 에러 상태일 땐 null 처리하여 UI가 에러/로딩 화면을 띄울 수 있게 함
     loading: () => Stream.value(null),
-    error: (_, __) => Stream.value(null),
+    error: (err, stack) => Stream.value(null),
   );
 }
 

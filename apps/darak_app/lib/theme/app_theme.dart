@@ -102,7 +102,7 @@ class AppDecorations {
   static List<BoxShadow> clayShadow = [
     // 1. Dark Shadow (Bottom Right) - Gives depth
     BoxShadow(
-      color: AppColors.clayShadow.withOpacity(0.6),
+      color: AppColors.clayShadow.withValues(alpha: 0.6),
       offset: const Offset(8, 8),
       blurRadius: 16,
       spreadRadius: 0,
@@ -123,7 +123,7 @@ class AppDecorations {
     // we use a subtle drop shadow for inputs to make them pop *out*
     // or just flat with a border. Let's make them pop out slightly but cleaner.
     BoxShadow(
-      color: AppColors.clayShadow.withOpacity(0.4),
+      color: AppColors.clayShadow.withValues(alpha: 0.4),
       offset: const Offset(4, 4),
       blurRadius: 8,
       spreadRadius: 0,
@@ -133,7 +133,7 @@ class AppDecorations {
   /// Shadow for Floating Interface Elements
   static List<BoxShadow> floatingShadow = [
     BoxShadow(
-      color: AppColors.softCoral.withOpacity(0.3),
+      color: AppColors.softCoral.withValues(alpha: 0.3),
       offset: const Offset(0, 10),
       blurRadius: 20,
       spreadRadius: 0,
@@ -156,7 +156,6 @@ class AppTheme {
       // Color Scheme
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.softCoral,
-        background: AppColors.creamWhite,
         surface: AppColors.creamWhite,
         primary: AppColors.softCoral,
         secondary: AppColors.warmTangerine,
@@ -190,7 +189,7 @@ class AppTheme {
           foregroundColor: Colors.white,
           elevation:
               0, // We will use custom decorations usually, but for default:
-          shadowColor: AppColors.softCoral.withOpacity(0.4),
+          shadowColor: AppColors.softCoral.withValues(alpha: 0.4),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: AppDecorations.buttonRadius,

@@ -29,7 +29,7 @@ class HomeBentoCard extends StatelessWidget {
     final effectiveTextColor =
         textColor ?? (isDark ? Colors.white : AppColors.textDark);
     final effectiveSubtitleColor = isDark
-        ? Colors.white.withOpacity(0.8)
+        ? Colors.white.withValues(alpha: 0.8)
         : AppColors.textGrey;
 
     return GestureDetector(
@@ -48,7 +48,7 @@ class HomeBentoCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(

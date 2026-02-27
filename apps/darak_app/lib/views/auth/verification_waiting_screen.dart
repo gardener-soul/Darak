@@ -172,7 +172,7 @@ class _VerificationWaitingScreenState
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.warmTangerine.withOpacity(0.1),
+                        color: AppColors.warmTangerine.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
