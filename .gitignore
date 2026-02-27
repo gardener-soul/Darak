@@ -47,6 +47,7 @@ nul
 
 # 사용자 설정 파일
 .claude/
+.agent/
 
 # Security keys
 *.keystore
