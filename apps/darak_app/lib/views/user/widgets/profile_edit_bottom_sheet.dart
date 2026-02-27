@@ -1,22 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/providers/user_providers.dart';
+import '../../../repositories/user_repository.dart';
 import '../../../theme/app_theme.dart';
 
-class ProfileEditBottomSheet extends StatefulWidget {
+/// 프로필 수정 바텀시트 (bio 상태 메시지 수정)
+///
+/// Phase 1에서 구축한 UserRepository를 통해
+/// Firestore에 실제로 bio를 저장합니다.
+class ProfileEditBottomSheet extends ConsumerStatefulWidget {
+  final String? currentBio;
   final VoidCallback? onSave;
 
-  const ProfileEditBottomSheet({super.key, this.onSave});
+  const ProfileEditBottomSheet({
+    super.key,
+    this.currentBio,
+    this.onSave,
+  });
 
   @override
-  State<ProfileEditBottomSheet> createState() => _ProfileEditBottomSheetState();
+  ConsumerState<ProfileEditBottomSheet> createState() =>
+      _ProfileEditBottomSheetState();
 }
 
-class _ProfileEditBottomSheetState extends State<ProfileEditBottomSheet> {
+class _ProfileEditBottomSheetState
+    extends ConsumerState<ProfileEditBottomSheet> {
   late TextEditingController _controller;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController();
+    _controller = TextEditingController(text: widget.currentBio ?? '');
   }
 
   @override
@@ -25,12 +41,65 @@ class _ProfileEditBottomSheetState extends State<ProfileEditBottomSheet> {
     super.dispose();
   }
 
+  // ─── bio 저장 로직 ─────────────────────────────────────────
+  Future<void> _saveBio() async {
+    final uid = ref.read(currentUserIdProvider);
+    if (uid == null) return;
+
+    final newBio = _controller.text.trim();
+
+    // ⚠️ 경고 대응: 기존 입력값과 똑같다면 불필요한 Firestore 쓰기 없이 조기 종료
+    if (newBio == (widget.currentBio ?? '')) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      await ref.read(userRepositoryProvider).updateUserProfile(
+            uid,
+            bio: newBio,
+          );
+
+      if (mounted) {
+        widget.onSave?.call();
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('프로필이 저장되었습니다! ✅'),
+            backgroundColor: AppColors.sageGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('저장 실패: $e'),
+            backgroundColor: AppColors.softCoral,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.creamWhite,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       padding: EdgeInsets.only(
         top: 24,
@@ -38,8 +107,10 @@ class _ProfileEditBottomSheetState extends State<ProfileEditBottomSheet> {
         right: 24,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      // 🚨 CRITICAL FIX: 스크롤뷰로 감싸서, 키보드에 밀려 올라간 컴포넌트들의 RenderFlex Overflow 방지
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 핸들 바
@@ -69,6 +140,7 @@ class _ProfileEditBottomSheetState extends State<ProfileEditBottomSheet> {
               controller: _controller,
               maxLength: 50,
               maxLines: 2,
+              enabled: !_isSaving,
               decoration: InputDecoration(
                 hintText: '오늘 하루도 감사해요 🙏',
                 border: InputBorder.none,
@@ -83,28 +155,24 @@ class _ProfileEditBottomSheetState extends State<ProfileEditBottomSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                // TODO: Firestore에 bio 저장 (고도화 시)
-                widget.onSave?.call();
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('프로필이 저장되었습니다! ✅'),
-                    backgroundColor: AppColors.sageGreen,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                );
-              },
+              onPressed: _isSaving ? null : _saveBio,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              child: const Text('저장'),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('저장'),
             ),
           ),
         ],
+      ),
       ),
     );
   }
