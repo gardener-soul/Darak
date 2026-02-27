@@ -23,6 +23,11 @@ _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
       ?.map((e) => e as String)
       .toList(),
   profileImageUrl: json['profileImageUrl'] as String?,
+  bio: json['bio'] as String?,
+  prayerRequests: (json['prayerRequests'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
+  attendanceStats: json['attendanceStats'] as Map<String, dynamic>?,
   createdAt: DateTime.parse(json['createdAt'] as String),
   updatedAt: DateTime.parse(json['updatedAt'] as String),
   deletedAt: json['deletedAt'] == null
@@ -42,6 +47,9 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'groupId': instance.groupId,
       'clubIds': instance.clubIds,
       'profileImageUrl': instance.profileImageUrl,
+      'bio': instance.bio,
+      'prayerRequests': instance.prayerRequests,
+      'attendanceStats': instance.attendanceStats,
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),
       'deletedAt': instance.deletedAt?.toIso8601String(),
