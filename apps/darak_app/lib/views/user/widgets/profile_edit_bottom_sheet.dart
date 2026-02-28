@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/user_providers.dart';
 import '../../../repositories/user_repository.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/common/core/app_bottom_sheet.dart';
 
 /// 프로필 수정 바텀시트 (bio 상태 메시지 수정)
 ///
@@ -13,11 +14,7 @@ class ProfileEditBottomSheet extends ConsumerStatefulWidget {
   final String? currentBio;
   final VoidCallback? onSave;
 
-  const ProfileEditBottomSheet({
-    super.key,
-    this.currentBio,
-    this.onSave,
-  });
+  const ProfileEditBottomSheet({super.key, this.currentBio, this.onSave});
 
   @override
   ConsumerState<ProfileEditBottomSheet> createState() =>
@@ -57,10 +54,9 @@ class _ProfileEditBottomSheetState
     setState(() => _isSaving = true);
 
     try {
-      await ref.read(userRepositoryProvider).updateUserProfile(
-            uid,
-            bio: newBio,
-          );
+      await ref
+          .read(userRepositoryProvider)
+          .updateUserProfile(uid, bio: newBio);
 
       if (mounted) {
         widget.onSave?.call();
@@ -96,35 +92,12 @@ class _ProfileEditBottomSheetState
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.creamWhite,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      padding: EdgeInsets.only(
-        top: 24,
-        left: 24,
-        right: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      // 🚨 CRITICAL FIX: 스크롤뷰로 감싸서, 키보드에 밀려 올라간 컴포넌트들의 RenderFlex Overflow 방지
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    // Phase 3 Migration: AppBottomSheet로 껍데기(핸들바, 둥근 모서리, 키보드 SafeArea) 위임
+    return AppBottomSheet(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 핸들 바
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
           Text('프로필 수정', style: AppTextStyles.headlineMedium),
           const SizedBox(height: 8),
           Text('상태 메시지를 입력해보세요 ✨', style: AppTextStyles.bodySmall),
@@ -172,7 +145,6 @@ class _ProfileEditBottomSheetState
             ),
           ),
         ],
-      ),
       ),
     );
   }

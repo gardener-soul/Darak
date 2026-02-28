@@ -74,7 +74,7 @@ class HomeDashboard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.warmTangerine.withOpacity(0.1),
+                      color: AppColors.warmTangerine.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: AppColors.warmTangerine),
                     ),
@@ -123,7 +123,7 @@ class HomeDashboard extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               margin: const EdgeInsets.only(bottom: 24),
               decoration: BoxDecoration(
-                color: AppColors.softCoral.withOpacity(0.1),
+                color: AppColors.softCoral.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.softCoral),
               ),
@@ -152,7 +152,7 @@ class HomeDashboard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -175,7 +175,7 @@ class HomeDashboard extends StatelessWidget {
                     Text(
                       '말씀 묵상으로 하루를 시작했어요',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                   ],

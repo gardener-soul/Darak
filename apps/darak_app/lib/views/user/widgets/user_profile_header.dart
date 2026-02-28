@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/common/clay_card.dart';
+import '../../../widgets/common/core/clay_avatar.dart';
 
 /// 마이페이지 프로필 헤더 섹션
 ///
@@ -70,46 +71,9 @@ class UserProfileHeader extends StatelessWidget {
     );
   }
 
-  /// §6.1: 4px 두께의 Soft Lavender 보더 + 하단 그림자 입체감
+  /// §6.1: ClayAvatar 공통 컴포넌트로 교체 (Phase 3 Migration)
   Widget _buildClayAvatar() {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        // Clay 보더: 4px 두께의 Soft Lavender 계열
-        border: Border.all(
-          color: AppColors.softLavender,
-          width: 4,
-        ),
-        // 입체감을 위한 이중 그림자
-        boxShadow: [
-          // 하단 메인 그림자 (깊이감)
-          BoxShadow(
-            color: AppColors.softLavender.withValues(alpha: 0.4),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-          // 상단 하이라이트 (톡 튀어나온 듯한 느낌)
-          BoxShadow(
-            color: AppColors.clayHighlight.withValues(alpha: 0.8),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: CircleAvatar(
-        radius: 40,
-        backgroundImage:
-            photoUrl != null ? NetworkImage(photoUrl!) : null,
-        backgroundColor: AppColors.sageGreen,
-        child: photoUrl == null
-            ? const Icon(
-                Icons.person_rounded,
-                color: Colors.white,
-                size: 40,
-              )
-            : null,
-      ),
-    );
+    return ClayAvatar(imageUrl: photoUrl, size: AvatarSize.medium);
   }
 
   Widget _buildUserInfo() {
@@ -124,11 +88,7 @@ class UserProfileHeader extends StatelessWidget {
         // 이메일 (마스킹)
         Row(
           children: [
-            Icon(
-              Icons.email_rounded,
-              size: 14,
-              color: AppColors.textGrey,
-            ),
+            Icon(Icons.email_rounded, size: 14, color: AppColors.textGrey),
             const SizedBox(width: 6),
             Expanded(
               child: Text(

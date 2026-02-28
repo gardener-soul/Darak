@@ -322,7 +322,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.sageGreen.withOpacity(0.1),
+                    color: AppColors.sageGreen.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(

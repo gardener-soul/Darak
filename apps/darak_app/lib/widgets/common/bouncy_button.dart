@@ -94,7 +94,7 @@ class _BouncyButtonState extends State<BouncyButton>
                     // 3D Effect: Darker shade at the bottom
                     BoxShadow(
                       color: Color.alphaBlend(
-                        Colors.black.withOpacity(0.2),
+                        Colors.black.withValues(alpha: 0.2),
                         backgroundColor,
                       ),
                       offset: const Offset(0, 6),
@@ -102,7 +102,7 @@ class _BouncyButtonState extends State<BouncyButton>
                     ),
                     // Soft drop shadow
                     BoxShadow(
-                      color: backgroundColor.withOpacity(0.4),
+                      color: backgroundColor.withValues(alpha: 0.4),
                       offset: const Offset(0, 10),
                       blurRadius: 20,
                     ),
