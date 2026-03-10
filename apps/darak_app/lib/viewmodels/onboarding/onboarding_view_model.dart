@@ -53,6 +53,25 @@ class OnboardingViewModel extends _$OnboardingViewModel {
     );
   }
 
+  /// 공통 검증 로직 (중복 제거)
+  void _validateOnboardingData() {
+    if (state.name.trim().isEmpty) {
+      throw Exception('이름을 입력해주세요.');
+    }
+
+    if (state.phone.trim().isEmpty) {
+      throw Exception('전화번호를 입력해주세요.');
+    }
+
+    if (!StringUtils.isValidKoreanPhone(state.phone)) {
+      throw Exception('올바른 전화번호 형식을 입력해주세요. (예: 010-1234-5678)');
+    }
+
+    if (!StringUtils.isValidBirthDate(state.birthDate)) {
+      throw Exception('올바른 생년월일을 입력해주세요.');
+    }
+  }
+
   /// 온보딩을 최종 제출합니다.
   /// WriteBatch를 사용하여 User 문서 업데이트와 Group memberIds 업데이트를
   /// 원자적(Atomic)으로 처리하여 데이터 불일치를 방지합니다.
@@ -75,30 +94,14 @@ class OnboardingViewModel extends _$OnboardingViewModel {
         throw Exception('로그인 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
       }
 
-      // 2. 필수 입력값 검증
-      if (state.name.trim().isEmpty) {
-        throw Exception('이름을 입력해주세요.');
-      }
+      // 2. 공통 검증 로직 실행
+      _validateOnboardingData();
 
-      if (state.phone.trim().isEmpty) {
-        throw Exception('전화번호를 입력해주세요.');
-      }
-
-      // 3. 전화번호 형식 검증 (WARNING #4)
-      if (!StringUtils.isValidKoreanPhone(state.phone)) {
-        throw Exception('올바른 전화번호 형식을 입력해주세요. (예: 010-1234-5678)');
-      }
-
-      // 4. 생년월일 유효성 검증 (WARNING #5)
-      if (!StringUtils.isValidBirthDate(state.birthDate)) {
-        throw Exception('올바른 생년월일을 입력해주세요.');
-      }
-
-      // 5. Firestore 인스턴스 가져오기
+      // 3. Firestore 인스턴스 가져오기
       final firestore = ref.read(firestoreProvider);
       final batch = firestore.batch();
 
-      // 6. User 문서 업데이트 준비
+      // 4. User 문서 업데이트 준비
       final userRef = firestore.collection(FirestorePaths.users).doc(uid);
       final userUpdates = <String, dynamic>{
         'name': StringUtils.sanitize(state.name, maxLength: 50),
@@ -129,7 +132,7 @@ class OnboardingViewModel extends _$OnboardingViewModel {
       // User 문서 업데이트 배치에 추가
       batch.update(userRef, userUpdates);
 
-      // 7. 배치 커밋 (원자적 실행)
+      // 5. 배치 커밋 (원자적 실행)
       await batch.commit();
 
       return true;
@@ -160,29 +163,13 @@ class OnboardingViewModel extends _$OnboardingViewModel {
         throw Exception('로그인 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
       }
 
-      // 2. 필수 입력값 검증
-      if (state.name.trim().isEmpty) {
-        throw Exception('이름을 입력해주세요.');
-      }
+      // 2. 공통 검증 로직 실행
+      _validateOnboardingData();
 
-      if (state.phone.trim().isEmpty) {
-        throw Exception('전화번호를 입력해주세요.');
-      }
-
-      // 3. 전화번호 형식 검증
-      if (!StringUtils.isValidKoreanPhone(state.phone)) {
-        throw Exception('올바른 전화번호 형식을 입력해주세요. (예: 010-1234-5678)');
-      }
-
-      // 4. 생년월일 유효성 검증
-      if (!StringUtils.isValidBirthDate(state.birthDate)) {
-        throw Exception('올바른 생년월일을 입력해주세요.');
-      }
-
-      // 5. Repository 가져오기
+      // 3. Repository 가져오기
       final userRepo = ref.read(userRepositoryProvider);
 
-      // 6. 프로필만 완성 (그룹 가입 제외)
+      // 4. 프로필만 완성 (그룹 가입 제외)
       await userRepo.completeProfile(
         uid,
         name: state.name,
