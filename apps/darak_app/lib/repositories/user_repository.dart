@@ -184,6 +184,48 @@ class UserRepository {
     }
   }
 
+  // ─── 프로필 전체 정보 수정 (마이페이지 전용) ─────────────────
+  /// 마이페이지에서 모든 프로필 정보를 수정할 수 있습니다.
+  /// name, phone, birthDate, bio를 업데이트합니다.
+  Future<void> updateUser(
+    String uid, {
+    String? name,
+    String? phone,
+    DateTime? birthDate,
+    String? bio,
+    String? profileImageUrl,
+  }) async {
+    try {
+      final Map<String, dynamic> updates = {
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (name != null) {
+        updates['name'] = _sanitizeInput(name, maxLength: 50);
+      }
+
+      if (phone != null) {
+        updates['phone'] = _sanitizeInput(phone, maxLength: 20);
+      }
+
+      if (birthDate != null) {
+        updates['birthDate'] = Timestamp.fromDate(birthDate);
+      }
+
+      if (bio != null) {
+        updates['bio'] = _sanitizeInput(bio, maxLength: 200);
+      }
+
+      if (profileImageUrl != null) {
+        updates['profileImageUrl'] = profileImageUrl;
+      }
+
+      await _usersRef.doc(uid).update(updates);
+    } on FirebaseException catch (e) {
+      throw Exception('프로필 수정 실패: ${e.message}');
+    }
+  }
+
   // ─── 입력값 Sanitize 헬퍼 ──────────────────────────────────
   /// HTML 태그 제거 및 길이 제한으로 XSS/악의적 입력 방어
   String _sanitizeInput(String input, {int maxLength = 100}) {
