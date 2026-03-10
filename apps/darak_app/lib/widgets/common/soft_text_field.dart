@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../theme/app_theme.dart';
 
 class SoftTextField extends StatelessWidget {
@@ -9,6 +10,8 @@ class SoftTextField extends StatelessWidget {
   final Widget? prefixIcon;
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
+  final void Function(String)? onChanged;
+  final List<TextInputFormatter>? inputFormatters;
 
   const SoftTextField({
     super.key,
@@ -19,6 +22,8 @@ class SoftTextField extends StatelessWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.validator,
+    this.onChanged,
+    this.inputFormatters,
   });
 
   @override
@@ -34,6 +39,8 @@ class SoftTextField extends StatelessWidget {
         obscureText: obscureText,
         keyboardType: keyboardType,
         validator: validator,
+        onChanged: onChanged,
+        inputFormatters: inputFormatters,
         style: AppTextStyles.bodyMedium,
         decoration: InputDecoration(
           hintText: hintText,
