@@ -8,6 +8,7 @@ class Group with _$Group {
   const factory Group({
     required String id, // 고유 ID
     required String name, // 다락방 이름
+    String? imageUrl, // 다락방 이미지 URL
     String? leaderId, // 다락방 리더 ID (User 참조)
     List<String>? memberIds, // 다락방 구성원 ID 리스트
     String? villageId, // 소속 마을 ID (Village 참조)

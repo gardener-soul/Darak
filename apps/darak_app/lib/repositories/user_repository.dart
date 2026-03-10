@@ -126,6 +126,64 @@ class UserRepository {
     }
   }
 
+  // ─── 온보딩: 프로필 완성 ─────────────────────────────────
+  /// 온보딩 완료 시 사용자 프로필을 업데이트합니다.
+  /// 필수 정보(name, phone)와 선택 정보(birthDate, profileImageUrl, bio)를 저장합니다.
+  Future<void> completeProfile(
+    String uid, {
+    required String name,
+    required String phone,
+    DateTime? birthDate,
+    String? profileImageUrl,
+    String? bio,
+  }) async {
+    try {
+      final Map<String, dynamic> updates = {
+        'name': _sanitizeInput(name, maxLength: 50),
+        'phone': _sanitizeInput(phone, maxLength: 20),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (birthDate != null) {
+        updates['birthDate'] = Timestamp.fromDate(birthDate);
+      }
+
+      if (profileImageUrl != null) {
+        updates['profileImageUrl'] = profileImageUrl;
+      }
+
+      if (bio != null) {
+        updates['bio'] = _sanitizeInput(bio, maxLength: 50);
+      }
+
+      await _usersRef.doc(uid).update(updates);
+    } on FirebaseException catch (e) {
+      throw Exception('프로필 저장 실패: ${e.message}');
+    }
+  }
+
+  // ─── 온보딩: 그룹 가입 ──────────────────────────────────
+  /// 사용자가 그룹(다락방)에 가입할 때 호출합니다.
+  /// 비정규화 전략: groupId뿐만 아니라 groupName, groupImageUrl도 함께 저장하여
+  /// 홈 화면 렌더링 시 Group 컬렉션 조인 조회를 생략하고 Read 비용을 절감합니다.
+  Future<void> joinGroup(
+    String uid,
+    String groupId,
+    String groupName,
+    String? groupImageUrl,
+  ) async {
+    try {
+      await _usersRef.doc(uid).update({
+        'groupId': groupId,
+        'groupName': _sanitizeInput(groupName, maxLength: 100),
+        'groupImageUrl': groupImageUrl,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (e) {
+      throw Exception('그룹 가입 처리 실패: ${e.message}');
+    }
+  }
+
   // ─── 입력값 Sanitize 헬퍼 ──────────────────────────────────
   /// HTML 태그 제거 및 길이 제한으로 XSS/악의적 입력 방어
   String _sanitizeInput(String input, {int maxLength = 100}) {
