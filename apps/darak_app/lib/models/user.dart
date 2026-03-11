@@ -18,6 +18,8 @@ class User with _$User {
     String? groupName, // 소속 다락방 이름 (비정규화)
     String? groupImageUrl, // 소속 다락방 이미지 URL (비정규화)
     List<String>? clubIds, // 소속 클럽/동아리 ID 리스트 (여러 개 가능)
+    String? churchId, // 소속 교회 ID
+    String? churchName, // 소속 교회명 (비정규화 캐시)
     String? profileImageUrl, // 프로필 이미지 URL
     String? bio, // 상태 메시지 (마이페이지)
     List<String>? prayerRequests, // 개인 기도 제목 리스트

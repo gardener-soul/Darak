@@ -24,6 +24,8 @@ _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
   clubIds: (json['clubIds'] as List<dynamic>?)
       ?.map((e) => e as String)
       .toList(),
+  churchId: json['churchId'] as String?,
+  churchName: json['churchName'] as String?,
   profileImageUrl: json['profileImageUrl'] as String?,
   bio: json['bio'] as String?,
   prayerRequests: (json['prayerRequests'] as List<dynamic>?)
@@ -50,6 +52,8 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'groupName': instance.groupName,
       'groupImageUrl': instance.groupImageUrl,
       'clubIds': instance.clubIds,
+      'churchId': instance.churchId,
+      'churchName': instance.churchName,
       'profileImageUrl': instance.profileImageUrl,
       'bio': instance.bio,
       'prayerRequests': instance.prayerRequests,
