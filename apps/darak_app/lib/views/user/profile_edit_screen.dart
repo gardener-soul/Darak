@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/bouncy_button.dart';
+import '../../widgets/common/birth_date_picker_sheet.dart';
 import '../../widgets/common/soft_text_field.dart';
 import '../../widgets/common/clay_card.dart';
 import '../../core/providers/user_providers.dart';
@@ -54,36 +55,13 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     super.dispose();
   }
 
-  /// 생년월일 선택 DatePicker 표시
-  Future<void> _selectBirthDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedBirthDate ?? DateTime(2000, 1, 1),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.softCoral,
-              onPrimary: Colors.white,
-              surface: AppColors.pureWhite,
-              onSurface: AppColors.textDark,
-            ),
-            dialogTheme: const DialogThemeData(
-              backgroundColor: AppColors.pureWhite,
-            ),
-          ),
-          child: child!,
-        );
-      },
+  /// 생년월일 선택 바텀시트 표시 (한국 친화적 드럼 방식)
+  void _selectBirthDate() {
+    BirthDatePickerSheet.show(
+      context,
+      initialDate: _selectedBirthDate,
+      onDateSelected: (date) => setState(() => _selectedBirthDate = date),
     );
-
-    if (picked != null && picked != _selectedBirthDate) {
-      setState(() {
-        _selectedBirthDate = picked;
-      });
-    }
   }
 
   /// 유효성 검사
