@@ -41,3 +41,38 @@ Stream<User?> currentUser(Ref ref) {
 String? currentUserId(Ref ref) {
   return ref.watch(authStateChangesProvider).valueOrNull?.uid;
 }
+
+/// 현재 유저의 프로필이 완성되었는지 체크합니다.
+/// 온보딩 완료 여부를 판단하는 기준으로 사용됩니다.
+/// phone 필드가 비어있지 않으면 프로필이 완성된 것으로 간주합니다.
+@riverpod
+bool isProfileComplete(Ref ref) {
+  final userAsync = ref.watch(currentUserProvider);
+
+  return userAsync.when(
+    data: (user) {
+      if (user == null) return false;
+      // phone 필드가 비어있지 않으면 프로필 완성으로 간주
+      return user.phone.isNotEmpty;
+    },
+    loading: () => false,
+    error: (_, _) => false,
+  );
+}
+
+/// 현재 유저가 그룹(다락방)에 가입했는지 체크합니다.
+/// groupId 필드가 null이 아니면 그룹에 가입한 것으로 간주합니다.
+@riverpod
+bool hasJoinedGroup(Ref ref) {
+  final userAsync = ref.watch(currentUserProvider);
+
+  return userAsync.when(
+    data: (user) {
+      if (user == null) return false;
+      // groupId가 null이 아니면 그룹 가입 완료
+      return user.groupId != null;
+    },
+    loading: () => false,
+    error: (_, _) => false,
+  );
+}

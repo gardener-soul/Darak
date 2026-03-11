@@ -7,12 +7,11 @@ import '../../models/user.dart' as app_user;
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/clay_card.dart';
-import '../../widgets/common/core/app_bottom_sheet.dart';
 import '../../widgets/common/core/clay_list_tile.dart';
 import '../../widgets/common/core/soft_dialog.dart';
 import 'widgets/user_profile_header.dart';
 import 'widgets/user_stats_dashboard.dart';
-import 'widgets/profile_edit_bottom_sheet.dart';
+import 'profile_edit_screen.dart';
 
 /// 마이페이지 (사용자 프로필) 화면
 ///
@@ -88,12 +87,12 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     }
   }
 
-  // ─── 프로필 수정 바텀시트 열기 ────────────────────────────────
-  void _openEditProfileSheet({String? currentBio}) {
-    // Phase 3 Migration: AppBottomSheet.show()로 교체
-    AppBottomSheet.show(
-      context: context,
-      child: ProfileEditBottomSheet(currentBio: currentBio),
+  // ─── 프로필 수정 화면 열기 ────────────────────────────────
+  void _openEditProfileScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const ProfileEditScreen(),
+      ),
     );
   }
 
@@ -147,7 +146,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             photoUrl: user.profileImageUrl,
             registerDate: user.registerDate ?? user.createdAt,
             bio: user.bio,
-            onEditPressed: () => _openEditProfileSheet(currentBio: user.bio),
+            onEditPressed: _openEditProfileScreen,
           ),
           const SizedBox(height: 24),
 

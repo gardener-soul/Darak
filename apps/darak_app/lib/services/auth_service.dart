@@ -119,7 +119,7 @@ class AuthService {
         return newUser;
       }
 
-      return User.fromJson(doc.data()!);
+      return User.fromJson(_fromFirestore(doc.data()!));
     } on firebase_auth.FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'user-not-found':
@@ -190,10 +190,31 @@ class AuthService {
 
       // 6. 성공 시 사용자 정보 갱신 (중요: AuthWrapper 감지용)
       await firebaseUser.reload();
-      return User.fromJson(doc.data()!);
+      return User.fromJson(_fromFirestore(doc.data()!));
     } catch (e) {
       throw Exception('구글 로그인 실패: $e');
     }
+  }
+
+  // ─── Timestamp 변환 헬퍼 ──────────────────────────────────
+  /// Firestore Timestamp → ISO8601 String 변환
+  /// user.g.dart의 fromJson은 String 타입의 날짜를 기대하므로 변환이 필요합니다.
+  Map<String, dynamic> _fromFirestore(Map<String, dynamic> data) {
+    return {
+      ...data,
+      'createdAt': _toIso8601(data['createdAt']),
+      'updatedAt': _toIso8601(data['updatedAt']),
+      if (data['birthDate'] != null) 'birthDate': _toIso8601(data['birthDate']),
+      if (data['registerDate'] != null)
+        'registerDate': _toIso8601(data['registerDate']),
+      if (data['deletedAt'] != null) 'deletedAt': _toIso8601(data['deletedAt']),
+    };
+  }
+
+  String _toIso8601(dynamic value) {
+    if (value is Timestamp) return value.toDate().toIso8601String();
+    if (value is String) return value;
+    return DateTime.now().toIso8601String();
   }
 
   // ─── 로그아웃 ────────────────────────────────────────────

@@ -15,6 +15,8 @@ class User with _$User {
     DateTime? birthDate, // 생년월일
     DateTime? registerDate, // 교회 등록일
     String? groupId, // 소속 다락방 ID
+    String? groupName, // 소속 다락방 이름 (비정규화)
+    String? groupImageUrl, // 소속 다락방 이미지 URL (비정규화)
     List<String>? clubIds, // 소속 클럽/동아리 ID 리스트 (여러 개 가능)
     String? profileImageUrl, // 프로필 이미지 URL
     String? bio, // 상태 메시지 (마이페이지)

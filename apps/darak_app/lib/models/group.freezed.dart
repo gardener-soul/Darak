@@ -23,6 +23,7 @@ Group _$GroupFromJson(Map<String, dynamic> json) {
 mixin _$Group {
   String get id => throw _privateConstructorUsedError; // 고유 ID
   String get name => throw _privateConstructorUsedError; // 다락방 이름
+  String? get imageUrl => throw _privateConstructorUsedError; // 다락방 이미지 URL
   String? get leaderId =>
       throw _privateConstructorUsedError; // 다락방 리더 ID (User 참조)
   List<String>? get memberIds =>
@@ -51,6 +52,7 @@ abstract class $GroupCopyWith<$Res> {
   $Res call({
     String id,
     String name,
+    String? imageUrl,
     String? leaderId,
     List<String>? memberIds,
     String? villageId,
@@ -78,6 +80,7 @@ class _$GroupCopyWithImpl<$Res, $Val extends Group>
   $Res call({
     Object? id = null,
     Object? name = null,
+    Object? imageUrl = freezed,
     Object? leaderId = freezed,
     Object? memberIds = freezed,
     Object? villageId = freezed,
@@ -96,6 +99,10 @@ class _$GroupCopyWithImpl<$Res, $Val extends Group>
                 ? _value.name
                 : name // ignore: cast_nullable_to_non_nullable
                       as String,
+            imageUrl: freezed == imageUrl
+                ? _value.imageUrl
+                : imageUrl // ignore: cast_nullable_to_non_nullable
+                      as String?,
             leaderId: freezed == leaderId
                 ? _value.leaderId
                 : leaderId // ignore: cast_nullable_to_non_nullable
@@ -141,6 +148,7 @@ abstract class _$$GroupImplCopyWith<$Res> implements $GroupCopyWith<$Res> {
   $Res call({
     String id,
     String name,
+    String? imageUrl,
     String? leaderId,
     List<String>? memberIds,
     String? villageId,
@@ -167,6 +175,7 @@ class __$$GroupImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? name = null,
+    Object? imageUrl = freezed,
     Object? leaderId = freezed,
     Object? memberIds = freezed,
     Object? villageId = freezed,
@@ -185,6 +194,10 @@ class __$$GroupImplCopyWithImpl<$Res>
             ? _value.name
             : name // ignore: cast_nullable_to_non_nullable
                   as String,
+        imageUrl: freezed == imageUrl
+            ? _value.imageUrl
+            : imageUrl // ignore: cast_nullable_to_non_nullable
+                  as String?,
         leaderId: freezed == leaderId
             ? _value.leaderId
             : leaderId // ignore: cast_nullable_to_non_nullable
@@ -224,6 +237,7 @@ class _$GroupImpl implements _Group {
   const _$GroupImpl({
     required this.id,
     required this.name,
+    this.imageUrl,
     this.leaderId,
     final List<String>? memberIds,
     this.villageId,
@@ -242,6 +256,9 @@ class _$GroupImpl implements _Group {
   @override
   final String name;
   // 다락방 이름
+  @override
+  final String? imageUrl;
+  // 다락방 이미지 URL
   @override
   final String? leaderId;
   // 다락방 리더 ID (User 참조)
@@ -274,7 +291,7 @@ class _$GroupImpl implements _Group {
 
   @override
   String toString() {
-    return 'Group(id: $id, name: $name, leaderId: $leaderId, memberIds: $memberIds, villageId: $villageId, description: $description, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
+    return 'Group(id: $id, name: $name, imageUrl: $imageUrl, leaderId: $leaderId, memberIds: $memberIds, villageId: $villageId, description: $description, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
   }
 
   @override
@@ -284,6 +301,8 @@ class _$GroupImpl implements _Group {
             other is _$GroupImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.name, name) || other.name == name) &&
+            (identical(other.imageUrl, imageUrl) ||
+                other.imageUrl == imageUrl) &&
             (identical(other.leaderId, leaderId) ||
                 other.leaderId == leaderId) &&
             const DeepCollectionEquality().equals(
@@ -308,6 +327,7 @@ class _$GroupImpl implements _Group {
     runtimeType,
     id,
     name,
+    imageUrl,
     leaderId,
     const DeepCollectionEquality().hash(_memberIds),
     villageId,
@@ -335,6 +355,7 @@ abstract class _Group implements Group {
   const factory _Group({
     required final String id,
     required final String name,
+    final String? imageUrl,
     final String? leaderId,
     final List<String>? memberIds,
     final String? villageId,
@@ -350,6 +371,8 @@ abstract class _Group implements Group {
   String get id; // 고유 ID
   @override
   String get name; // 다락방 이름
+  @override
+  String? get imageUrl; // 다락방 이미지 URL
   @override
   String? get leaderId; // 다락방 리더 ID (User 참조)
   @override

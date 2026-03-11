@@ -9,6 +9,7 @@ part of 'group.dart';
 _$GroupImpl _$$GroupImplFromJson(Map<String, dynamic> json) => _$GroupImpl(
   id: json['id'] as String,
   name: json['name'] as String,
+  imageUrl: json['imageUrl'] as String?,
   leaderId: json['leaderId'] as String?,
   memberIds: (json['memberIds'] as List<dynamic>?)
       ?.map((e) => e as String)
@@ -26,6 +27,7 @@ Map<String, dynamic> _$$GroupImplToJson(_$GroupImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
+      'imageUrl': instance.imageUrl,
       'leaderId': instance.leaderId,
       'memberIds': instance.memberIds,
       'villageId': instance.villageId,

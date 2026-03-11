@@ -19,6 +19,8 @@ _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
       ? null
       : DateTime.parse(json['registerDate'] as String),
   groupId: json['groupId'] as String?,
+  groupName: json['groupName'] as String?,
+  groupImageUrl: json['groupImageUrl'] as String?,
   clubIds: (json['clubIds'] as List<dynamic>?)
       ?.map((e) => e as String)
       .toList(),
@@ -45,6 +47,8 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'birthDate': instance.birthDate?.toIso8601String(),
       'registerDate': instance.registerDate?.toIso8601String(),
       'groupId': instance.groupId,
+      'groupName': instance.groupName,
+      'groupImageUrl': instance.groupImageUrl,
       'clubIds': instance.clubIds,
       'profileImageUrl': instance.profileImageUrl,
       'bio': instance.bio,
