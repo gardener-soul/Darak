@@ -23,4 +23,7 @@ class FirestorePaths {
 
   /// 출석 기록 컬렉션
   static const attendances = 'attendances';
+
+  /// 교회 컬렉션
+  static const churches = 'churches';
 }
