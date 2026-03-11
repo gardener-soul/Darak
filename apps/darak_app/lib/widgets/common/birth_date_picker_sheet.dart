@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import '../../theme/app_theme.dart';
 import 'bouncy_button.dart';
 import 'core/app_bottom_sheet.dart';
@@ -83,6 +84,11 @@ class _BirthDatePickerSheetState extends State<BirthDatePickerSheet> {
           child: Localizations.override(
             context: context,
             locale: const Locale('ko', 'KR'),
+            delegates: const [
+              GlobalCupertinoLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+            ],
             child: CupertinoDatePicker(
               mode: CupertinoDatePickerMode.date,
               initialDateTime: _tempDate,
