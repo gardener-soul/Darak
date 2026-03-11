@@ -1,0 +1,70 @@
+# Flutter 관련
+apps/darak_app/.dart_tool/
+apps/darak_app/.flutter-plugins
+apps/darak_app/.flutter-plugins-dependencies
+apps/darak_app/.packages
+apps/darak_app/build/
+
+# Firebase 관련
+backend/firebase/functions/node_modules/
+backend/firebase/functions/lib/
+backend/firebase/.firebase/
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Firebase 설정 파일 (API 키 포함 - 보안상 제외)
+google-services.json
+GoogleService-Info.plist
+**/firebase_options.dart
+
+# IDE 설정
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# 기타
+*.log
+*.swp
+*.bak
+*~
+.env
+.env.local
+
+# Windows
+Thumbs.db
+desktop.ini
+nul
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# 사용자 설정 파일
+.claude/
+.agent/
+
+# Security keys
+*.keystore
+*.jks
+
+# Logs and Reports
+report.txt
+bugreport-*.zip
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+.agent/
