@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../services/address_search_service.dart';
 import '../../theme/app_theme.dart';
 import '../../viewmodels/church/church_registration_viewmodel.dart';
 import '../../widgets/common/bouncy_button.dart';
@@ -52,11 +53,13 @@ class _ChurchRegistrationScreenState
   }
 
   Future<void> _openAddressSearch() async {
-    // TODO: 카카오 주소검색 연동 후 구현 예정
+    final result = await AddressSearchService().searchAddress(context);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('주소검색 기능은 추후 업데이트될 예정입니다. 주소를 직접 입력해주세요.')),
-    );
+
+    if (result != null) {
+      _addressController.text = result.roadAddress;
+      setState(() {});
+    }
   }
 
   Future<void> _submitRegistration() async {
@@ -257,7 +260,7 @@ class _AddressRow extends StatelessWidget {
         Expanded(
           child: SoftTextField(
             controller: controller,
-            hintText: '주소를 직접 입력해주세요',
+            hintText: '검색 버튼을 눌러 주소를 입력하세요',
             prefixIcon: const Icon(Icons.location_on_rounded),
             onChanged: (_) => onChanged(),
           ),
