@@ -7,7 +7,6 @@ import 'core/providers/user_providers.dart';
 import 'views/home/home_screen.dart';
 import 'views/welcome/welcome_screen.dart';
 import 'views/onboarding/onboarding_screen.dart';
-import 'views/onboarding/group_selection_screen.dart';
 import 'views/common/loading_screen.dart';
 import 'views/common/error_screen.dart';
 import 'theme/app_theme.dart';
@@ -38,8 +37,7 @@ class DarakApp extends ConsumerWidget {
 /// 1. Firebase Auth가 null → WelcomeScreen (로그인 필요)
 /// 2. Firestore User 문서 로딩 중 → LoadingScreen
 /// 3. User 프로필 미완성 (phone 빈 문자열) → OnboardingScreen
-/// 4. User 그룹 미가입 (groupId null) → GroupSelectionScreen
-/// 5. 모든 조건 충족 → HomeScreen
+/// 4. 모든 조건 충족 → HomeScreen
 class AuthWrapper extends ConsumerWidget {
   const AuthWrapper({super.key});
 
@@ -59,9 +57,9 @@ class AuthWrapper extends ConsumerWidget {
 
         return userAsync.when(
           data: (user) {
-            // 2-1. User 문서가 없는 경우 (초기화 대기)
+            // 2-1. Firestore 문서가 없는 신규 사용자 → 온보딩으로 진입
             if (user == null) {
-              return const LoadingScreen();
+              return const OnboardingScreen();
             }
 
             // 2-2. 프로필 미완성 → 온보딩 시작
@@ -69,12 +67,7 @@ class AuthWrapper extends ConsumerWidget {
               return const OnboardingScreen();
             }
 
-            // 2-3. 그룹 미가입 → 그룹 선택 화면
-            if (user.groupId == null) {
-              return const GroupSelectionScreen();
-            }
-
-            // 2-4. 모든 조건 충족 → 홈 화면
+            // 2-3. 모든 조건 충족 → 홈 화면
             return const HomeScreen();
           },
           loading: () => const LoadingScreen(),

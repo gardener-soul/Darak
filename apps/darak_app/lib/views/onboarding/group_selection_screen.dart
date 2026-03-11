@@ -6,14 +6,21 @@ import '../../widgets/common/bouncy_button.dart';
 import '../../widgets/common/soft_text_field.dart';
 import '../../repositories/group_repository.dart';
 import '../../models/group.dart';
-import '../../viewmodels/onboarding/onboarding_view_model.dart';
 import 'widgets/group_card.dart';
-import '../home/home_screen.dart';
 
-/// 그룹 선택 화면
-/// 온보딩 과정에서 사용자가 가입할 다락방을 선택합니다.
+/// 다락방 선택 화면
+/// 마이페이지 또는 공동체 화면에서 다락방 가입 시 사용합니다.
+/// [onGroupSelected]: 그룹 선택 완료 시 호출되는 콜백
+/// [onSkip]: 건너뛰기 시 호출되는 콜백 (null이면 건너뛰기 버튼 미표시)
 class GroupSelectionScreen extends ConsumerStatefulWidget {
-  const GroupSelectionScreen({super.key});
+  final void Function(Group group)? onGroupSelected;
+  final VoidCallback? onSkip;
+
+  const GroupSelectionScreen({
+    super.key,
+    this.onGroupSelected,
+    this.onSkip,
+  });
 
   @override
   ConsumerState<GroupSelectionScreen> createState() =>
@@ -25,7 +32,6 @@ class _GroupSelectionScreenState extends ConsumerState<GroupSelectionScreen> {
   Timer? _debounceTimer;
   String _searchQuery = '';
   String? _selectedGroupId;
-  bool _isSubmitting = false;
 
   // 캐싱용 변수
   List<Group>? _cachedGroups;
@@ -38,19 +44,17 @@ class _GroupSelectionScreenState extends ConsumerState<GroupSelectionScreen> {
     super.dispose();
   }
 
-  /// 검색어 입력 시 Debounce 처리 (300ms)
   void _onSearchChanged(String query) {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 300), () {
       setState(() {
         _searchQuery = query;
+        _cachedGroups = null;
       });
     });
   }
 
-  /// 그룹 목록 가져오기 (검색 쿼리 반영, 캐싱 처리)
   Future<List<Group>> _fetchGroups() async {
-    // 캐싱: 동일한 쿼리면 기존 데이터 반환
     if (_searchQuery == _lastQuery && _cachedGroups != null) {
       return _cachedGroups!;
     }
@@ -64,106 +68,19 @@ class _GroupSelectionScreenState extends ConsumerState<GroupSelectionScreen> {
       groups = await repository.searchGroups(_searchQuery.trim(), limit: 20);
     }
 
-    // 캐시 저장
     _lastQuery = _searchQuery;
     _cachedGroups = groups;
-
     return groups;
   }
 
-  /// 그룹 선택 처리
   void _onGroupTap(Group group) {
     setState(() {
       _selectedGroupId = group.id;
     });
-
-    // ViewModel에 선택된 그룹 정보 저장
-    final viewModel = ref.read(onboardingViewModelProvider.notifier);
-    viewModel.selectGroup(
-      groupId: group.id,
-      groupName: group.name,
-      groupImageUrl: group.imageUrl,
-    );
   }
 
-  /// 그룹 가입하기 (온보딩 제출)
-  Future<void> _joinGroup() async {
-    if (_selectedGroupId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('가입할 다락방을 선택해주세요.'),
-          backgroundColor: AppColors.softCoral,
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isSubmitting = true;
-    });
-
-    try {
-      final viewModel = ref.read(onboardingViewModelProvider.notifier);
-      await viewModel.submitOnboarding();
-
-      // 성공 시 홈 화면으로 이동
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-          (route) => false,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('가입 실패: ${e.toString()}'),
-            backgroundColor: AppColors.softCoral,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
-      }
-    }
-  }
-
-  /// 그룹 선택 건너뛰기 (프로필만 완성)
-  Future<void> _skipGroupSelection() async {
-    setState(() {
-      _isSubmitting = true;
-    });
-
-    try {
-      final viewModel = ref.read(onboardingViewModelProvider.notifier);
-      await viewModel.skipGroupSelection();
-
-      // 성공 시 홈 화면으로 이동
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-          (route) => false,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('오류 발생: ${e.toString()}'),
-            backgroundColor: AppColors.softCoral,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
-      }
-    }
+  void _confirmSelection(Group group) {
+    widget.onGroupSelected?.call(group);
   }
 
   @override
@@ -179,20 +96,20 @@ class _GroupSelectionScreenState extends ConsumerState<GroupSelectionScreen> {
         ),
         title: const Text('다락방 선택'),
         actions: [
-          TextButton(
-            onPressed: _isSubmitting ? null : _skipGroupSelection,
-            child: Text(
-              '건너뛰기',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: _isSubmitting ? AppColors.disabled : AppColors.textGrey,
+          if (widget.onSkip != null)
+            TextButton(
+              onPressed: widget.onSkip,
+              child: Text(
+                '건너뛰기',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textGrey,
+                ),
               ),
             ),
-          ),
         ],
       ),
       body: Column(
         children: [
-          // 검색 바
           Padding(
             padding: const EdgeInsets.all(24),
             child: SoftTextField(
@@ -204,7 +121,6 @@ class _GroupSelectionScreenState extends ConsumerState<GroupSelectionScreen> {
             ),
           ),
 
-          // 그룹 목록
           Expanded(
             child: FutureBuilder<List<Group>>(
               future: _fetchGroups(),
@@ -307,14 +223,22 @@ class _GroupSelectionScreenState extends ConsumerState<GroupSelectionScreen> {
             ),
           ),
 
-          // 하단 가입하기 버튼
           if (_selectedGroupId != null)
             Padding(
               padding: const EdgeInsets.all(24),
-              child: BouncyButton(
-                onPressed: _isSubmitting ? null : _joinGroup,
-                text: _isSubmitting ? '가입 중...' : '가입하기',
-                icon: const Icon(Icons.check_rounded),
+              child: FutureBuilder<List<Group>>(
+                future: _fetchGroups(),
+                builder: (context, snapshot) {
+                  final selected = snapshot.data?.where(
+                    (g) => g.id == _selectedGroupId,
+                  ).firstOrNull;
+                  if (selected == null) return const SizedBox.shrink();
+                  return BouncyButton(
+                    onPressed: () => _confirmSelection(selected),
+                    text: '가입하기',
+                    icon: const Icon(Icons.check_rounded),
+                  );
+                },
               ),
             ),
         ],

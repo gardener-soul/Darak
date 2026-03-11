@@ -5,7 +5,6 @@ import '../../widgets/common/bouncy_button.dart';
 import '../../viewmodels/onboarding/onboarding_view_model.dart';
 import '../../core/utils/string_utils.dart';
 import 'widgets/profile_form_section.dart';
-import 'group_selection_screen.dart';
 
 /// 프로필 정보 입력 화면
 /// 온보딩 과정에서 사용자의 기본 정보(이름, 전화번호, 생년월일)를 입력받습니다.
@@ -115,8 +114,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return isValid;
   }
 
-  /// 다음 단계로 이동
-  void _goToNext() {
+  /// 프로필 저장 후 온보딩 완료
+  Future<void> _goToNext() async {
     if (!_validate()) return;
 
     // ViewModel에 데이터 저장
@@ -127,12 +126,20 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       birthDate: _selectedBirthDate,
     );
 
-    // 그룹 선택 화면으로 이동
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => const GroupSelectionScreen(),
-      ),
-    );
+    // 바로 Firestore에 저장 후 완료
+    try {
+      await viewModel.submitOnboarding();
+      // AuthWrapper가 user.phone.isNotEmpty 조건으로 HomeScreen을 자동 분기
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppColors.softCoral,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -171,8 +178,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               padding: const EdgeInsets.all(24),
               child: BouncyButton(
                 onPressed: _goToNext,
-                text: '다음',
-                icon: const Icon(Icons.arrow_forward_rounded),
+                text: '완료',
+                icon: const Icon(Icons.check_rounded),
               ),
             ),
           ],

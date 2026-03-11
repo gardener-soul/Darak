@@ -26,15 +26,6 @@ mixin _$OnboardingState {
   /// 생년월일 (선택)
   DateTime? get birthDate => throw _privateConstructorUsedError;
 
-  /// 선택된 그룹(다락방) ID
-  String? get selectedGroupId => throw _privateConstructorUsedError;
-
-  /// 선택된 그룹(다락방) 이름 (비정규화용)
-  String? get selectedGroupName => throw _privateConstructorUsedError;
-
-  /// 선택된 그룹(다락방) 이미지 URL (비정규화용)
-  String? get selectedGroupImageUrl => throw _privateConstructorUsedError;
-
   /// 온보딩 제출 중 여부 (중복 제출 방어)
   bool get isSubmitting => throw _privateConstructorUsedError;
 
@@ -56,9 +47,6 @@ abstract class $OnboardingStateCopyWith<$Res> {
     String name,
     String phone,
     DateTime? birthDate,
-    String? selectedGroupId,
-    String? selectedGroupName,
-    String? selectedGroupImageUrl,
     bool isSubmitting,
   });
 }
@@ -81,9 +69,6 @@ class _$OnboardingStateCopyWithImpl<$Res, $Val extends OnboardingState>
     Object? name = null,
     Object? phone = null,
     Object? birthDate = freezed,
-    Object? selectedGroupId = freezed,
-    Object? selectedGroupName = freezed,
-    Object? selectedGroupImageUrl = freezed,
     Object? isSubmitting = null,
   }) {
     return _then(
@@ -100,18 +85,6 @@ class _$OnboardingStateCopyWithImpl<$Res, $Val extends OnboardingState>
                 ? _value.birthDate
                 : birthDate // ignore: cast_nullable_to_non_nullable
                       as DateTime?,
-            selectedGroupId: freezed == selectedGroupId
-                ? _value.selectedGroupId
-                : selectedGroupId // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            selectedGroupName: freezed == selectedGroupName
-                ? _value.selectedGroupName
-                : selectedGroupName // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            selectedGroupImageUrl: freezed == selectedGroupImageUrl
-                ? _value.selectedGroupImageUrl
-                : selectedGroupImageUrl // ignore: cast_nullable_to_non_nullable
-                      as String?,
             isSubmitting: null == isSubmitting
                 ? _value.isSubmitting
                 : isSubmitting // ignore: cast_nullable_to_non_nullable
@@ -135,9 +108,6 @@ abstract class _$$OnboardingStateImplCopyWith<$Res>
     String name,
     String phone,
     DateTime? birthDate,
-    String? selectedGroupId,
-    String? selectedGroupName,
-    String? selectedGroupImageUrl,
     bool isSubmitting,
   });
 }
@@ -159,9 +129,6 @@ class __$$OnboardingStateImplCopyWithImpl<$Res>
     Object? name = null,
     Object? phone = null,
     Object? birthDate = freezed,
-    Object? selectedGroupId = freezed,
-    Object? selectedGroupName = freezed,
-    Object? selectedGroupImageUrl = freezed,
     Object? isSubmitting = null,
   }) {
     return _then(
@@ -178,18 +145,6 @@ class __$$OnboardingStateImplCopyWithImpl<$Res>
             ? _value.birthDate
             : birthDate // ignore: cast_nullable_to_non_nullable
                   as DateTime?,
-        selectedGroupId: freezed == selectedGroupId
-            ? _value.selectedGroupId
-            : selectedGroupId // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        selectedGroupName: freezed == selectedGroupName
-            ? _value.selectedGroupName
-            : selectedGroupName // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        selectedGroupImageUrl: freezed == selectedGroupImageUrl
-            ? _value.selectedGroupImageUrl
-            : selectedGroupImageUrl // ignore: cast_nullable_to_non_nullable
-                  as String?,
         isSubmitting: null == isSubmitting
             ? _value.isSubmitting
             : isSubmitting // ignore: cast_nullable_to_non_nullable
@@ -206,9 +161,6 @@ class _$OnboardingStateImpl implements _OnboardingState {
     this.name = '',
     this.phone = '',
     this.birthDate,
-    this.selectedGroupId,
-    this.selectedGroupName,
-    this.selectedGroupImageUrl,
     this.isSubmitting = false,
   });
 
@@ -226,18 +178,6 @@ class _$OnboardingStateImpl implements _OnboardingState {
   @override
   final DateTime? birthDate;
 
-  /// 선택된 그룹(다락방) ID
-  @override
-  final String? selectedGroupId;
-
-  /// 선택된 그룹(다락방) 이름 (비정규화용)
-  @override
-  final String? selectedGroupName;
-
-  /// 선택된 그룹(다락방) 이미지 URL (비정규화용)
-  @override
-  final String? selectedGroupImageUrl;
-
   /// 온보딩 제출 중 여부 (중복 제출 방어)
   @override
   @JsonKey()
@@ -245,7 +185,7 @@ class _$OnboardingStateImpl implements _OnboardingState {
 
   @override
   String toString() {
-    return 'OnboardingState(name: $name, phone: $phone, birthDate: $birthDate, selectedGroupId: $selectedGroupId, selectedGroupName: $selectedGroupName, selectedGroupImageUrl: $selectedGroupImageUrl, isSubmitting: $isSubmitting)';
+    return 'OnboardingState(name: $name, phone: $phone, birthDate: $birthDate, isSubmitting: $isSubmitting)';
   }
 
   @override
@@ -257,27 +197,13 @@ class _$OnboardingStateImpl implements _OnboardingState {
             (identical(other.phone, phone) || other.phone == phone) &&
             (identical(other.birthDate, birthDate) ||
                 other.birthDate == birthDate) &&
-            (identical(other.selectedGroupId, selectedGroupId) ||
-                other.selectedGroupId == selectedGroupId) &&
-            (identical(other.selectedGroupName, selectedGroupName) ||
-                other.selectedGroupName == selectedGroupName) &&
-            (identical(other.selectedGroupImageUrl, selectedGroupImageUrl) ||
-                other.selectedGroupImageUrl == selectedGroupImageUrl) &&
             (identical(other.isSubmitting, isSubmitting) ||
                 other.isSubmitting == isSubmitting));
   }
 
   @override
-  int get hashCode => Object.hash(
-    runtimeType,
-    name,
-    phone,
-    birthDate,
-    selectedGroupId,
-    selectedGroupName,
-    selectedGroupImageUrl,
-    isSubmitting,
-  );
+  int get hashCode =>
+      Object.hash(runtimeType, name, phone, birthDate, isSubmitting);
 
   /// Create a copy of OnboardingState
   /// with the given fields replaced by the non-null parameter values.
@@ -296,9 +222,6 @@ abstract class _OnboardingState implements OnboardingState {
     final String name,
     final String phone,
     final DateTime? birthDate,
-    final String? selectedGroupId,
-    final String? selectedGroupName,
-    final String? selectedGroupImageUrl,
     final bool isSubmitting,
   }) = _$OnboardingStateImpl;
 
@@ -313,18 +236,6 @@ abstract class _OnboardingState implements OnboardingState {
   /// 생년월일 (선택)
   @override
   DateTime? get birthDate;
-
-  /// 선택된 그룹(다락방) ID
-  @override
-  String? get selectedGroupId;
-
-  /// 선택된 그룹(다락방) 이름 (비정규화용)
-  @override
-  String? get selectedGroupName;
-
-  /// 선택된 그룹(다락방) 이미지 URL (비정규화용)
-  @override
-  String? get selectedGroupImageUrl;
 
   /// 온보딩 제출 중 여부 (중복 제출 방어)
   @override

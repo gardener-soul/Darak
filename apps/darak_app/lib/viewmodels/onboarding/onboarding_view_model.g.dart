@@ -7,10 +7,10 @@ part of 'onboarding_view_model.dart';
 // **************************************************************************
 
 String _$onboardingViewModelHash() =>
-    r'40b6ac5316cf76addaa5b79de6fc5f1e417cecc0';
+    r'1e1903de766576c3648657250677d8bbb9b3df70';
 
 /// 온보딩 과정을 관리하는 ViewModel입니다.
-/// 사용자가 입력한 프로필 정보와 선택한 그룹 정보를 메모리에 보관하다가,
+/// 사용자가 입력한 프로필 정보를 메모리에 보관하다가,
 /// 최종 제출 시점에 한 번에 Firestore에 저장합니다.
 ///
 /// Copied from [OnboardingViewModel].

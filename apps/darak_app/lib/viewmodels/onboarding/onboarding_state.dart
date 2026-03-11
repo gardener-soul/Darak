@@ -17,15 +17,6 @@ class OnboardingState with _$OnboardingState {
     /// 생년월일 (선택)
     DateTime? birthDate,
 
-    /// 선택된 그룹(다락방) ID
-    String? selectedGroupId,
-
-    /// 선택된 그룹(다락방) 이름 (비정규화용)
-    String? selectedGroupName,
-
-    /// 선택된 그룹(다락방) 이미지 URL (비정규화용)
-    String? selectedGroupImageUrl,
-
     /// 온보딩 제출 중 여부 (중복 제출 방어)
     @Default(false) bool isSubmitting,
   }) = _OnboardingState;
