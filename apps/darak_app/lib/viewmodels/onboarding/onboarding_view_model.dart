@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../core/providers/user_providers.dart';
+import '../../core/providers/firebase_providers.dart';
 import '../../core/utils/string_utils.dart';
 import '../../repositories/user_repository.dart';
 import 'onboarding_state.dart';
@@ -68,7 +68,7 @@ class OnboardingViewModel extends _$OnboardingViewModel {
     try {
       state = state.copyWith(isSubmitting: true);
 
-      final uid = ref.read(currentUserIdProvider);
+      final uid = ref.read(firebaseAuthProvider).currentUser?.uid;
       if (uid == null) {
         throw Exception('로그인 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
       }
