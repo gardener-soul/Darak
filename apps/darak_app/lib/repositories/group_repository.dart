@@ -42,7 +42,10 @@ class GroupRepository {
       return snapshot.docs
           .map((doc) {
             try {
-              return Group.fromJson(doc.data());
+              // doc.id를 주입하여 id 필드 누락 방지
+              return Group.fromJson(
+                _fromFirestore({...doc.data(), 'id': doc.id}),
+              );
             } catch (e) {
               // 역직렬화 실패 시 해당 문서만 스킵
               return null;
@@ -107,9 +110,41 @@ class GroupRepository {
       // Soft Delete 체크
       if (data['deletedAt'] != null) return null;
 
-      return Group.fromJson(data);
+      // doc.id를 주입하여 id 필드 누락 방지
+      return Group.fromJson(
+        _fromFirestore({...data, 'id': doc.id}),
+      );
     } on FirebaseException catch (e) {
       throw Exception('그룹 정보 조회 실패: ${e.message}');
+    }
+  }
+
+  // ─── 교회별 다락방 목록 단건 조회 (Future) ─────────────────
+  /// [churchId] 교회에 속한 모든 다락방을 한 번 조회합니다.
+  /// Stream.first 대신 이 메서드를 사용하여 메모리 누수를 방지합니다.
+  Future<List<Group>> getGroupsByChurch({required String churchId}) async {
+    try {
+      final snapshot = await _groupsRef
+          .where('churchId', isEqualTo: churchId)
+          .where('deletedAt', isNull: true)
+          .get();
+
+      if (snapshot.docs.isEmpty) return [];
+
+      return snapshot.docs
+          .map((doc) {
+            try {
+              return Group.fromJson(
+                _fromFirestore({...doc.data(), 'id': doc.id}),
+              );
+            } catch (e) {
+              return null;
+            }
+          })
+          .whereType<Group>()
+          .toList();
+    } on FirebaseException catch (e) {
+      throw Exception('교회별 다락방 목록 조회 실패: ${e.message}');
     }
   }
 
@@ -125,5 +160,89 @@ class GroupRepository {
     } on FirebaseException catch (e) {
       throw Exception('그룹 멤버 추가 실패: ${e.message}');
     }
+  }
+
+  // ─── 교회별 전체 다락방 목록 실시간 스트림 ───────────────────
+  /// [churchId] 교회에 속한 모든 다락방을 실시간으로 구독합니다.
+  /// Soft Delete된 다락방은 제외합니다.
+  Stream<List<Group>> watchGroupsByChurch({required String churchId}) {
+    return _groupsRef
+        .where('churchId', isEqualTo: churchId)
+        .where('deletedAt', isNull: true)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((doc) {
+                try {
+                  return Group.fromJson(
+                    _fromFirestore({...doc.data(), 'id': doc.id}),
+                  );
+                } catch (e) {
+                  return null;
+                }
+              })
+              .whereType<Group>()
+              .toList(),
+        );
+  }
+
+  // ─── 마을별 다락방 목록 실시간 스트림 ──────────────────────
+  /// [churchId] 교회의 [villageId] 마을에 속한 다락방을 실시간으로 구독합니다.
+  /// Soft Delete된 다락방은 제외합니다.
+  Stream<List<Group>> watchGroupsByVillage({
+    required String churchId,
+    required String villageId,
+  }) {
+    return _groupsRef
+        .where('churchId', isEqualTo: churchId)
+        .where('villageId', isEqualTo: villageId)
+        .where('deletedAt', isNull: true)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((doc) {
+                try {
+                  return Group.fromJson(
+                    _fromFirestore({...doc.data(), 'id': doc.id}),
+                  );
+                } catch (e) {
+                  return null;
+                }
+              })
+              .whereType<Group>()
+              .toList(),
+        );
+  }
+
+  // ─── 다락방 생성 ────────────────────────────────────────────
+  /// 새 다락방 문서를 Firestore에 생성합니다.
+  /// [group.churchId]가 null이면 예외를 던집니다.
+  Future<void> createGroup({required Group group}) async {
+    try {
+      if (group.churchId == null) throw Exception('churchId는 필수입니다.');
+      final doc = _groupsRef.doc();
+      final data = group.toJson();
+      data['id'] = doc.id;
+      // DateTime → ISO 8601 문자열 변환 (Freezed toJson은 DateTime 그대로 반환)
+      data['createdAt'] = group.createdAt.toIso8601String();
+      data['updatedAt'] = group.updatedAt.toIso8601String();
+      if (group.deletedAt != null) {
+        data['deletedAt'] = group.deletedAt!.toIso8601String();
+      }
+      await doc.set(data);
+    } catch (e) {
+      throw Exception('다락방 생성에 실패했습니다: $e');
+    }
+  }
+
+  // ─── Firestore 날짜 타입 변환 헬퍼 ─────────────────────────
+  /// Timestamp → ISO 8601 문자열로 변환하여 Freezed 모델과의 호환성 확보
+  Map<String, dynamic> _fromFirestore(Map<String, dynamic> data) {
+    return data.map((key, value) {
+      if (value is Timestamp) {
+        return MapEntry(key, value.toDate().toIso8601String());
+      }
+      return MapEntry(key, value);
+    });
   }
 }

@@ -165,6 +165,107 @@ class ChurchRepository {
     }
   }
 
+  // ─── 교회 단건 실시간 스트림 (교회 상세 페이지용) ────────────────
+  /// [churchId]에 해당하는 교회 문서를 실시간으로 구독합니다.
+  /// 문서가 존재하지 않으면 Exception을 던집니다.
+  Stream<Church> watchChurch(String churchId) {
+    return _churchesRef.doc(churchId).snapshots().map((doc) {
+      final data = doc.data();
+      if (data == null) throw Exception('교회 정보를 찾을 수 없습니다.');
+      return Church.fromJson(_fromFirestore(data, doc.id));
+    });
+  }
+
+  // ─── 교회 기본 정보 수정 (관리자 전용) ──────────────────────────
+  /// 교회 이름, 주소, 담임목사, 교단 정보를 수정합니다.
+  /// 모든 텍스트 입력은 XSS 방어를 위해 sanitizeInput을 통과합니다.
+  Future<void> updateChurchInfo({
+    required String churchId,
+    required String name,
+    required String address,
+    required String seniorPastor,
+    required String denomination,
+  }) async {
+    try {
+      await _churchesRef.doc(churchId).update({
+        'name': sanitizeInput(name, maxLength: 100),
+        'address': sanitizeInput(address, maxLength: 200),
+        'seniorPastor': sanitizeInput(seniorPastor, maxLength: 50),
+        'denomination': sanitizeInput(denomination, maxLength: 50),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (e) {
+      throw Exception('교회 정보 수정에 실패했습니다: ${e.message}');
+    } catch (e) {
+      throw Exception('교회 정보 수정에 실패했습니다: $e');
+    }
+  }
+
+  // ─── 관리자 추가 ──────────────────────────────────────────
+  /// [userId]를 [churchId]의 adminIds 배열에 추가합니다.
+  /// 중복 추가 방지를 위해 FieldValue.arrayUnion 사용.
+  Future<void> addAdminId({
+    required String churchId,
+    required String userId,
+  }) async {
+    try {
+      await _churchesRef.doc(churchId).update({
+        'adminIds': FieldValue.arrayUnion([userId]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (e) {
+      throw Exception('관리자 추가에 실패했습니다: ${e.message}');
+    } catch (e) {
+      throw Exception('관리자 추가에 실패했습니다: $e');
+    }
+  }
+
+  // ─── 관리자 제거 ──────────────────────────────────────────
+  /// [userId]를 [churchId]의 adminIds 배열에서 제거합니다.
+  /// 마지막 관리자는 제거할 수 없습니다 (최소 1명 유지).
+  Future<void> removeAdminId({
+    required String churchId,
+    required String userId,
+  }) async {
+    try {
+      final doc = await _churchesRef.doc(churchId).get();
+      final adminIds = List<String>.from(doc.data()?['adminIds'] ?? []);
+      if (adminIds.length <= 1) {
+        throw Exception('마지막 관리자는 해제할 수 없습니다.');
+      }
+      await _churchesRef.doc(churchId).update({
+        'adminIds': FieldValue.arrayRemove([userId]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (e) {
+      throw Exception('관리자 제거에 실패했습니다: ${e.message}');
+    } on Exception {
+      rethrow;
+    } catch (e) {
+      throw Exception('관리자 제거에 실패했습니다: $e');
+    }
+  }
+
+  // ─── 통계 카운트 원자 증감 ────────────────────────────────────
+  /// [field] 카운트를 [delta]만큼 원자적으로 증감합니다.
+  /// field: 'memberCount' | 'villageCount' | 'groupCount'
+  Future<void> incrementCount({
+    required String churchId,
+    required String field,
+    int delta = 1,
+  }) async {
+    try {
+      await _churchesRef.doc(churchId).update({
+        field: FieldValue.increment(delta),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (e) {
+      throw Exception('카운트 업데이트에 실패했습니다: ${e.message}');
+    } catch (e) {
+      throw Exception('카운트 업데이트에 실패했습니다: $e');
+    }
+  }
+
   // ─── Firestore 날짜 타입 변환 헬퍼 ─────────────────────────
   /// Firestore 문서 데이터를 Church.fromJson에서 기대하는 형태로 변환합니다.
   /// [docId]를 주입하여 Firestore 문서 ID를 id 필드로 사용합니다.
