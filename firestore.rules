@@ -49,6 +49,33 @@ service cloud.firestore {
     function hasValidTimestamps() {
       return request.resource.data.keys().hasAll(['createdAt', 'updatedAt']);
     }
+
+    // 교회 문서 데이터 조회
+    function getChurchData(churchId) {
+      return get(/databases/$(database)/documents/churches/$(churchId)).data;
+    }
+
+    // 해당 사용자가 교회 관리자인지 확인
+    // adminIds가 null이거나 필드가 없는 경우를 방어하여 런타임 에러 차단
+    function isChurchAdmin(churchId) {
+      let churchData = getChurchData(churchId);
+      return isAuthenticated() &&
+        churchData.keys().hasAll(['adminIds']) &&
+        churchData.adminIds != null &&
+        request.auth.uid in churchData.adminIds;
+    }
+
+    // 해당 사용자가 교회 멤버인지 확인
+    function isChurchMember(churchId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid));
+    }
+
+    // adminIds 최소 1명 유지 검증
+    function adminIdsNotEmpty() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['adminIds']) ||
+        request.resource.data.adminIds.size() >= 1;
+    }
     
     // ============================================
     // Users 컬렉션
@@ -77,20 +104,40 @@ service cloud.firestore {
     match /groups/{groupId} {
       // 읽기: 로그인한 사용자는 모든 그룹 조회 가능
       allow read: if isAuthenticated();
-      
-      // 생성/수정/삭제: 리더 이상만 가능
-      allow create, update, delete: if isAuthenticated() && isLeader();
+
+      // 생성: 필수 필드 포함 시 가능
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll(['churchId', 'name', 'createdAt', 'updatedAt']);
+
+      // 수정: 다락방 리더 본인 또는 해당 교회 관리자
+      allow update: if isAuthenticated() && (
+        resource.data.leaderId == request.auth.uid ||
+        isChurchAdmin(resource.data.churchId)
+      );
+
+      // 삭제: 해당 교회 관리자만 가능
+      allow delete: if isAuthenticated() && isChurchAdmin(resource.data.churchId);
     }
-    
+
     // ============================================
     // Villages (마을) 컬렉션
     // ============================================
     match /villages/{villageId} {
       // 읽기: 로그인한 사용자는 모든 마을 조회 가능
       allow read: if isAuthenticated();
-      
-      // 생성/수정/삭제: 관리자만 가능
-      allow create, update, delete: if isAuthenticated() && isAdmin();
+
+      // 생성: 필수 필드 포함 시 가능
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll(['churchId', 'name', 'createdAt', 'updatedAt']);
+
+      // 수정: 마을 리더 본인 또는 해당 교회 관리자
+      allow update: if isAuthenticated() && (
+        resource.data.leaderId == request.auth.uid ||
+        isChurchAdmin(resource.data.churchId)
+      );
+
+      // 삭제: 해당 교회 관리자만 가능
+      allow delete: if isAuthenticated() && isChurchAdmin(resource.data.churchId);
     }
     
     // ============================================
@@ -127,18 +174,67 @@ service cloud.firestore {
       // 생성: 로그인한 사용자는 교회 등록 신청 가능
       // - status는 반드시 'pending' 이어야 함 (승인 우회 차단)
       // - requestedBy는 반드시 본인 uid 이어야 함
-      // - 필수 필드 존재 여부 검증
       allow create: if isAuthenticated()
         && request.resource.data.status == 'pending'
-        && request.resource.data.requestedBy == request.auth.uid
-        && request.resource.data.keys().hasAll([
-            'name', 'address', 'seniorPastor',
-            'denomination', 'requestMemo',
-            'requestedBy', 'status', 'createdAt', 'updatedAt'
-           ]);
+        && request.resource.data.requestedBy == request.auth.uid;
 
-      // 수정/삭제: 관리자(admin, pastor)만 가능
-      allow update, delete: if isAuthenticated() && isAdmin();
+      // 수정: 앱 관리자 또는 교회 관리자(adminIds 최소 1명 유지 조건)
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (isChurchAdmin(churchId) && adminIdsNotEmpty())
+      );
+
+      // 삭제: 앱 관리자만 가능
+      allow delete: if isAuthenticated() && isAdmin();
+
+      // ── 역할(roles) 서브컬렉션 ──────────────────────────────────
+      match /roles/{roleId} {
+        // 읽기: 교회 멤버만 가능
+        allow read: if isChurchMember(churchId);
+        // 생성: 교회 관리자만 가능
+        allow create: if isChurchAdmin(churchId);
+        // 수정: 교회 관리자만 가능 (기본 역할은 name, updatedAt만 수정 허용)
+        allow update: if isChurchAdmin(churchId) && (
+          !resource.data.isDefault ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'updatedAt'])
+        );
+        // 삭제: 교회 관리자만 가능, 기본 역할은 삭제 불가
+        allow delete: if isChurchAdmin(churchId) && !resource.data.isDefault;
+      }
+
+      // ── 멤버(members) 서브컬렉션 ─────────────────────────────────
+      match /members/{memberId} {
+        // 읽기: 교회 멤버이면 조회 가능 (관리자만 허용 시 일반 멤버가 동료 목록을 못 보는 문제 해결)
+        allow read: if isChurchMember(churchId);
+        // 생성: 본인(일반 멤버 역할) 또는 교회 관리자
+        allow create: if isAuthenticated() && (
+          (request.auth.uid == memberId && request.resource.data.roleId == 'member') ||
+          isChurchAdmin(churchId)
+        );
+        // 수정: 교회 관리자만 가능
+        allow update: if isChurchAdmin(churchId);
+        // 삭제: 본인 탈퇴 또는 교회 관리자 강퇴
+        allow delete: if isAuthenticated() && (
+          request.auth.uid == memberId ||
+          isChurchAdmin(churchId)
+        );
+      }
+
+      // ── 공지사항(announcements) 서브컬렉션 ───────────────────────
+      match /announcements/{announcementId} {
+        // 읽기: 교회 멤버만 가능
+        allow read: if isChurchMember(churchId);
+        // 생성/수정/삭제: 교회 관리자만 가능
+        allow create, update, delete: if isChurchAdmin(churchId);
+      }
+
+      // ── 일정(schedules) 서브컬렉션 ───────────────────────────────
+      match /schedules/{scheduleId} {
+        // 읽기: 교회 멤버만 가능
+        allow read: if isChurchMember(churchId);
+        // 생성/수정/삭제: 교회 관리자만 가능
+        allow create, update, delete: if isChurchAdmin(churchId);
+      }
     }
 
     // ============================================

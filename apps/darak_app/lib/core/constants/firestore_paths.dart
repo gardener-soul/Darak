@@ -26,4 +26,23 @@ class FirestorePaths {
 
   /// 교회 컬렉션
   static const churches = 'churches';
+
+  // ─── 교회 서브컬렉션 경로 헬퍼 ──────────────────────────────────
+  /// 교회별 역할 서브컬렉션 경로
+  static String churchRoles(String churchId) => 'churches/$churchId/roles';
+
+  /// 교회별 구성원 서브컬렉션 경로
+  static String churchMembers(String churchId) => 'churches/$churchId/members';
+
+  /// 교회별 공지사항 서브컬렉션 경로
+  static String churchAnnouncements(String churchId) =>
+      'churches/$churchId/announcements';
+
+  /// 교회별 일정 서브컬렉션 경로
+  static String churchSchedules(String churchId) =>
+      'churches/$churchId/schedules';
+
+  /// 교회별 초대 서브컬렉션 경로
+  static String churchInvitations(String churchId) =>
+      'churches/$churchId/invitations';
 }
