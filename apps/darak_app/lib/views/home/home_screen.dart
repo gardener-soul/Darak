@@ -44,8 +44,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               userName: userName,
               isPreview: widget.isPreview,
             ),
-            // 2. 게시판 (준비 중)
-            _buildPlaceholder('게시판'),
+            // 2. 검색 (준비 중)
+            _buildPlaceholder('검색'),
             // 3. 채팅 (준비 중)
             _buildPlaceholder('채팅'),
             // 4. 마이페이지
@@ -72,8 +72,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 label: '홈',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.article_rounded),
-                label: '게시판',
+                icon: Icon(Icons.search_rounded),
+                label: '검색',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.chat_bubble_rounded),

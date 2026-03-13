@@ -6,6 +6,7 @@ import '../../../core/providers/user_providers.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/common/clay_card.dart';
 import '../../auth/verification_waiting_screen.dart';
+import '../../church/church_detail_screen.dart';
 import '../../church/church_list_screen.dart';
 import 'church_not_registered_banner.dart';
 import 'home_bento_card.dart';
@@ -71,51 +72,76 @@ class HomeDashboard extends ConsumerWidget {
           Text('내 활동', style: AppTextStyles.headlineMedium),
           const SizedBox(height: 16),
 
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.1,
+          // 1행: 오늘의 말씀 + 공동체
+          Row(
             children: [
-              HomeBentoCard(
-                title: '우리 교회',
-                subtitle: '교회 찾기 & 교인 등록',
-                icon: Icons.church_rounded,
-                color: AppColors.skyBlue,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ChurchListScreen()),
+              Expanded(
+                child: HomeBentoCard(
+                  title: '오늘의 말씀',
+                  subtitle: '매일 성경 QT',
+                  icon: Icons.menu_book_rounded,
+                  color: AppColors.sageGreen,
+                  onTap: () {},
+                  isLocked: isPreview,
                 ),
-                isLocked: isPreview,
               ),
-              HomeBentoCard(
-                title: '오늘의 말씀',
-                subtitle: '매일 성경 QT',
-                icon: Icons.menu_book_rounded,
-                color: AppColors.sageGreen,
-                onTap: () {},
-                isLocked: isPreview,
-              ),
-              HomeBentoCard(
-                title: '공동체',
-                subtitle: '우리 다락방',
-                icon: Icons.people_rounded,
-                color: AppColors.softLavender,
-                onTap: () {},
-                isLocked: isPreview,
-              ),
-              HomeBentoCard(
-                title: '행사/일정',
-                subtitle: '교회 주요 행사',
-                icon: Icons.calendar_month_rounded,
-                color: AppColors.softCoral,
-                textColor: Colors.white,
-                isDark: true,
-                onTap: () {},
-                isLocked: isPreview,
+              const SizedBox(width: 16),
+              Expanded(
+                child: HomeBentoCard(
+                  title: '공동체',
+                  subtitle: '우리 다락방',
+                  icon: Icons.people_rounded,
+                  color: AppColors.softLavender,
+                  onTap: () {
+                    if (isPreview) return;
+                    final churchId = currentUser?.churchId;
+                    if (churchId != null) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ChurchDetailScreen(churchId: churchId),
+                        ),
+                      );
+                    } else {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ChurchListScreen(),
+                        ),
+                      );
+                    }
+                  },
+                  isLocked: isPreview,
+                ),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          // 2행: 행사/일정 (full-width)
+          HomeBentoCard(
+            title: '행사/일정',
+            subtitle: '교회 주요 행사',
+            icon: Icons.calendar_month_rounded,
+            color: AppColors.softCoral,
+            textColor: Colors.white,
+            isDark: true,
+            onTap: () {
+              if (isPreview) return;
+              final churchId = currentUser?.churchId;
+              if (churchId != null) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ChurchDetailScreen(
+                      churchId: churchId,
+                      initialTabIndex: 3,
+                    ),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('교회에 먼저 가입해주세요.')),
+                );
+              }
+            },
+            isLocked: isPreview,
           ),
           const SizedBox(height: 24),
         ],
