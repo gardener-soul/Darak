@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../services/address_search_service.dart';
 import '../../theme/app_theme.dart';
 import '../../viewmodels/church/church_registration_viewmodel.dart';
 import '../../widgets/common/bouncy_button.dart';
+import '../../widgets/common/bouncy_tap_wrapper.dart';
 import '../../widgets/common/clay_card.dart';
 import '../../widgets/common/soft_text_field.dart';
 import 'church_pending_screen.dart';
@@ -27,6 +29,8 @@ class _ChurchRegistrationScreenState
   final _pastorController = TextEditingController();
   final _memoController = TextEditingController();
   final _customDenominationController = TextEditingController();
+  // 매 호출마다 새 인스턴스 생성을 방지하기 위해 State 필드로 관리
+  final _addressSearchService = AddressSearchService();
 
   String? _selectedDenomination;
   bool _isCustomDenomination = false;
@@ -53,7 +57,7 @@ class _ChurchRegistrationScreenState
   }
 
   Future<void> _openAddressSearch() async {
-    final result = await AddressSearchService().searchAddress(context);
+    final result = await _addressSearchService.searchAddress(context);
     if (!mounted) return;
 
     if (result != null) {
@@ -181,7 +185,25 @@ class _ChurchRegistrationScreenState
                         controller: _memoController,
                         hintText: '교회 소개나 담당자 연락처 등을 자유롭게 적어주세요',
                         keyboardType: TextInputType.multiline,
+                        minLines: 4,
+                        maxLines: 8,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(300),
+                        ],
                         onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 6),
+                      // 글자 수 카운터: 280자 이상이면 경고색(softCoral)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          '${_memoController.text.length}/300',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: _memoController.text.length >= 280
+                                ? AppColors.softCoral
+                                : AppColors.textGrey,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 32),
                     ],
@@ -256,6 +278,7 @@ class _AddressRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: SoftTextField(
@@ -266,14 +289,56 @@ class _AddressRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        BouncyButton(
-          text: '검색',
-          icon: const Icon(Icons.search_rounded),
-          isFullWidth: false,
-          color: AppColors.softCoral,
-          onPressed: onSearchTap,
-        ),
+        _CompactSearchButton(onTap: onSearchTap),
       ],
+    );
+  }
+}
+
+/// 주소 행 전용 소형 검색 버튼.
+/// SoftTextField(contentPadding vertical:20) 높이에 맞춰 BouncyButton보다 compact하게 설계.
+class _CompactSearchButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _CompactSearchButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return BouncyTapWrapper(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        decoration: BoxDecoration(
+          color: AppColors.softCoral,
+          borderRadius: AppDecorations.buttonRadius,
+          boxShadow: [
+            BoxShadow(
+              color: Color.alphaBlend(
+                Colors.black.withValues(alpha: 0.2),
+                AppColors.softCoral,
+              ),
+              offset: const Offset(0, 4),
+              blurRadius: 0,
+            ),
+            BoxShadow(
+              color: AppColors.softCoral.withValues(alpha: 0.4),
+              offset: const Offset(0, 8),
+              blurRadius: 16,
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.search_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 6),
+            Text(
+              '검색',
+              style: AppTextStyles.buttonLabel.copyWith(color: Colors.white),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -286,6 +351,7 @@ class _DenominationSelector extends StatelessWidget {
   final void Function(String? selected, bool isCustom) onChanged;
   final VoidCallback onCustomChanged;
 
+  static const _customLabel = '직접 입력';
   static const _denominations = [
     '예장 합동',
     '예장 통합',
@@ -294,7 +360,7 @@ class _DenominationSelector extends StatelessWidget {
     '기성',
     '침례회',
     '순복음',
-    '직접 입력',
+    _customLabel,
   ];
 
   const _DenominationSelector({
@@ -334,7 +400,7 @@ class _DenominationSelector extends StatelessWidget {
               onSelected: (selected) {
                 onChanged(
                   selected ? d : null,
-                  selected && d == '직접 입력',
+                  selected && d == _customLabel,
                 );
               },
             );

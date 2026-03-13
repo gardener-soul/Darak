@@ -27,6 +27,8 @@ class ChurchRegistrationViewModel extends _$ChurchRegistrationViewModel {
     required String denomination,
     required String requestMemo,
   }) async {
+    // 이미 진행 중인 경우 중복 호출 방어 (더블 탭 Race Condition 방지)
+    if (state is AsyncLoading) return false;
     state = const AsyncLoading();
 
     try {
