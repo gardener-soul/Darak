@@ -9,6 +9,11 @@ apps/darak_app/build/
 backend/firebase/functions/node_modules/
 backend/firebase/functions/lib/
 backend/firebase/.firebase/
+
+# Cloud Functions (루트 functions/ 폴더)
+functions/node_modules/
+functions/lib/
+functions/.env
 .firebase/
 firebase-debug.log
 firestore-debug.log
@@ -48,6 +53,9 @@ nul
 # 사용자 설정 파일
 .claude/
 .agent/
+docs/
+CLAUDE.md
+PROJECT_STATUS.md
 
 # Security keys
 *.keystore
@@ -68,3 +76,4 @@ $RECYCLE.BIN/
 *.msp
 *.lnk
 .agent/
+PROJECT_STATUS.md

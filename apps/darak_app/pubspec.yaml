@@ -44,6 +44,9 @@ dependencies:
   firebase_auth: ^6.1.3
   google_sign_in: ^6.2.1
 
+  # 카카오 주소검색 (kpostal)
+  kpostal: ^1.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

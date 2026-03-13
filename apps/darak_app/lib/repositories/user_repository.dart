@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../core/constants/firestore_paths.dart';
 import '../core/providers/firebase_providers.dart';
+import '../core/utils/input_sanitizer.dart';
 import '../models/user.dart';
 
 part 'user_repository.g.dart';
@@ -98,7 +99,7 @@ class UserRepository {
 
       if (bio != null) {
         // XSS 방어: 50자 제한 + HTML 태그 제거
-        final sanitized = _sanitizeInput(bio, maxLength: 50);
+        final sanitized = sanitizeInput(bio, maxLength: 50);
         updates['bio'] = sanitized;
       }
 
@@ -122,7 +123,7 @@ class UserRepository {
     try {
       // 각 항목 sanitize (최대 200자)
       final sanitized =
-          requests.map((r) => _sanitizeInput(r, maxLength: 200)).toList();
+          requests.map((r) => sanitizeInput(r, maxLength: 200)).toList();
 
       await _usersRef.doc(uid).update({
         'prayerRequests': sanitized,
@@ -163,8 +164,8 @@ class UserRepository {
   }) async {
     try {
       final Map<String, dynamic> updates = {
-        'name': _sanitizeInput(name, maxLength: 50),
-        'phone': _sanitizeInput(phone, maxLength: 20),
+        'name': sanitizeInput(name, maxLength: 50),
+        'phone': sanitizeInput(phone, maxLength: 20),
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
@@ -177,7 +178,7 @@ class UserRepository {
       }
 
       if (bio != null) {
-        updates['bio'] = _sanitizeInput(bio, maxLength: 50);
+        updates['bio'] = sanitizeInput(bio, maxLength: 50);
       }
 
       await _usersRef.doc(uid).update(updates);
@@ -199,7 +200,7 @@ class UserRepository {
     try {
       await _usersRef.doc(uid).update({
         'groupId': groupId,
-        'groupName': _sanitizeInput(groupName, maxLength: 100),
+        'groupName': sanitizeInput(groupName, maxLength: 100),
         'groupImageUrl': groupImageUrl,
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -225,11 +226,11 @@ class UserRepository {
       };
 
       if (name != null) {
-        updates['name'] = _sanitizeInput(name, maxLength: 50);
+        updates['name'] = sanitizeInput(name, maxLength: 50);
       }
 
       if (phone != null) {
-        updates['phone'] = _sanitizeInput(phone, maxLength: 20);
+        updates['phone'] = sanitizeInput(phone, maxLength: 20);
       }
 
       if (birthDate != null) {
@@ -237,7 +238,7 @@ class UserRepository {
       }
 
       if (bio != null) {
-        updates['bio'] = _sanitizeInput(bio, maxLength: 200);
+        updates['bio'] = sanitizeInput(bio, maxLength: 200);
       }
 
       if (profileImageUrl != null) {
@@ -250,17 +251,4 @@ class UserRepository {
     }
   }
 
-  // ─── 입력값 Sanitize 헬퍼 ──────────────────────────────────
-  /// HTML 태그 제거 및 길이 제한으로 XSS/악의적 입력 방어
-  String _sanitizeInput(String input, {int maxLength = 100}) {
-    // HTML 태그 제거
-    final stripped = input.replaceAll(RegExp(r'<[^>]*>'), '');
-    // 앞뒤 공백 제거
-    final trimmed = stripped.trim();
-    // 길이 제한
-    if (trimmed.length > maxLength) {
-      return trimmed.substring(0, maxLength);
-    }
-    return trimmed;
-  }
 }

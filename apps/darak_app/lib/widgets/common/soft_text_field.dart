@@ -12,6 +12,10 @@ class SoftTextField extends StatelessWidget {
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
   final List<TextInputFormatter>? inputFormatters;
+  /// 최대 줄 수. 기본값 1 (단일 라인). null이면 무제한.
+  final int? maxLines;
+  /// 최소 줄 수. null이면 자동 조절하지 않음.
+  final int? minLines;
 
   const SoftTextField({
     super.key,
@@ -24,13 +28,15 @@ class SoftTextField extends StatelessWidget {
     this.validator,
     this.onChanged,
     this.inputFormatters,
+    this.maxLines = 1,
+    this.minLines,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.pureWhite,
         borderRadius: AppDecorations.defaultRadius,
         boxShadow: AppDecorations.innerInputShadow,
       ),
@@ -41,6 +47,8 @@ class SoftTextField extends StatelessWidget {
         validator: validator,
         onChanged: onChanged,
         inputFormatters: inputFormatters,
+        maxLines: obscureText ? 1 : maxLines,
+        minLines: minLines,
         style: AppTextStyles.bodyMedium,
         decoration: InputDecoration(
           hintText: hintText,

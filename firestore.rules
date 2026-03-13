@@ -113,6 +113,35 @@ service cloud.firestore {
     }
     
     // ============================================
+    // Churches (교회) 컬렉션
+    // ============================================
+    match /churches/{churchId} {
+      // 읽기: approved 문서는 모든 인증 사용자 조회 가능
+      //       pending/rejected 문서는 신청자 본인 또는 관리자만 조회 가능
+      allow read: if isAuthenticated() && (
+        resource.data.status == 'approved' ||
+        resource.data.requestedBy == request.auth.uid ||
+        isAdmin()
+      );
+
+      // 생성: 로그인한 사용자는 교회 등록 신청 가능
+      // - status는 반드시 'pending' 이어야 함 (승인 우회 차단)
+      // - requestedBy는 반드시 본인 uid 이어야 함
+      // - 필수 필드 존재 여부 검증
+      allow create: if isAuthenticated()
+        && request.resource.data.status == 'pending'
+        && request.resource.data.requestedBy == request.auth.uid
+        && request.resource.data.keys().hasAll([
+            'name', 'address', 'seniorPastor',
+            'denomination', 'requestMemo',
+            'requestedBy', 'status', 'createdAt', 'updatedAt'
+           ]);
+
+      // 수정/삭제: 관리자(admin, pastor)만 가능
+      allow update, delete: if isAuthenticated() && isAdmin();
+    }
+
+    // ============================================
     // Meetups (번개 모임) 컬렉션
     // ============================================
     match /meetups/{meetupId} {

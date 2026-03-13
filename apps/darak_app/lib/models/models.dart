@@ -16,6 +16,10 @@ export 'village.dart';
 export 'club.dart';
 export 'club_status.dart';
 
+// 교회 관련
+export 'church.dart';
+export 'church_status.dart';
+
 // 번개 모임 관련
 export 'meetup.dart';
 
