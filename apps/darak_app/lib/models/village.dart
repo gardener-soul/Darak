@@ -12,6 +12,7 @@ class Village with _$Village {
     List<String>? darakLeaderIds, // 마을 소속 다락방 리더 ID 리스트
     List<String>? memberIds, // 마을 소속 순원 ID 리스트
     String? description, // 마을 설명
+    String? churchId, // 소속 교회 ID (마이그레이션 기간 동안 null 허용)
     required DateTime createdAt, // 생성일시
     required DateTime updatedAt, // 수정일시
     DateTime? deletedAt, // 삭제일시 (Soft Delete)

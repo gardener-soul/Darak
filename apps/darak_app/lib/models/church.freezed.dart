@@ -38,7 +38,13 @@ mixin _$Church {
   String? get rejectionReason => throw _privateConstructorUsedError; // 거절 사유
   DateTime get createdAt => throw _privateConstructorUsedError; // 생성일시
   DateTime get updatedAt => throw _privateConstructorUsedError; // 수정일시
-  DateTime? get approvedAt => throw _privateConstructorUsedError;
+  DateTime? get approvedAt => throw _privateConstructorUsedError; // 승인일시
+  List<String>? get adminIds =>
+      throw _privateConstructorUsedError; // 관리자 userId 목록 (승인 전 null 허용)
+  int get memberCount => throw _privateConstructorUsedError; // 총 교인 수 비정규화 캐시
+  int get villageCount => throw _privateConstructorUsedError; // 마을 수 비정규화 캐시
+  int get groupCount => throw _privateConstructorUsedError; // 다락방 수 비정규화 캐시
+  String? get imageUrl => throw _privateConstructorUsedError;
 
   /// Serializes this Church to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -70,6 +76,11 @@ abstract class $ChurchCopyWith<$Res> {
     DateTime createdAt,
     DateTime updatedAt,
     DateTime? approvedAt,
+    List<String>? adminIds,
+    int memberCount,
+    int villageCount,
+    int groupCount,
+    String? imageUrl,
   });
 }
 
@@ -103,6 +114,11 @@ class _$ChurchCopyWithImpl<$Res, $Val extends Church>
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? approvedAt = freezed,
+    Object? adminIds = freezed,
+    Object? memberCount = null,
+    Object? villageCount = null,
+    Object? groupCount = null,
+    Object? imageUrl = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -166,6 +182,26 @@ class _$ChurchCopyWithImpl<$Res, $Val extends Church>
                 ? _value.approvedAt
                 : approvedAt // ignore: cast_nullable_to_non_nullable
                       as DateTime?,
+            adminIds: freezed == adminIds
+                ? _value.adminIds
+                : adminIds // ignore: cast_nullable_to_non_nullable
+                      as List<String>?,
+            memberCount: null == memberCount
+                ? _value.memberCount
+                : memberCount // ignore: cast_nullable_to_non_nullable
+                      as int,
+            villageCount: null == villageCount
+                ? _value.villageCount
+                : villageCount // ignore: cast_nullable_to_non_nullable
+                      as int,
+            groupCount: null == groupCount
+                ? _value.groupCount
+                : groupCount // ignore: cast_nullable_to_non_nullable
+                      as int,
+            imageUrl: freezed == imageUrl
+                ? _value.imageUrl
+                : imageUrl // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -196,6 +232,11 @@ abstract class _$$ChurchImplCopyWith<$Res> implements $ChurchCopyWith<$Res> {
     DateTime createdAt,
     DateTime updatedAt,
     DateTime? approvedAt,
+    List<String>? adminIds,
+    int memberCount,
+    int villageCount,
+    int groupCount,
+    String? imageUrl,
   });
 }
 
@@ -228,6 +269,11 @@ class __$$ChurchImplCopyWithImpl<$Res>
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? approvedAt = freezed,
+    Object? adminIds = freezed,
+    Object? memberCount = null,
+    Object? villageCount = null,
+    Object? groupCount = null,
+    Object? imageUrl = freezed,
   }) {
     return _then(
       _$ChurchImpl(
@@ -291,6 +337,26 @@ class __$$ChurchImplCopyWithImpl<$Res>
             ? _value.approvedAt
             : approvedAt // ignore: cast_nullable_to_non_nullable
                   as DateTime?,
+        adminIds: freezed == adminIds
+            ? _value._adminIds
+            : adminIds // ignore: cast_nullable_to_non_nullable
+                  as List<String>?,
+        memberCount: null == memberCount
+            ? _value.memberCount
+            : memberCount // ignore: cast_nullable_to_non_nullable
+                  as int,
+        villageCount: null == villageCount
+            ? _value.villageCount
+            : villageCount // ignore: cast_nullable_to_non_nullable
+                  as int,
+        groupCount: null == groupCount
+            ? _value.groupCount
+            : groupCount // ignore: cast_nullable_to_non_nullable
+                  as int,
+        imageUrl: freezed == imageUrl
+            ? _value.imageUrl
+            : imageUrl // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -315,7 +381,12 @@ class _$ChurchImpl implements _Church {
     required this.createdAt,
     required this.updatedAt,
     this.approvedAt,
-  });
+    final List<String>? adminIds,
+    this.memberCount = 0,
+    this.villageCount = 0,
+    this.groupCount = 0,
+    this.imageUrl,
+  }) : _adminIds = adminIds;
 
   factory _$ChurchImpl.fromJson(Map<String, dynamic> json) =>
       _$$ChurchImplFromJson(json);
@@ -364,10 +435,37 @@ class _$ChurchImpl implements _Church {
   // 수정일시
   @override
   final DateTime? approvedAt;
+  // 승인일시
+  final List<String>? _adminIds;
+  // 승인일시
+  @override
+  List<String>? get adminIds {
+    final value = _adminIds;
+    if (value == null) return null;
+    if (_adminIds is EqualUnmodifiableListView) return _adminIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
+
+  // 관리자 userId 목록 (승인 전 null 허용)
+  @override
+  @JsonKey()
+  final int memberCount;
+  // 총 교인 수 비정규화 캐시
+  @override
+  @JsonKey()
+  final int villageCount;
+  // 마을 수 비정규화 캐시
+  @override
+  @JsonKey()
+  final int groupCount;
+  // 다락방 수 비정규화 캐시
+  @override
+  final String? imageUrl;
 
   @override
   String toString() {
-    return 'Church(id: $id, name: $name, address: $address, addressDetail: $addressDetail, latitude: $latitude, longitude: $longitude, seniorPastor: $seniorPastor, denomination: $denomination, requestMemo: $requestMemo, requestedBy: $requestedBy, status: $status, rejectionReason: $rejectionReason, createdAt: $createdAt, updatedAt: $updatedAt, approvedAt: $approvedAt)';
+    return 'Church(id: $id, name: $name, address: $address, addressDetail: $addressDetail, latitude: $latitude, longitude: $longitude, seniorPastor: $seniorPastor, denomination: $denomination, requestMemo: $requestMemo, requestedBy: $requestedBy, status: $status, rejectionReason: $rejectionReason, createdAt: $createdAt, updatedAt: $updatedAt, approvedAt: $approvedAt, adminIds: $adminIds, memberCount: $memberCount, villageCount: $villageCount, groupCount: $groupCount, imageUrl: $imageUrl)';
   }
 
   @override
@@ -400,12 +498,21 @@ class _$ChurchImpl implements _Church {
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt) &&
             (identical(other.approvedAt, approvedAt) ||
-                other.approvedAt == approvedAt));
+                other.approvedAt == approvedAt) &&
+            const DeepCollectionEquality().equals(other._adminIds, _adminIds) &&
+            (identical(other.memberCount, memberCount) ||
+                other.memberCount == memberCount) &&
+            (identical(other.villageCount, villageCount) ||
+                other.villageCount == villageCount) &&
+            (identical(other.groupCount, groupCount) ||
+                other.groupCount == groupCount) &&
+            (identical(other.imageUrl, imageUrl) ||
+                other.imageUrl == imageUrl));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     runtimeType,
     id,
     name,
@@ -422,7 +529,12 @@ class _$ChurchImpl implements _Church {
     createdAt,
     updatedAt,
     approvedAt,
-  );
+    const DeepCollectionEquality().hash(_adminIds),
+    memberCount,
+    villageCount,
+    groupCount,
+    imageUrl,
+  ]);
 
   /// Create a copy of Church
   /// with the given fields replaced by the non-null parameter values.
@@ -455,6 +567,11 @@ abstract class _Church implements Church {
     required final DateTime createdAt,
     required final DateTime updatedAt,
     final DateTime? approvedAt,
+    final List<String>? adminIds,
+    final int memberCount,
+    final int villageCount,
+    final int groupCount,
+    final String? imageUrl,
   }) = _$ChurchImpl;
 
   factory _Church.fromJson(Map<String, dynamic> json) = _$ChurchImpl.fromJson;
@@ -488,7 +605,17 @@ abstract class _Church implements Church {
   @override
   DateTime get updatedAt; // 수정일시
   @override
-  DateTime? get approvedAt;
+  DateTime? get approvedAt; // 승인일시
+  @override
+  List<String>? get adminIds; // 관리자 userId 목록 (승인 전 null 허용)
+  @override
+  int get memberCount; // 총 교인 수 비정규화 캐시
+  @override
+  int get villageCount; // 마을 수 비정규화 캐시
+  @override
+  int get groupCount; // 다락방 수 비정규화 캐시
+  @override
+  String? get imageUrl;
 
   /// Create a copy of Church
   /// with the given fields replaced by the non-null parameter values.

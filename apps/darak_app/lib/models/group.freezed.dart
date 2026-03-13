@@ -31,6 +31,8 @@ mixin _$Group {
   String? get villageId =>
       throw _privateConstructorUsedError; // 소속 마을 ID (Village 참조)
   String? get description => throw _privateConstructorUsedError; // 다락방 설명
+  String? get churchId =>
+      throw _privateConstructorUsedError; // 소속 교회 ID (마이그레이션 기간 동안 null 허용)
   DateTime get createdAt => throw _privateConstructorUsedError; // 생성일시
   DateTime get updatedAt => throw _privateConstructorUsedError; // 수정일시
   DateTime? get deletedAt => throw _privateConstructorUsedError;
@@ -57,6 +59,7 @@ abstract class $GroupCopyWith<$Res> {
     List<String>? memberIds,
     String? villageId,
     String? description,
+    String? churchId,
     DateTime createdAt,
     DateTime updatedAt,
     DateTime? deletedAt,
@@ -85,6 +88,7 @@ class _$GroupCopyWithImpl<$Res, $Val extends Group>
     Object? memberIds = freezed,
     Object? villageId = freezed,
     Object? description = freezed,
+    Object? churchId = freezed,
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? deletedAt = freezed,
@@ -118,6 +122,10 @@ class _$GroupCopyWithImpl<$Res, $Val extends Group>
             description: freezed == description
                 ? _value.description
                 : description // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            churchId: freezed == churchId
+                ? _value.churchId
+                : churchId // ignore: cast_nullable_to_non_nullable
                       as String?,
             createdAt: null == createdAt
                 ? _value.createdAt
@@ -153,6 +161,7 @@ abstract class _$$GroupImplCopyWith<$Res> implements $GroupCopyWith<$Res> {
     List<String>? memberIds,
     String? villageId,
     String? description,
+    String? churchId,
     DateTime createdAt,
     DateTime updatedAt,
     DateTime? deletedAt,
@@ -180,6 +189,7 @@ class __$$GroupImplCopyWithImpl<$Res>
     Object? memberIds = freezed,
     Object? villageId = freezed,
     Object? description = freezed,
+    Object? churchId = freezed,
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? deletedAt = freezed,
@@ -214,6 +224,10 @@ class __$$GroupImplCopyWithImpl<$Res>
             ? _value.description
             : description // ignore: cast_nullable_to_non_nullable
                   as String?,
+        churchId: freezed == churchId
+            ? _value.churchId
+            : churchId // ignore: cast_nullable_to_non_nullable
+                  as String?,
         createdAt: null == createdAt
             ? _value.createdAt
             : createdAt // ignore: cast_nullable_to_non_nullable
@@ -242,6 +256,7 @@ class _$GroupImpl implements _Group {
     final List<String>? memberIds,
     this.villageId,
     this.description,
+    this.churchId,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -281,6 +296,9 @@ class _$GroupImpl implements _Group {
   final String? description;
   // 다락방 설명
   @override
+  final String? churchId;
+  // 소속 교회 ID (마이그레이션 기간 동안 null 허용)
+  @override
   final DateTime createdAt;
   // 생성일시
   @override
@@ -291,7 +309,7 @@ class _$GroupImpl implements _Group {
 
   @override
   String toString() {
-    return 'Group(id: $id, name: $name, imageUrl: $imageUrl, leaderId: $leaderId, memberIds: $memberIds, villageId: $villageId, description: $description, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
+    return 'Group(id: $id, name: $name, imageUrl: $imageUrl, leaderId: $leaderId, memberIds: $memberIds, villageId: $villageId, description: $description, churchId: $churchId, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
   }
 
   @override
@@ -313,6 +331,8 @@ class _$GroupImpl implements _Group {
                 other.villageId == villageId) &&
             (identical(other.description, description) ||
                 other.description == description) &&
+            (identical(other.churchId, churchId) ||
+                other.churchId == churchId) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -332,6 +352,7 @@ class _$GroupImpl implements _Group {
     const DeepCollectionEquality().hash(_memberIds),
     villageId,
     description,
+    churchId,
     createdAt,
     updatedAt,
     deletedAt,
@@ -360,6 +381,7 @@ abstract class _Group implements Group {
     final List<String>? memberIds,
     final String? villageId,
     final String? description,
+    final String? churchId,
     required final DateTime createdAt,
     required final DateTime updatedAt,
     final DateTime? deletedAt,
@@ -381,6 +403,8 @@ abstract class _Group implements Group {
   String? get villageId; // 소속 마을 ID (Village 참조)
   @override
   String? get description; // 다락방 설명
+  @override
+  String? get churchId; // 소속 교회 ID (마이그레이션 기간 동안 null 허용)
   @override
   DateTime get createdAt; // 생성일시
   @override
