@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../models/church.dart';
 import '../../../theme/app_theme.dart';
-import '../../../widgets/common/bouncy_button.dart';
 import '../../../widgets/common/bouncy_tap_wrapper.dart';
 import '../../../widgets/common/clay_card.dart';
 
 /// 교회 목록 화면에 표시되는 개별 교회 카드.
-/// [isRegistered]가 true이면 '등록됨' 뱃지를, false이면 '교인 등록' 버튼을 표시합니다.
+/// [isRegistered]가 true이면 '등록됨' 뱃지를, false이면 '등록' 버튼을 표시합니다.
 class ChurchCard extends StatelessWidget {
   final Church church;
   final bool isRegistered;
@@ -22,47 +21,19 @@ class ChurchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BouncyTapWrapper(
-      scaleDown: 0.97,
-      onTap: null, // 카드 자체 탭은 미사용 — 우측 버튼으로만 액션
-      child: ClayCard(
-        padding: const EdgeInsets.all(20),
-        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        child: Row(
-          children: [
-            const _ChurchIconContainer(),
-            const SizedBox(width: 16),
-            Expanded(child: _ChurchInfo(church: church)),
-            const SizedBox(width: 12),
-            if (isRegistered)
-              const _RegisteredBadge()
-            else
-              BouncyButton(
-                text: '교인 등록',
-                isFullWidth: false,
-                color: AppColors.softCoral,
-                onPressed: onRegisterTap,
-              ),
-          ],
-        ),
+    return ClayCard(
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(child: _ChurchInfo(church: church)),
+          const SizedBox(width: 12),
+          if (isRegistered)
+            const _RegisteredBadge()
+          else
+            _RegisterButton(onTap: onRegisterTap),
+        ],
       ),
-    );
-  }
-}
-
-class _ChurchIconContainer extends StatelessWidget {
-  const _ChurchIconContainer();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 52,
-      height: 52,
-      decoration: BoxDecoration(
-        color: AppColors.skyBlue.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: const Icon(Icons.church_rounded, color: AppColors.skyBlue, size: 28),
     );
   }
 }
@@ -109,6 +80,46 @@ class _ChurchInfo extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// 컴팩트 등록 버튼. BouncyButton보다 패딩을 줄여 카드 정보 영역을 침범하지 않습니다.
+class _RegisterButton extends StatelessWidget {
+  final VoidCallback? onTap;
+
+  const _RegisterButton({this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isEnabled = onTap != null;
+    return BouncyTapWrapper(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+        decoration: BoxDecoration(
+          color: isEnabled
+              ? AppColors.softCoral
+              : AppColors.softCoral.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isEnabled
+              ? [
+                  BoxShadow(
+                    color: AppColors.softCoral.withValues(alpha: 0.35),
+                    offset: const Offset(0, 4),
+                    blurRadius: 10,
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          '등록',
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.pureWhite,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
     );
   }
 }

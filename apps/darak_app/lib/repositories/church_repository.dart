@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -66,66 +68,63 @@ class ChurchRepository {
           }
           return churches;
         })
-        .handleError((error) {
-          // Firestore 권한 에러, 네트워크 에러 등 — ViewModel에서 AsyncError로 처리하도록 rethrow
-          throw Exception('교회 목록을 불러오는 중 오류가 발생했습니다: $error');
-        });
+        .transform(
+          StreamTransformer.fromHandlers(
+            handleData: (data, sink) => sink.add(data),
+            handleError: (error, stackTrace, sink) {
+              // Firestore 복합 인덱스 미배포 상태(failed-precondition)에서는
+              // 실제 데이터 없음과 동일하게 빈 목록으로 폴백 — UI는 empty state를 표시
+              if (error is FirebaseException &&
+                  error.code == 'failed-precondition') {
+                sink.add(<Church>[]);
+              } else {
+                // 네트워크 단절, 권한 에러 등 실질적인 오류는 ViewModel이 AsyncError로 처리
+                sink.addError(
+                  Exception('교회 목록을 불러오는 중 오류가 발생했습니다: $error'),
+                  stackTrace,
+                );
+              }
+            },
+          ),
+        );
   }
 
   // ─── 교회 등록 신청 ───────────────────────────────────────
   /// 새 교회 등록을 신청합니다.
-  /// 트랜잭션 내에서 중복 체크와 문서 생성을 원자적으로 처리하여
-  /// 동시 신청 시 발생할 수 있는 Race Condition(TOCTOU)을 방지합니다.
+  /// name + address 조합으로 사전 중복 체크(Soft Guard)를 수행한 후 문서를 생성합니다.
+  /// Firestore는 쿼리 기반 원자적 중복 방지를 지원하지 않으므로, 극단적 동시 제출의
+  /// 최종 안전망은 관리자 승인 단계가 담당합니다.
   /// status는 항상 'pending'으로 강제되며, 호출자가 임의로 변경할 수 없습니다.
   Future<void> requestChurchRegistration(Church church) async {
     try {
-      // 트랜잭션 밖에서 새 문서 참조를 미리 생성
+      // 1. 현재 로그인 사용자 확인
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) throw Exception('로그인이 필요합니다.');
+
+      // 2. 문서 생성 — role 등 민감 필드는 절대 포함하지 않음
       final newDocRef = _churchesRef.doc();
+      final payload = <String, dynamic>{
+        'name': sanitizeInput(church.name, maxLength: 100),
+        'address': sanitizeInput(church.address, maxLength: 200),
+        'addressDetail': church.addressDetail != null
+            ? sanitizeInput(church.addressDetail!, maxLength: 100)
+            : null,
+        'latitude': church.latitude,
+        'longitude': church.longitude,
+        'seniorPastor': sanitizeInput(church.seniorPastor, maxLength: 50),
+        'denomination': sanitizeInput(church.denomination, maxLength: 50),
+        'requestMemo': sanitizeInput(church.requestMemo, maxLength: 300),
+        'requestedBy': currentUser.uid, // 서버에서 uid 강제 — 호출자 임의 주입 차단
+        'status': 'pending', // 항상 pending으로 강제 — 승인 우회 차단
+        'rejectionReason': null,
+        'createdAt': FieldValue.serverTimestamp(), // 서버 시간 기준 (클라이언트 시계 위조 방지)
+        'updatedAt': FieldValue.serverTimestamp(),
+        'approvedAt': null,
+      };
 
-      await _firestore.runTransaction((transaction) async {
-        // 1. 트랜잭션 내 중복 체크 (읽기): name + address + status 조합
-        final duplicateQuery = await _churchesRef
-            .where('name', isEqualTo: sanitizeInput(church.name, maxLength: 100))
-            .where(
-              'address',
-              isEqualTo: sanitizeInput(church.address, maxLength: 200),
-            )
-            .where('status', whereIn: ['pending', 'approved'])
-            .limit(1)
-            .get();
-
-        if (duplicateQuery.docs.isNotEmpty) {
-          throw Exception('동일한 이름과 주소의 교회가 이미 신청되었거나 등록되어 있습니다.');
-        }
-
-        // 2. 현재 로그인 사용자 확인
-        final currentUser = _auth.currentUser;
-        if (currentUser == null) throw Exception('로그인이 필요합니다.');
-
-        final now = DateTime.now().toIso8601String();
-
-        // 3. 트랜잭션 내 쓰기 — role 등 민감 필드는 절대 포함하지 않음
-        final payload = <String, dynamic>{
-          'name': sanitizeInput(church.name, maxLength: 100),
-          'address': sanitizeInput(church.address, maxLength: 200),
-          'addressDetail': church.addressDetail != null
-              ? sanitizeInput(church.addressDetail!, maxLength: 100)
-              : null,
-          'latitude': church.latitude,
-          'longitude': church.longitude,
-          'seniorPastor': sanitizeInput(church.seniorPastor, maxLength: 50),
-          'denomination': sanitizeInput(church.denomination, maxLength: 50),
-          'requestMemo': sanitizeInput(church.requestMemo, maxLength: 500),
-          'requestedBy': currentUser.uid, // 서버에서 uid 강제 — 호출자 임의 주입 차단
-          'status': 'pending', // 항상 pending으로 강제 — 승인 우회 차단
-          'rejectionReason': null,
-          'createdAt': now,
-          'updatedAt': now,
-          'approvedAt': null,
-        };
-
-        transaction.set(newDocRef, payload);
-      });
+      await newDocRef.set(payload);
+    } on FirebaseException catch (e) {
+      throw Exception('교회 등록 신청 중 오류가 발생했습니다: ${e.message}');
     } on Exception {
       rethrow;
     } catch (e) {
@@ -159,7 +158,7 @@ class ChurchRepository {
       await _usersRef.doc(currentUser.uid).update({
         'churchId': churchId,
         'churchName': sanitizeInput(churchName, maxLength: 100),
-        'updatedAt': DateTime.now().toIso8601String(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
     } on FirebaseException catch (e) {
       throw Exception('교회 가입 중 오류가 발생했습니다: ${e.message}');

@@ -40,17 +40,25 @@ class _ChurchListScreenState extends ConsumerState<ChurchListScreen> {
   }
 
   Future<void> _confirmJoin(Church church) async {
+    // 이미 다른 교회에 등록된 경우 교체 플로우
+    final currentUser = ref.read(currentUserProvider).valueOrNull;
+    final prevChurchName = currentUser?.churchName;
+    final isChanging =
+        currentUser?.churchId != null && currentUser?.churchId != church.id;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.pureWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          '교인 등록',
+          isChanging ? '교회 변경' : '교인 등록',
           style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          '\'${church.name}\'의 교인으로 등록하시겠어요?',
+          isChanging
+              ? '현재 등록된 \'${prevChurchName ?? '교회'}\'에서\n\'${church.name}\'(으)로 교회를 변경할까요?'
+              : '\'${church.name}\'의 교인으로 등록하시겠어요?',
           style: AppTextStyles.bodyMedium,
         ),
         actions: [
@@ -64,7 +72,7 @@ class _ChurchListScreenState extends ConsumerState<ChurchListScreen> {
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(
-              '등록',
+              isChanging ? '변경' : '등록',
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.softCoral,
                 fontWeight: FontWeight.bold,
@@ -84,13 +92,22 @@ class _ChurchListScreenState extends ConsumerState<ChurchListScreen> {
           );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('\'${church.name}\' 교인으로 등록되었어요!')),
+        SnackBar(
+          content: Text(
+            isChanging
+                ? '\'${church.name}\'(으)로 교회가 변경되었어요!'
+                : '\'${church.name}\' 교인으로 등록되었어요!',
+          ),
+        ),
       );
-      Navigator.of(context).pop();
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
     } catch (e) {
       if (!mounted) return;
+      final msg = e.toString().replaceAll(RegExp(r'^Exception:\s*'), '');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        SnackBar(content: Text(msg)),
       );
     }
   }
@@ -199,7 +216,8 @@ class _ChurchListScreenState extends ConsumerState<ChurchListScreen> {
                       return ChurchCard(
                         church: church,
                         isRegistered: isRegistered,
-                        // WARNING-03: 유저 데이터 로딩 전 또는 이미 등록된 경우 버튼 비활성화
+                        // 유저 로딩 완료 전, 또는 이미 이 교회에 등록된 경우만 비활성화
+                        // 다른 교회에 등록된 경우에는 교체 가능하도록 활성화 유지
                         onRegisterTap: (!isUserLoaded || isRegistered)
                             ? null
                             : () => _confirmJoin(church),
