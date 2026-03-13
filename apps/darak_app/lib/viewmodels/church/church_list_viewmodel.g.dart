@@ -7,7 +7,7 @@ part of 'church_list_viewmodel.dart';
 // **************************************************************************
 
 String _$churchListViewModelHash() =>
-    r'ff21a5d70f0329a36b0cd80d01b126c49de08afa';
+    r'5346ff422174a2164876689c254a7c731221e40f';
 
 /// 교회 목록 화면의 상태를 관리하는 ViewModel.
 /// 교회 목록 스트림 구독 및 교인 등록(joinChurch) 액션을 담당합니다.
