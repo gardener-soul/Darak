@@ -48,6 +48,104 @@ class ChurchScheduleRepository {
     }
   }
 
+  // ─── 월별 일정 실시간 스트림 ──────────────────────────────────
+  /// [year]년 [month]월의 일정을 실시간으로 구독합니다.
+  /// 캘린더 이벤트 마커 표시에 사용합니다.
+  Stream<List<ChurchSchedule>> watchSchedulesByMonth({
+    required String churchId,
+    required int year,
+    required int month,
+  }) {
+    final from = DateTime(year, month, 1);
+    final to = DateTime(year, month + 1, 1);
+
+    return _firestore
+        .collection(FirestorePaths.churchSchedules(churchId))
+        .where('deletedAt', isNull: true)
+        .where('startAt', isGreaterThanOrEqualTo: Timestamp.fromDate(from))
+        .where('startAt', isLessThan: Timestamp.fromDate(to))
+        .orderBy('startAt')
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map(
+                (doc) => ChurchSchedule.fromJson(
+                  _fromFirestore({...doc.data(), 'id': doc.id}),
+                ),
+              )
+              .toList(),
+        );
+  }
+
+  // ─── 일정 생성 ────────────────────────────────────────────────
+  /// 새 일정 문서를 Firestore에 생성합니다.
+  Future<void> createSchedule({
+    required String churchId,
+    required ChurchSchedule schedule,
+  }) async {
+    try {
+      final col = _firestore.collection(FirestorePaths.churchSchedules(churchId));
+      final doc = col.doc();
+      final data = schedule.toJson();
+      data['id'] = doc.id;
+      data['startAt'] = Timestamp.fromDate(schedule.startAt);
+      if (schedule.endAt != null) {
+        data['endAt'] = Timestamp.fromDate(schedule.endAt!);
+      }
+      data['createdAt'] = FieldValue.serverTimestamp();
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      // deletedAt은 null이므로 제거 후 저장
+      data.remove('deletedAt');
+      await doc.set(data);
+    } catch (e) {
+      throw Exception('일정 생성에 실패했습니다: $e');
+    }
+  }
+
+  // ─── 일정 수정 ────────────────────────────────────────────────
+  /// 기존 일정 문서를 수정합니다.
+  Future<void> updateSchedule({
+    required String churchId,
+    required String scheduleId,
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      // DateTime 필드 Timestamp 변환
+      if (data['startAt'] is DateTime) {
+        data['startAt'] = Timestamp.fromDate(data['startAt'] as DateTime);
+      }
+      if (data['endAt'] is DateTime) {
+        data['endAt'] = Timestamp.fromDate(data['endAt'] as DateTime);
+      }
+      await _firestore
+          .collection(FirestorePaths.churchSchedules(churchId))
+          .doc(scheduleId)
+          .update(data);
+    } catch (e) {
+      throw Exception('일정 수정에 실패했습니다: $e');
+    }
+  }
+
+  // ─── 일정 Soft Delete ─────────────────────────────────────────
+  /// 일정 문서에 deletedAt을 설정합니다 (물리 삭제 X).
+  Future<void> deleteSchedule({
+    required String churchId,
+    required String scheduleId,
+  }) async {
+    try {
+      await _firestore
+          .collection(FirestorePaths.churchSchedules(churchId))
+          .doc(scheduleId)
+          .update({
+        'deletedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception('일정 삭제에 실패했습니다: $e');
+    }
+  }
+
   // ─── Firestore 날짜 타입 변환 헬퍼 ─────────────────────────
   /// Timestamp → ISO 8601 문자열로 변환하여 Freezed 모델과의 호환성 확보
   Map<String, dynamic> _fromFirestore(Map<String, dynamic> data) {
