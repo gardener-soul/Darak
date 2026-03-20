@@ -170,8 +170,15 @@ class _EmptyAnnouncementState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '등록된 공지사항이 없습니다',
+              '아직 공지사항이 없어요',
               style: AppTextStyles.bodySmall,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '첫 번째 공지를 작성해보세요 ✍️',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textGrey,
+              ),
             ),
           ],
         ),

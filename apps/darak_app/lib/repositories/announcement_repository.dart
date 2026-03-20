@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -43,8 +45,14 @@ class AnnouncementRepository {
               )
               .toList(),
         )
-        // Firestore 에러 발생 시 빈 리스트를 반환하여 스트림이 끊기지 않도록 방어
-        .handleError((Object _) => <Announcement>[]);
+        // Firestore 에러 발생 시 빈 리스트를 스트림에 emit하여 로딩 상태 해소
+        .transform(
+          StreamTransformer.fromHandlers(
+            handleData: (data, sink) => sink.add(data),
+            handleError: (error, stackTrace, sink) =>
+                sink.add(<Announcement>[]),
+          ),
+        );
   }
 
   // ─── Firestore 날짜 타입 변환 헬퍼 ─────────────────────────

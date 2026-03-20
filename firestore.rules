@@ -180,10 +180,14 @@ service cloud.firestore {
         && request.resource.data.status == 'pending'
         && request.resource.data.requestedBy == request.auth.uid;
 
-      // 수정: 앱 관리자 또는 교회 관리자(adminIds 최소 1명 유지 조건)
+      // 수정: 앱 관리자, 교회 관리자, 또는 멤버 탈퇴 시 memberCount 감소 허용
       allow update: if isAuthenticated() && (
         isAdmin() ||
-        (isChurchAdmin(churchId) && adminIdsNotEmpty())
+        (isChurchAdmin(churchId) && adminIdsNotEmpty()) ||
+        // 교회 멤버가 탈퇴할 때 memberCount 필드만 감소시키는 경우 허용
+        (isChurchMember(churchId) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount']) &&
+          request.resource.data.memberCount < resource.data.memberCount)
       );
 
       // 삭제: 앱 관리자만 가능
@@ -191,8 +195,8 @@ service cloud.firestore {
 
       // ── 역할(roles) 서브컬렉션 ──────────────────────────────────
       match /roles/{roleId} {
-        // 읽기: 교회 멤버만 가능
-        allow read: if isChurchMember(churchId);
+        // 읽기: 교회 멤버 또는 교회 관리자 가능 (관리자는 member 문서 없이도 접근)
+        allow read: if isChurchMember(churchId) || isChurchAdmin(churchId);
         // 생성: 교회 관리자만 가능
         allow create: if isChurchAdmin(churchId);
         // 수정: 교회 관리자만 가능 (기본 역할은 name, updatedAt만 수정 허용)
@@ -206,8 +210,8 @@ service cloud.firestore {
 
       // ── 멤버(members) 서브컬렉션 ─────────────────────────────────
       match /members/{memberId} {
-        // 읽기: 교회 멤버이면 조회 가능 (관리자만 허용 시 일반 멤버가 동료 목록을 못 보는 문제 해결)
-        allow read: if isChurchMember(churchId);
+        // 읽기: 교회 멤버 또는 교회 관리자 가능
+        allow read: if isChurchMember(churchId) || isChurchAdmin(churchId);
         // 생성: 본인(일반 멤버 역할) 또는 교회 관리자
         allow create: if isAuthenticated() && (
           (request.auth.uid == memberId && request.resource.data.roleId == 'member') ||
@@ -224,16 +228,16 @@ service cloud.firestore {
 
       // ── 공지사항(announcements) 서브컬렉션 ───────────────────────
       match /announcements/{announcementId} {
-        // 읽기: 교회 멤버만 가능
-        allow read: if isChurchMember(churchId);
+        // 읽기: 교회 멤버 또는 교회 관리자 가능
+        allow read: if isChurchMember(churchId) || isChurchAdmin(churchId);
         // 생성/수정/삭제: 교회 관리자만 가능
         allow create, update, delete: if isChurchAdmin(churchId);
       }
 
       // ── 일정(schedules) 서브컬렉션 ───────────────────────────────
       match /schedules/{scheduleId} {
-        // 읽기: 교회 멤버만 가능
-        allow read: if isChurchMember(churchId);
+        // 읽기: 교회 멤버 또는 교회 관리자 가능
+        allow read: if isChurchMember(churchId) || isChurchAdmin(churchId);
         // 생성/수정/삭제: 교회 관리자만 가능
         allow create, update, delete: if isChurchAdmin(churchId);
       }

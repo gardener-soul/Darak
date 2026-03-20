@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../models/church.dart';
 import '../../models/church_status.dart';
 import '../../repositories/church_repository.dart';
+import '../../repositories/church_role_repository.dart';
 
 part 'church_registration_viewmodel.g.dart';
 
@@ -47,7 +48,14 @@ class ChurchRegistrationViewModel extends _$ChurchRegistrationViewModel {
         updatedAt: now,
       );
 
-      await ref.read(churchRepositoryProvider).requestChurchRegistration(church);
+      final churchId = await ref
+          .read(churchRepositoryProvider)
+          .requestChurchRegistration(church);
+
+      // 기본 역할 4개(순원/순장/마을장/사역자) 초기화
+      await ref
+          .read(churchRoleRepositoryProvider)
+          .seedDefaultRoles(churchId: churchId);
 
       state = const AsyncData(null);
       return true;

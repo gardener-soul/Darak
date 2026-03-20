@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/firebase_providers.dart';
 import '../../models/church_detail_state.dart';
 import '../../models/church_member.dart';
+import '../../repositories/church_member_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../viewmodels/church/church_detail_viewmodel.dart';
 import 'church_manage_screen.dart';
@@ -92,6 +94,42 @@ class _ChurchDetailBody extends ConsumerWidget {
     required this.detail,
   });
 
+  Future<void> _leaveChurch(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('교회 탈퇴'),
+        content: const Text('정말 이 교회에서 탈퇴하시겠어요?\n(테스트용)'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('탈퇴', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final uid = ref.read(firebaseAuthProvider).currentUser?.uid;
+    if (uid == null) return;
+    try {
+      await ref
+          .read(churchMemberRepositoryProvider)
+          .leaveChurch(churchId: churchId, userId: uid);
+      if (context.mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ChurchMember? currentMember = detail.currentMember;
@@ -117,6 +155,24 @@ class _ChurchDetailBody extends ConsumerWidget {
                   ),
                 ),
               ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded, color: AppColors.textDark),
+              onSelected: (value) {
+                if (value == 'leave') _leaveChurch(context, ref);
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  value: 'leave',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout_rounded, color: Colors.red, size: 18),
+                      SizedBox(width: 8),
+                      Text('교회 탈퇴', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ],
           bottom: const _ChurchDetailTabBar(),
         ),
@@ -150,11 +206,12 @@ class _ChurchDetailTabBar extends StatelessWidget
   @override
   Widget build(BuildContext context) {
     return TabBar(
-      indicatorSize: TabBarIndicatorSize.label,
+      indicatorSize: TabBarIndicatorSize.tab,
       indicator: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: AppColors.softCoral.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(10),
+        color: AppColors.softCoral.withValues(alpha: 0.12),
       ),
+      dividerColor: Colors.transparent,
       labelColor: AppColors.softCoral,
       unselectedLabelColor: AppColors.textGrey,
       labelStyle: AppTextStyles.bodySmall.copyWith(

@@ -31,12 +31,11 @@ class ChurchCommunityTab extends ConsumerWidget {
     final rolesAsync = ref.watch(churchRolesProvider(churchId));
 
     // 현재 유저의 roleLevel 계산: roles 목록에서 currentMember.roleId에 해당하는 level 조회
-    final currentUserRoleLevel = rolesAsync.valueOrNull
-            ?.firstWhere(
-              (r) => r.id == currentMember?.roleId,
-              orElse: () => rolesAsync.valueOrNull!.first,
-            )
-            .level ??
+    final roles = rolesAsync.valueOrNull ?? [];
+    final currentUserRoleLevel = roles
+            .where((r) => r.id == currentMember?.roleId)
+            .firstOrNull
+            ?.level ??
         1;
 
     return communityAsync.when(

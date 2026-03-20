@@ -178,6 +178,29 @@ class ChurchMemberRepository {
     }
   }
 
+  // ─── 교회 탈퇴 (Batch: 멤버 문서 삭제 + memberCount 감소) ───
+  /// [userId]를 [churchId] 교회에서 탈퇴시킵니다.
+  Future<void> leaveChurch({
+    required String churchId,
+    required String userId,
+  }) async {
+    try {
+      final batch = _firestore.batch();
+      batch.delete(
+        _firestore
+            .collection(FirestorePaths.churchMembers(churchId))
+            .doc(userId),
+      );
+      batch.update(
+        _firestore.collection(FirestorePaths.churches).doc(churchId),
+        {'memberCount': FieldValue.increment(-1)},
+      );
+      await batch.commit();
+    } catch (e) {
+      throw Exception('교회 탈퇴에 실패했습니다: $e');
+    }
+  }
+
   // ─── Firestore 날짜 타입 변환 헬퍼 ─────────────────────────
   /// Timestamp → ISO 8601 문자열로 변환하여 Freezed 모델과의 호환성 확보
   Map<String, dynamic> _fromFirestore(Map<String, dynamic> data) {

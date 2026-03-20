@@ -95,7 +95,8 @@ class ChurchRepository {
   /// Firestore는 쿼리 기반 원자적 중복 방지를 지원하지 않으므로, 극단적 동시 제출의
   /// 최종 안전망은 관리자 승인 단계가 담당합니다.
   /// status는 항상 'pending'으로 강제되며, 호출자가 임의로 변경할 수 없습니다.
-  Future<void> requestChurchRegistration(Church church) async {
+  /// 생성된 churchId를 반환합니다 (ViewModel에서 seedDefaultRoles 등 후속 작업에 사용).
+  Future<String> requestChurchRegistration(Church church) async {
     try {
       // 1. 현재 로그인 사용자 확인
       final currentUser = _auth.currentUser;
@@ -103,7 +104,7 @@ class ChurchRepository {
 
       // 2. 문서 생성 — role 등 민감 필드는 절대 포함하지 않음
       final newDocRef = _churchesRef.doc();
-      final payload = <String, dynamic>{
+      final churchPayload = <String, dynamic>{
         'name': sanitizeInput(church.name, maxLength: 100),
         'address': sanitizeInput(church.address, maxLength: 200),
         'addressDetail': church.addressDetail != null
@@ -116,13 +117,39 @@ class ChurchRepository {
         'requestMemo': sanitizeInput(church.requestMemo, maxLength: 300),
         'requestedBy': currentUser.uid, // 서버에서 uid 강제 — 호출자 임의 주입 차단
         'status': 'pending', // 항상 pending으로 강제 — 승인 우회 차단
+        'adminIds': [currentUser.uid], // 신청자가 최초 관리자로 자동 등록
         'rejectionReason': null,
         'createdAt': FieldValue.serverTimestamp(), // 서버 시간 기준 (클라이언트 시계 위조 방지)
         'updatedAt': FieldValue.serverTimestamp(),
         'approvedAt': null,
+        'memberCount': 1, // 신청자가 member로 함께 등록되므로 1부터 시작
       };
 
-      await newDocRef.set(payload);
+      // 3. Batch: 교회 문서 + 신청자 member 문서 + user 소속 정보 원자적으로 함께 생성
+      final churchId = newDocRef.id;
+      final memberRef = _firestore
+          .collection(FirestorePaths.churchMembers(churchId))
+          .doc(currentUser.uid);
+      final userRef = _usersRef.doc(currentUser.uid);
+
+      final batch = _firestore.batch();
+      batch.set(newDocRef, churchPayload);
+      batch.set(memberRef, {
+        'userId': currentUser.uid,
+        'roleId': 'member',
+        'villageId': null,
+        'groupId': null,
+        'joinedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      // user 문서에 churchId/churchName 기록 → 홈 화면 배너 해소
+      batch.update(userRef, {
+        'churchId': churchId,
+        'churchName': sanitizeInput(church.name, maxLength: 100),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      await batch.commit();
+      return churchId;
     } on FirebaseException catch (e) {
       throw Exception('교회 등록 신청 중 오류가 발생했습니다: ${e.message}');
     } on Exception {
@@ -154,12 +181,32 @@ class ChurchRepository {
         throw Exception('승인된 교회만 가입할 수 있습니다.');
       }
 
-      // role 필드를 절대 포함하지 않는 안전한 payload만 업데이트
-      await _usersRef.doc(currentUser.uid).update({
+      // Batch: member 문서 생성 + user 소속 정보 업데이트 + memberCount 증가
+      final memberRef = _firestore
+          .collection(FirestorePaths.churchMembers(churchId))
+          .doc(currentUser.uid);
+      final userRef = _usersRef.doc(currentUser.uid);
+      final churchRef = _churchesRef.doc(churchId);
+
+      final batch = _firestore.batch();
+      batch.set(memberRef, {
+        'userId': currentUser.uid,
+        'roleId': 'member',
+        'villageId': null,
+        'groupId': null,
+        'joinedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      batch.update(userRef, {
         'churchId': churchId,
         'churchName': sanitizeInput(churchName, maxLength: 100),
         'updatedAt': FieldValue.serverTimestamp(),
       });
+      batch.update(churchRef, {
+        'memberCount': FieldValue.increment(1),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      await batch.commit();
     } on FirebaseException catch (e) {
       throw Exception('교회 가입 중 오류가 발생했습니다: ${e.message}');
     }
@@ -282,13 +329,14 @@ class ChurchRepository {
     };
   }
 
-  /// required 날짜 필드 변환 — null이면 즉시 명시적 예외를 던진다 (조용한 오염 방지)
+  /// required 날짜 필드 변환
+  /// FieldValue.serverTimestamp()는 로컬 optimistic 스냅샷에서 잠깐 null이 될 수 있음.
+  /// 해당 케이스에서는 현재 시각으로 폴백하여 크래시 방지.
   String _toIso8601Required(dynamic value, {required String fieldName}) {
     if (value is Timestamp) return value.toDate().toIso8601String();
     if (value is String) return value;
-    throw FormatException(
-      '필수 날짜 필드 "$fieldName"의 값이 null이거나 알 수 없는 타입입니다. 타입: ${value.runtimeType}',
-    );
+    // serverTimestamp pending-writes 상태: null → 현재 시각으로 폴백
+    return DateTime.now().toIso8601String();
   }
 
   /// nullable 날짜 필드 변환 — null이면 null 반환
