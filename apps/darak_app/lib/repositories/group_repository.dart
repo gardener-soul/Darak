@@ -214,6 +214,89 @@ class GroupRepository {
         );
   }
 
+  // ─── 다락방에서 멤버 제거 ─────────────────────────────────────
+  /// Group.memberIds 배열에서 [userId]를 제거합니다.
+  Future<void> removeMemberFromGroup(String groupId, String userId) async {
+    try {
+      await _groupsRef.doc(groupId).update({
+        'memberIds': FieldValue.arrayRemove([userId]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (e) {
+      throw Exception('그룹 멤버 제거 실패: ${e.message}');
+    }
+  }
+
+  // ─── 다락방 정보 수정 ────────────────────────────────────────
+  /// 다락방의 이름과 설명을 수정합니다.
+  Future<void> updateGroup({
+    required String groupId,
+    required String name,
+    String? description,
+  }) async {
+    try {
+      await _groupsRef.doc(groupId).update({
+        'name': name,
+        'description': description,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (e) {
+      throw Exception('다락방 수정 실패: ${e.message}');
+    }
+  }
+
+  // ─── 다락방 Soft Delete ─────────────────────────────────────
+  /// 다락방 문서에 deletedAt을 설정합니다 (물리 삭제 X).
+  Future<void> deleteGroup(String groupId) async {
+    try {
+      await _groupsRef.doc(groupId).update({
+        'deletedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (e) {
+      throw Exception('다락방 삭제 실패: ${e.message}');
+    }
+  }
+
+  // ─── 멤버를 다른 다락방으로 이동 (Batch) ─────────────────────
+  /// [fromGroupId]에서 [userId]를 제거하고 [toGroupId]에 추가합니다.
+  /// ChurchMember 소속 정보 업데이트까지 포함하여 3건을 단일 Batch로 처리합니다.
+  Future<void> moveMemberBetweenGroups({
+    required String fromGroupId,
+    required String toGroupId,
+    required String userId,
+    required String churchId,
+    required String toVillageId,
+  }) async {
+    try {
+      final batch = _firestore.batch();
+      // 1. 이전 다락방에서 제거
+      batch.update(_groupsRef.doc(fromGroupId), {
+        'memberIds': FieldValue.arrayRemove([userId]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      // 2. 새 다락방에 추가
+      batch.update(_groupsRef.doc(toGroupId), {
+        'memberIds': FieldValue.arrayUnion([userId]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      // 3. ChurchMember 소속 정보 업데이트 (원자성 보장)
+      final memberRef = _firestore
+          .collection('churches')
+          .doc(churchId)
+          .collection('members')
+          .doc(userId);
+      batch.update(memberRef, {
+        'groupId': toGroupId,
+        'villageId': toVillageId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      await batch.commit();
+    } on FirebaseException catch (e) {
+      throw Exception('멤버 이동 실패: ${e.message}');
+    }
+  }
+
   // ─── 다락방 생성 ────────────────────────────────────────────
   /// 새 다락방 문서를 Firestore에 생성합니다.
   /// [group.churchId]가 null이면 예외를 던집니다.
