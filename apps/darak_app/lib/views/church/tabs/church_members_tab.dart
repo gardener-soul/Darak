@@ -9,6 +9,7 @@ import '../../../viewmodels/church/church_members_viewmodel.dart';
 import '../../../viewmodels/church/church_roles_provider.dart';
 import '../../../widgets/common/clay_card.dart';
 import '../../../widgets/common/core/soft_chip.dart';
+import '../../../widgets/common/role_badge.dart';
 import '../../../widgets/common/soft_text_field.dart';
 
 /// 교회 상세 - 구성원 탭
@@ -195,7 +196,7 @@ class _MemberCard extends StatelessWidget {
           _MemberAvatar(imageUrl: profile.profileImageUrl, name: profile.name),
           const SizedBox(width: 12),
           Expanded(child: _MemberInfo(profile: profile)),
-          _RoleBadge(roleName: profile.roleName, level: profile.roleLevel),
+          RoleBadge(roleName: profile.roleName, roleLevel: profile.roleLevel),
         ],
       ),
     );
@@ -254,45 +255,6 @@ class _MemberInfo extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
       ],
-    );
-  }
-}
-
-class _RoleBadge extends StatelessWidget {
-  final String roleName;
-  final int level;
-
-  const _RoleBadge({required this.roleName, required this.level});
-
-  Color get _badgeColor {
-    switch (level) {
-      case 4:
-        return AppColors.softCoral;
-      case 3:
-        return AppColors.warmTangerine;
-      case 2:
-        return AppColors.sageGreen;
-      default:
-        return AppColors.skyBlue;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: _badgeColor.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(100),
-      ),
-      child: Text(
-        roleName,
-        style: AppTextStyles.bodySmall.copyWith(
-          color: _badgeColor,
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
-        ),
-      ),
     );
   }
 }

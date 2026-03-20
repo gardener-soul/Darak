@@ -157,10 +157,8 @@ class _ChurchDetailTabBar extends StatelessWidget
       ),
       labelColor: AppColors.softCoral,
       unselectedLabelColor: AppColors.textGrey,
-      labelStyle: const TextStyle(
-        fontFamily: AppTextStyles.fontFamily,
+      labelStyle: AppTextStyles.bodySmall.copyWith(
         fontWeight: FontWeight.w600,
-        fontSize: 14,
       ),
       tabs: const [
         Tab(text: '홈'),

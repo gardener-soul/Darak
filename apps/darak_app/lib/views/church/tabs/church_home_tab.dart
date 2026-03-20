@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../../models/announcement.dart';
 import '../../../models/church.dart';
 import '../../../theme/app_theme.dart';
 import '../../../viewmodels/church/church_announcements_viewmodel.dart';
 import '../../../widgets/common/clay_card.dart';
+import '../widgets/announcement_card.dart';
+import '../widgets/church_info_header.dart';
 
 /// 교회 상세 - 홈 탭
 /// 교회 기본 정보 + 통계 + 최근 공지사항 3건 표시
@@ -30,7 +31,7 @@ class ChurchHomeTab extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _ChurchInfoCard(church: church),
+          ChurchInfoHeader(church: church),
           const SizedBox(height: 16),
           _ChurchStatsRow(church: church),
           const SizedBox(height: 24),
@@ -40,114 +41,6 @@ class ChurchHomeTab extends ConsumerWidget {
           const SizedBox(height: 24),
         ],
       ),
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-
-/// 교회 기본 정보 카드 (이름, 담임목사, 교단, 주소)
-class _ChurchInfoCard extends StatelessWidget {
-  final Church church;
-
-  const _ChurchInfoCard({required this.church});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClayCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.softCoral.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.church_rounded,
-                  color: AppColors.softCoral,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      church.name,
-                      style: AppTextStyles.bodyLarge,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      church.denomination,
-                      style: AppTextStyles.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Divider(color: AppColors.divider, height: 1),
-          const SizedBox(height: 16),
-          _InfoRow(
-            icon: Icons.person_rounded,
-            label: '담임목사',
-            value: church.seniorPastor,
-          ),
-          const SizedBox(height: 8),
-          _InfoRow(
-            icon: Icons.location_on_rounded,
-            label: '주소',
-            value: church.address,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 16, color: AppColors.textGrey),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 60,
-          child: Text(
-            label,
-            style: AppTextStyles.bodySmall,
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textDark,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -252,7 +145,7 @@ class _AnnouncementSection extends StatelessWidget {
         }
         return Column(
           children: announcements
-              .map((a) => _AnnouncementCard(announcement: a))
+              .map((a) => AnnouncementCard(announcement: a))
               .toList(),
         );
       },
@@ -282,58 +175,6 @@ class _EmptyAnnouncementState extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _AnnouncementCard extends StatelessWidget {
-  final Announcement announcement;
-
-  const _AnnouncementCard({required this.announcement});
-
-  @override
-  Widget build(BuildContext context) {
-    final dateStr = DateFormat('M월 d일', 'ko_KR').format(announcement.createdAt);
-
-    return ClayCard(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (announcement.isPinned)
-            const Padding(
-              padding: EdgeInsets.only(right: 8, top: 2),
-              child: Icon(
-                Icons.push_pin_rounded,
-                size: 16,
-                color: AppColors.softCoral,
-              ),
-            ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  announcement.title,
-                  style: AppTextStyles.bodyMedium,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  announcement.content,
-                  style: AppTextStyles.bodySmall,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(dateStr, style: AppTextStyles.bodySmall),
-        ],
       ),
     );
   }
