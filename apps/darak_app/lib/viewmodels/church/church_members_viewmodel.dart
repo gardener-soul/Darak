@@ -30,10 +30,12 @@ class ChurchMembersViewModel extends _$ChurchMembersViewModel {
     final roles = await roleRepo.getRoles(churchId: churchId);
     final roleMap = {for (final r in roles) r.id: r};
 
+    // limit을 200으로 설정하여 일반적인 교회 규모에서 모든 멤버가 조회되도록 함
+    // 관리자(adminIds 포함) 계정이 limit 초과로 누락되는 문제 방지
     final members = await memberRepo.getMembers(
       churchId: churchId,
       filterRoleId: _filterRoleId,
-      limit: 50,
+      limit: 200,
     );
 
     // N+1 방지: 모든 멤버의 유저 프로필을 병렬로 한 번에 조회
@@ -70,7 +72,7 @@ class ChurchMembersViewModel extends _$ChurchMembersViewModel {
 
     return ChurchMembersState(
       members: profiles,
-      hasMore: members.length >= 50,
+      hasMore: members.length >= 200,
       filterRoleId: _filterRoleId,
       searchQuery: _searchQuery,
     );
