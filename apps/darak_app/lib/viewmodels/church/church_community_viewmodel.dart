@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../core/providers/firebase_providers.dart';
 import '../../models/group.dart';
 import '../../models/village.dart';
 import '../../models/village_with_groups.dart';
@@ -144,6 +146,108 @@ class ChurchCommunityViewModel extends _$ChurchCommunityViewModel {
           );
     } catch (e) {
       throw Exception('순원 추가에 실패했습니다: $e');
+    }
+  }
+
+  /// 특정 멤버를 다락방에서 제거하고 소속 정보를 null로 초기화합니다.
+  Future<void> removeMemberFromGroup({
+    required String churchId,
+    required String groupId,
+    required String userId,
+  }) async {
+    try {
+      await ref.read(groupRepositoryProvider).removeMemberFromGroup(
+            groupId,
+            userId,
+          );
+      await ref.read(churchMemberRepositoryProvider).updateMemberCommunity(
+            churchId: churchId,
+            userId: userId,
+            villageId: null,
+            groupId: null,
+          );
+    } catch (e) {
+      throw Exception('순원 제거에 실패했습니다: $e');
+    }
+  }
+
+  /// 멤버를 다른 다락방으로 이동합니다.
+  /// GroupRepository.moveMemberBetweenGroups에서 3건을 단일 Batch로 원자적 처리합니다.
+  Future<void> moveMemberBetweenGroups({
+    required String churchId,
+    required String fromGroupId,
+    required String toGroupId,
+    required String toVillageId,
+    required String userId,
+  }) async {
+    try {
+      await ref.read(groupRepositoryProvider).moveMemberBetweenGroups(
+            fromGroupId: fromGroupId,
+            toGroupId: toGroupId,
+            userId: userId,
+            churchId: churchId,
+            toVillageId: toVillageId,
+          );
+    } catch (e) {
+      throw Exception('멤버 이동에 실패했습니다: $e');
+    }
+  }
+
+  /// 다락방 이름/설명을 수정합니다.
+  Future<void> updateGroup({
+    required String groupId,
+    required String name,
+    String? description,
+  }) async {
+    try {
+      await ref.read(groupRepositoryProvider).updateGroup(
+            groupId: groupId,
+            name: name,
+            description: description,
+          );
+    } catch (e) {
+      throw Exception('다락방 수정에 실패했습니다: $e');
+    }
+  }
+
+  /// 다락방을 Soft Delete하고 소속 멤버들의 groupId를 null로 초기화합니다.
+  /// Batch로 원자적 처리: 다락방 삭제 + 멤버 소속 해제 + groupCount 감소
+  Future<void> deleteGroup({
+    required String churchId,
+    required String groupId,
+    required List<String> memberIds,
+  }) async {
+    try {
+      final firestore = ref.read(firestoreProvider);
+      final batch = firestore.batch();
+
+      // 1. 다락방 Soft Delete
+      final groupRef = firestore.collection('groups').doc(groupId);
+      batch.update(groupRef, {
+        'deletedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // 2. 소속 멤버들의 groupId null 처리
+      for (final uid in memberIds) {
+        final memberRef = firestore
+            .collection('churches')
+            .doc(churchId)
+            .collection('members')
+            .doc(uid);
+        batch.update(memberRef, {
+          'groupId': null,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      // 3. groupCount 감소
+      final churchRef = firestore.collection('churches').doc(churchId);
+      batch.update(churchRef, {'groupCount': FieldValue.increment(-1)});
+
+      await batch.commit();
+    } catch (e) {
+      throw Exception('다락방 삭제에 실패했습니다: $e');
     }
   }
 }
