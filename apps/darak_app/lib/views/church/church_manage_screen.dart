@@ -25,14 +25,6 @@ class _ChurchManageScreenState extends ConsumerState<ChurchManageScreen> {
   final _addressController = TextEditingController();
   final _pastorController = TextEditingController();
   final _denominationController = TextEditingController();
-  bool _initialized = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // build()가 아닌 didChangeDependencies에서 초기화하여 매 리빌드마다 초기화되는 문제 방지
-    _initControllers();
-  }
 
   @override
   void dispose() {
@@ -41,19 +33,6 @@ class _ChurchManageScreenState extends ConsumerState<ChurchManageScreen> {
     _pastorController.dispose();
     _denominationController.dispose();
     super.dispose();
-  }
-
-  /// 교회 상세 정보로 TextField 초기값 설정 (최초 1회)
-  void _initControllers() {
-    if (_initialized) return;
-    final detail =
-        ref.read(churchDetailViewModelProvider(widget.churchId)).valueOrNull;
-    if (detail == null) return;
-    _nameController.text = detail.church.name;
-    _addressController.text = detail.church.address;
-    _pastorController.text = detail.church.seniorPastor;
-    _denominationController.text = detail.church.denomination;
-    _initialized = true;
   }
 
   Future<void> _saveChurchInfo() async {
@@ -145,20 +124,30 @@ class _ChurchManageScreenState extends ConsumerState<ChurchManageScreen> {
   @override
   Widget build(BuildContext context) {
     // 관리자 권한 가드: 비관리자가 직접 URL/라우트로 접근 시 즉시 차단
-    final detailAsync =
-        ref.watch(churchDetailViewModelProvider(widget.churchId));
-    final isAdmin = detailAsync.valueOrNull?.isAdmin ?? false;
-    if (detailAsync.hasValue && !isAdmin) {
-      // 다음 프레임에서 pop 처리 (build 중 즉시 Navigator 호출 금지)
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('관리자만 접근할 수 있습니다.')),
-          );
-        }
-      });
-    }
+    // ref.listen을 사용하여 리빌드마다 중복 등록되지 않도록 처리 (Riverpod 권장 패턴)
+    ref.listen(churchDetailViewModelProvider(widget.churchId), (prev, next) {
+      // 데이터가 처음 로드됐을 때 컨트롤러 초기화 (prev가 없거나 아직 데이터가 없던 상태)
+      final wasUninitialized = prev == null || !prev.hasValue;
+      if (wasUninitialized && next.hasValue) {
+        final detail = next.value!;
+        _nameController.text = detail.church.name;
+        _addressController.text = detail.church.address;
+        _pastorController.text = detail.church.seniorPastor;
+        _denominationController.text = detail.church.denomination;
+      }
+
+      // 비관리자 접근 차단: 다음 프레임에서 pop 처리 (build 중 즉시 Navigator 호출 금지)
+      if (next.hasValue && !next.value!.isAdmin) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('관리자만 접근할 수 있습니다.')),
+            );
+          }
+        });
+      }
+    });
 
     final manageState =
         ref.watch(churchManageViewModelProvider(widget.churchId));

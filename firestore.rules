@@ -105,9 +105,10 @@ service cloud.firestore {
       // 읽기: 로그인한 사용자는 모든 그룹 조회 가능
       allow read: if isAuthenticated();
 
-      // 생성: 필수 필드 포함 시 가능
+      // 생성: 교회 관리자만 가능 (필수 필드 포함 + isChurchAdmin 확인)
       allow create: if isAuthenticated()
-        && request.resource.data.keys().hasAll(['churchId', 'name', 'createdAt', 'updatedAt']);
+        && request.resource.data.keys().hasAll(['churchId', 'name', 'createdAt', 'updatedAt'])
+        && isChurchAdmin(request.resource.data.churchId);
 
       // 수정: 다락방 리더 본인 또는 해당 교회 관리자
       allow update: if isAuthenticated() && (
@@ -126,9 +127,10 @@ service cloud.firestore {
       // 읽기: 로그인한 사용자는 모든 마을 조회 가능
       allow read: if isAuthenticated();
 
-      // 생성: 필수 필드 포함 시 가능
+      // 생성: 교회 관리자만 가능 (필수 필드 포함 + isChurchAdmin 확인)
       allow create: if isAuthenticated()
-        && request.resource.data.keys().hasAll(['churchId', 'name', 'createdAt', 'updatedAt']);
+        && request.resource.data.keys().hasAll(['churchId', 'name', 'createdAt', 'updatedAt'])
+        && isChurchAdmin(request.resource.data.churchId);
 
       // 수정: 마을 리더 본인 또는 해당 교회 관리자
       allow update: if isAuthenticated() && (

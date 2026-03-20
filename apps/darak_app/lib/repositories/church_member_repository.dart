@@ -54,6 +54,34 @@ class ChurchMemberRepository {
         );
   }
 
+  // ─── 교회 멤버 목록 단건 조회 (Future) ───────────────────────
+  /// [churchId] 교회의 멤버 목록을 한 번 조회합니다.
+  /// Stream.first 대신 이 메서드를 사용하여 실시간 구독 없이 안전하게 데이터를 가져옵니다.
+  Future<List<ChurchMember>> getMembers({
+    required String churchId,
+    String? filterRoleId,
+    int limit = 20,
+  }) async {
+    try {
+      var query = _firestore
+          .collection(FirestorePaths.churchMembers(churchId))
+          .limit(limit);
+      if (filterRoleId != null) {
+        query = query.where('roleId', isEqualTo: filterRoleId);
+      }
+      final snap = await query.get();
+      return snap.docs
+          .map(
+            (doc) => ChurchMember.fromJson(
+              _fromFirestore({...doc.data(), 'userId': doc.id}),
+            ),
+          )
+          .toList();
+    } catch (e) {
+      throw Exception('교회 멤버 목록 조회에 실패했습니다: $e');
+    }
+  }
+
   // ─── 특정 멤버 단건 조회 ────────────────────────────────────
   /// [churchId] 교회에서 [userId]에 해당하는 멤버 정보를 조회합니다.
   /// 존재하지 않으면 null을 반환합니다.

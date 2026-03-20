@@ -30,13 +30,11 @@ class ChurchMembersViewModel extends _$ChurchMembersViewModel {
     final roles = await roleRepo.getRoles(churchId: churchId);
     final roleMap = {for (final r in roles) r.id: r};
 
-    final members = await memberRepo
-        .watchMembers(
-          churchId: churchId,
-          filterRoleId: _filterRoleId,
-          limit: 50,
-        )
-        .first;
+    final members = await memberRepo.getMembers(
+      churchId: churchId,
+      filterRoleId: _filterRoleId,
+      limit: 50,
+    );
 
     // N+1 방지: 모든 멤버의 유저 프로필을 병렬로 한 번에 조회
     final userFutures = members.map((m) => userRepo.getUserById(m.userId));
@@ -50,8 +48,9 @@ class ChurchMembersViewModel extends _$ChurchMembersViewModel {
       // 유저 정보가 없으면 해당 멤버는 스킵 (Null-safety 방어)
       if (user == null) continue;
 
-      // 검색어가 있으면 이름 포함 여부로 필터링
-      if (_searchQuery.isNotEmpty && !user.name.contains(_searchQuery)) {
+      // 검색어가 있으면 이름 포함 여부로 필터링 (대소문자 구분 없음)
+      if (_searchQuery.isNotEmpty &&
+          !user.name.toLowerCase().contains(_searchQuery.toLowerCase())) {
         continue;
       }
 
