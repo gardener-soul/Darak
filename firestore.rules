@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // Darak 앱 Firestore 보안 규칙
-// 마지막 업데이트: 2026-01-28
+// 마지막 업데이트: 2026-03-20
 //
 // 보안 원칙:
 // 1. 인증된 사용자만 데이터 접근 가능
@@ -69,6 +69,16 @@ service cloud.firestore {
     function isChurchMember(churchId) {
       return isAuthenticated() &&
         exists(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid));
+    }
+
+    // 일정 작성 가능 여부 확인
+    // 교회 관리자이거나, 해당 교회 멤버 중 roleLevel >= 3(마을장) 또는 roleLevel == 99(사역자)인 경우
+    function isScheduleWriter(churchId) {
+      let memberDoc = get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid));
+      let roleId = memberDoc.data.roleId;
+      let roleDoc = get(/databases/$(database)/documents/churches/$(churchId)/roles/$(roleId));
+      let roleLevel = roleDoc.data.level;
+      return isChurchAdmin(churchId) || roleLevel >= 3 || roleLevel == 99;
     }
 
     // adminIds 최소 1명 유지 검증
@@ -238,8 +248,11 @@ service cloud.firestore {
       match /schedules/{scheduleId} {
         // 읽기: 교회 멤버 또는 교회 관리자 가능
         allow read: if isChurchMember(churchId) || isChurchAdmin(churchId);
-        // 생성/수정/삭제: 교회 관리자만 가능
-        allow create, update, delete: if isChurchAdmin(churchId);
+        // 생성/수정: 교회 관리자 또는 마을장(roleLevel >= 3), 사역자(roleLevel == 99) 가능
+        allow create, update: if isScheduleWriter(churchId);
+        // 삭제: 교회 관리자, 마을장/사역자, 또는 일정 작성자 본인 가능
+        allow delete: if isScheduleWriter(churchId) ||
+          (isChurchMember(churchId) && resource.data.createdBy == request.auth.uid);
       }
     }
 
