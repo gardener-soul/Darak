@@ -84,7 +84,10 @@ class GroupRepository {
       return snapshot.docs
           .map((doc) {
             try {
-              return Group.fromJson(doc.data());
+              // doc.id를 주입하여 id 필드 누락 방지
+              return Group.fromJson(
+                _fromFirestore({...doc.data(), 'id': doc.id}),
+              );
             } catch (e) {
               return null;
             }
@@ -266,7 +269,7 @@ class GroupRepository {
     required String toGroupId,
     required String userId,
     required String churchId,
-    required String toVillageId,
+    String? toVillageId,
   }) async {
     try {
       final batch = _firestore.batch();
