@@ -406,7 +406,7 @@ class _MemberList extends ConsumerWidget {
               ),
             ),
           ),
-          error: (_, __) => _MemberItem(
+          error: (error, stack) => _MemberItem(
             uid: uid,
             name: uid,
             photoUrl: null,
