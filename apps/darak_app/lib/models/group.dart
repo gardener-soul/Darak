@@ -13,6 +13,7 @@ class Group with _$Group {
     List<String>? memberIds, // 다락방 구성원 ID 리스트
     String? villageId, // 소속 마을 ID (Village 참조)
     String? description, // 다락방 설명
+    String? churchId, // 소속 교회 ID (마이그레이션 기간 동안 null 허용)
     required DateTime createdAt, // 생성일시
     required DateTime updatedAt, // 수정일시
     DateTime? deletedAt, // 삭제일시 (Soft Delete)

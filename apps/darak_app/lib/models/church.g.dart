@@ -24,6 +24,13 @@ _$ChurchImpl _$$ChurchImplFromJson(Map<String, dynamic> json) => _$ChurchImpl(
   approvedAt: json['approvedAt'] == null
       ? null
       : DateTime.parse(json['approvedAt'] as String),
+  adminIds: (json['adminIds'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
+  memberCount: (json['memberCount'] as num?)?.toInt() ?? 0,
+  villageCount: (json['villageCount'] as num?)?.toInt() ?? 0,
+  groupCount: (json['groupCount'] as num?)?.toInt() ?? 0,
+  imageUrl: json['imageUrl'] as String?,
 );
 
 Map<String, dynamic> _$$ChurchImplToJson(_$ChurchImpl instance) =>
@@ -43,6 +50,11 @@ Map<String, dynamic> _$$ChurchImplToJson(_$ChurchImpl instance) =>
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),
       'approvedAt': instance.approvedAt?.toIso8601String(),
+      'adminIds': instance.adminIds,
+      'memberCount': instance.memberCount,
+      'villageCount': instance.villageCount,
+      'groupCount': instance.groupCount,
+      'imageUrl': instance.imageUrl,
     };
 
 const _$ChurchStatusEnumMap = {

@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/firebase_providers.dart';
-import '../user/user_profile_screen.dart';
 import '../../theme/app_theme.dart';
+import '../search/search_tab.dart';
+import '../user/user_profile_screen.dart';
 import 'widgets/home_dashboard.dart';
 
 /// 홈 화면 (로그인 후 메인 화면 또는 미리보기 모드)
@@ -26,9 +27,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
+  /// 검색 탭(인덱스 1)으로 이동합니다.
+  void navigateToSearch() {
+    _onItemTapped(1);
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Current user can be null in preview mode
+    // 미리보기 모드에서는 currentUser가 null일 수 있음
     final user = ref.watch(firebaseAuthProvider).currentUser;
     final userName = user?.displayName ?? '친구';
 
@@ -38,17 +44,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: IndexedStack(
           index: _selectedIndex,
           children: [
-            // 1. 홈 탭
+            // 0. 홈 탭
             HomeDashboard(
               user: user,
               userName: userName,
               isPreview: widget.isPreview,
+              onSearchTabRequested: navigateToSearch,
             ),
-            // 2. 게시판 (준비 중)
-            _buildPlaceholder('게시판'),
-            // 3. 채팅 (준비 중)
+            // 1. 검색 탭 (기존 게시판 탭 대체)
+            const SearchTab(),
+            // 2. 채팅 (준비 중)
             _buildPlaceholder('채팅'),
-            // 4. 마이페이지
+            // 3. 마이페이지
             const UserProfileScreen(),
           ],
         ),
@@ -72,8 +79,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 label: '홈',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.article_rounded),
-                label: '게시판',
+                icon: Icon(Icons.search_rounded),
+                label: '검색',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.chat_bubble_rounded),
@@ -87,16 +94,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             currentIndex: _selectedIndex,
             selectedItemColor: AppColors.softCoral,
             unselectedItemColor: AppColors.textGrey,
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.pureWhite,
             type: BottomNavigationBarType.fixed,
             showUnselectedLabels: true,
-            selectedLabelStyle: const TextStyle(
+            selectedLabelStyle: AppTextStyles.bodySmall.copyWith(
               fontWeight: FontWeight.w600,
-              fontSize: 12,
             ),
-            unselectedLabelStyle: const TextStyle(
+            unselectedLabelStyle: AppTextStyles.bodySmall.copyWith(
               fontWeight: FontWeight.w500,
-              fontSize: 12,
             ),
             onTap: _onItemTapped,
             elevation: 0,
@@ -111,7 +116,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.construction_rounded, size: 48, color: AppColors.textGrey),
+          const Icon(
+            Icons.construction_rounded,
+            size: 48,
+            color: AppColors.textGrey,
+          ),
           const SizedBox(height: 16),
           Text(
             '$title 기능 준비 중입니다!',

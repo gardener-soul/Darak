@@ -18,6 +18,7 @@ _$VillageImpl _$$VillageImplFromJson(Map<String, dynamic> json) =>
           ?.map((e) => e as String)
           .toList(),
       description: json['description'] as String?,
+      churchId: json['churchId'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
       deletedAt: json['deletedAt'] == null
@@ -33,6 +34,7 @@ Map<String, dynamic> _$$VillageImplToJson(_$VillageImpl instance) =>
       'darakLeaderIds': instance.darakLeaderIds,
       'memberIds': instance.memberIds,
       'description': instance.description,
+      'churchId': instance.churchId,
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),
       'deletedAt': instance.deletedAt?.toIso8601String(),
