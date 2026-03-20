@@ -7,7 +7,7 @@ part of 'church_schedules_viewmodel.dart';
 // **************************************************************************
 
 String _$churchSchedulesViewModelHash() =>
-    r'0c47c1e09c39d83a312ed963fd63ae5b861c936d';
+    r'6e0d7c8192dcd1f12443b222f0a7f2c3a7c8ecf4';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -31,33 +31,33 @@ class _SystemHash {
 }
 
 abstract class _$ChurchSchedulesViewModel
-    extends BuildlessAutoDisposeAsyncNotifier<ChurchSchedulesState> {
+    extends BuildlessAutoDisposeStreamNotifier<ChurchSchedulesState> {
   late final String churchId;
 
-  FutureOr<ChurchSchedulesState> build(String churchId);
+  Stream<ChurchSchedulesState> build(String churchId);
 }
 
 /// 일정 탭의 상태를 관리하는 ViewModel.
-/// 주간/월간 뷰 모드 전환 및 해당 기간의 일정 목록을 제공합니다.
+/// 월 단위 스트림 기반으로 캘린더 이벤트 마커 및 날짜 선택 상태를 제공합니다.
 ///
 /// Copied from [ChurchSchedulesViewModel].
 @ProviderFor(ChurchSchedulesViewModel)
 const churchSchedulesViewModelProvider = ChurchSchedulesViewModelFamily();
 
 /// 일정 탭의 상태를 관리하는 ViewModel.
-/// 주간/월간 뷰 모드 전환 및 해당 기간의 일정 목록을 제공합니다.
+/// 월 단위 스트림 기반으로 캘린더 이벤트 마커 및 날짜 선택 상태를 제공합니다.
 ///
 /// Copied from [ChurchSchedulesViewModel].
 class ChurchSchedulesViewModelFamily
     extends Family<AsyncValue<ChurchSchedulesState>> {
   /// 일정 탭의 상태를 관리하는 ViewModel.
-  /// 주간/월간 뷰 모드 전환 및 해당 기간의 일정 목록을 제공합니다.
+  /// 월 단위 스트림 기반으로 캘린더 이벤트 마커 및 날짜 선택 상태를 제공합니다.
   ///
   /// Copied from [ChurchSchedulesViewModel].
   const ChurchSchedulesViewModelFamily();
 
   /// 일정 탭의 상태를 관리하는 ViewModel.
-  /// 주간/월간 뷰 모드 전환 및 해당 기간의 일정 목록을 제공합니다.
+  /// 월 단위 스트림 기반으로 캘린더 이벤트 마커 및 날짜 선택 상태를 제공합니다.
   ///
   /// Copied from [ChurchSchedulesViewModel].
   ChurchSchedulesViewModelProvider call(String churchId) {
@@ -87,17 +87,17 @@ class ChurchSchedulesViewModelFamily
 }
 
 /// 일정 탭의 상태를 관리하는 ViewModel.
-/// 주간/월간 뷰 모드 전환 및 해당 기간의 일정 목록을 제공합니다.
+/// 월 단위 스트림 기반으로 캘린더 이벤트 마커 및 날짜 선택 상태를 제공합니다.
 ///
 /// Copied from [ChurchSchedulesViewModel].
 class ChurchSchedulesViewModelProvider
     extends
-        AutoDisposeAsyncNotifierProviderImpl<
+        AutoDisposeStreamNotifierProviderImpl<
           ChurchSchedulesViewModel,
           ChurchSchedulesState
         > {
   /// 일정 탭의 상태를 관리하는 ViewModel.
-  /// 주간/월간 뷰 모드 전환 및 해당 기간의 일정 목록을 제공합니다.
+  /// 월 단위 스트림 기반으로 캘린더 이벤트 마커 및 날짜 선택 상태를 제공합니다.
   ///
   /// Copied from [ChurchSchedulesViewModel].
   ChurchSchedulesViewModelProvider(String churchId)
@@ -127,7 +127,7 @@ class ChurchSchedulesViewModelProvider
   final String churchId;
 
   @override
-  FutureOr<ChurchSchedulesState> runNotifierBuild(
+  Stream<ChurchSchedulesState> runNotifierBuild(
     covariant ChurchSchedulesViewModel notifier,
   ) {
     return notifier.build(churchId);
@@ -150,7 +150,7 @@ class ChurchSchedulesViewModelProvider
   }
 
   @override
-  AutoDisposeAsyncNotifierProviderElement<
+  AutoDisposeStreamNotifierProviderElement<
     ChurchSchedulesViewModel,
     ChurchSchedulesState
   >
@@ -176,14 +176,14 @@ class ChurchSchedulesViewModelProvider
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 mixin ChurchSchedulesViewModelRef
-    on AutoDisposeAsyncNotifierProviderRef<ChurchSchedulesState> {
+    on AutoDisposeStreamNotifierProviderRef<ChurchSchedulesState> {
   /// The parameter `churchId` of this provider.
   String get churchId;
 }
 
 class _ChurchSchedulesViewModelProviderElement
     extends
-        AutoDisposeAsyncNotifierProviderElement<
+        AutoDisposeStreamNotifierProviderElement<
           ChurchSchedulesViewModel,
           ChurchSchedulesState
         >
