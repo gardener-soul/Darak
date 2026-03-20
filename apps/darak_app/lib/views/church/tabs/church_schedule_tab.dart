@@ -171,7 +171,7 @@ class _CalendarBody extends ConsumerWidget {
                         color: AppColors.textDark,
                       ),
                       selectedTextStyle: AppTextStyles.bodyMedium.copyWith(
-                        color: Colors.white,
+                        color: AppColors.pureWhite,
                       ),
                       defaultTextStyle: AppTextStyles.bodyMedium.copyWith(
                         color: AppColors.textDark,

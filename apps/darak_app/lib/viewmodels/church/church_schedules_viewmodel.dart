@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../models/church_schedule.dart';
@@ -10,23 +8,30 @@ part 'church_schedules_viewmodel.g.dart';
 
 /// 일정 탭의 상태를 관리하는 ViewModel.
 /// 월 단위 스트림 기반으로 캘린더 이벤트 마커 및 날짜 선택 상태를 제공합니다.
+///
+/// [W-5 수정] _currentMonth를 클래스 변수로 관리하여 changeFocusedMonth 시
+/// build()가 반환한 스트림과 수동 구독이 동시에 활성화되는 충돌 문제를 해결합니다.
+/// ref.invalidateSelf()를 사용하여 build()를 재호출, 단일 스트림을 유지합니다.
 @riverpod
 class ChurchSchedulesViewModel extends _$ChurchSchedulesViewModel {
-  StreamSubscription<List<ChurchSchedule>>? _monthSubscription;
+  /// 현재 포커스 중인 월. build() 재호출 시 이 값을 기준으로 스트림을 구성합니다.
+  DateTime _currentMonth = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+  );
 
   @override
   Stream<ChurchSchedulesState> build(String churchId) {
-    final now = DateTime.now();
+    final month = _currentMonth;
     final initialState = ChurchSchedulesState(
       schedules: const [],
-      focusedMonth: DateTime(now.year, now.month),
-      selectedDate: DateTime(now.year, now.month, now.day),
+      focusedMonth: month,
+      selectedDate: DateTime(month.year, month.month, DateTime.now().day),
     );
 
-    ref.onDispose(() => _monthSubscription?.cancel());
-
-    // 초기 월 스트림 구독
-    return _watchMonth(churchId, now.year, now.month).map(
+    // _currentMonth 기준으로 스트림을 구성합니다.
+    // changeFocusedMonth → invalidateSelf → build 재호출 사이클로 단일 스트림 보장
+    return _watchMonth(churchId, month.year, month.month).map(
       (schedules) =>
           (state.valueOrNull ?? initialState).copyWith(schedules: schedules),
     );
@@ -43,39 +48,13 @@ class ChurchSchedulesViewModel extends _$ChurchSchedulesViewModel {
     );
   }
 
-  /// 캘린더 포커스 월을 변경하고 해당 월의 일정을 재구독합니다.
+  /// 캘린더 포커스 월을 변경합니다.
+  /// _currentMonth를 갱신한 뒤 ref.invalidateSelf()로 build()를 재호출하여
+  /// 새로운 월의 스트림으로 교체합니다. 수동 StreamSubscription을 사용하지 않으므로
+  /// build()가 반환한 스트림과의 충돌이 없습니다.
   void changeFocusedMonth(String churchId, DateTime month) {
-    // 이전 구독 취소
-    _monthSubscription?.cancel();
-
-    state = const AsyncLoading();
-
-    _monthSubscription = _watchMonth(churchId, month.year, month.month).listen(
-      (schedules) {
-        try {
-          final current = state.valueOrNull;
-          state = AsyncData(
-            (current ??
-                    ChurchSchedulesState(
-                      schedules: schedules,
-                      focusedMonth: month,
-                      selectedDate: DateTime(month.year, month.month, 1),
-                    ))
-                .copyWith(
-              schedules: schedules,
-              focusedMonth: month,
-            ),
-          );
-        } catch (_) {
-          // provider가 이미 dispose된 경우 무시
-        }
-      },
-      onError: (Object e, StackTrace s) {
-        try {
-          state = AsyncError(e, s);
-        } catch (_) {}
-      },
-    );
+    _currentMonth = month;
+    ref.invalidateSelf();
   }
 
   Stream<List<ChurchSchedule>> _watchMonth(

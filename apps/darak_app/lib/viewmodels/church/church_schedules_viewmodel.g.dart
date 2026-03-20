@@ -7,7 +7,7 @@ part of 'church_schedules_viewmodel.dart';
 // **************************************************************************
 
 String _$churchSchedulesViewModelHash() =>
-    r'6e0d7c8192dcd1f12443b222f0a7f2c3a7c8ecf4';
+    r'8d771f2083f87c8262a670ed7be46cf2e8433f97';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -40,6 +40,10 @@ abstract class _$ChurchSchedulesViewModel
 /// 일정 탭의 상태를 관리하는 ViewModel.
 /// 월 단위 스트림 기반으로 캘린더 이벤트 마커 및 날짜 선택 상태를 제공합니다.
 ///
+/// [W-5 수정] _currentMonth를 클래스 변수로 관리하여 changeFocusedMonth 시
+/// build()가 반환한 스트림과 수동 구독이 동시에 활성화되는 충돌 문제를 해결합니다.
+/// ref.invalidateSelf()를 사용하여 build()를 재호출, 단일 스트림을 유지합니다.
+///
 /// Copied from [ChurchSchedulesViewModel].
 @ProviderFor(ChurchSchedulesViewModel)
 const churchSchedulesViewModelProvider = ChurchSchedulesViewModelFamily();
@@ -47,17 +51,29 @@ const churchSchedulesViewModelProvider = ChurchSchedulesViewModelFamily();
 /// 일정 탭의 상태를 관리하는 ViewModel.
 /// 월 단위 스트림 기반으로 캘린더 이벤트 마커 및 날짜 선택 상태를 제공합니다.
 ///
+/// [W-5 수정] _currentMonth를 클래스 변수로 관리하여 changeFocusedMonth 시
+/// build()가 반환한 스트림과 수동 구독이 동시에 활성화되는 충돌 문제를 해결합니다.
+/// ref.invalidateSelf()를 사용하여 build()를 재호출, 단일 스트림을 유지합니다.
+///
 /// Copied from [ChurchSchedulesViewModel].
 class ChurchSchedulesViewModelFamily
     extends Family<AsyncValue<ChurchSchedulesState>> {
   /// 일정 탭의 상태를 관리하는 ViewModel.
   /// 월 단위 스트림 기반으로 캘린더 이벤트 마커 및 날짜 선택 상태를 제공합니다.
   ///
+  /// [W-5 수정] _currentMonth를 클래스 변수로 관리하여 changeFocusedMonth 시
+  /// build()가 반환한 스트림과 수동 구독이 동시에 활성화되는 충돌 문제를 해결합니다.
+  /// ref.invalidateSelf()를 사용하여 build()를 재호출, 단일 스트림을 유지합니다.
+  ///
   /// Copied from [ChurchSchedulesViewModel].
   const ChurchSchedulesViewModelFamily();
 
   /// 일정 탭의 상태를 관리하는 ViewModel.
   /// 월 단위 스트림 기반으로 캘린더 이벤트 마커 및 날짜 선택 상태를 제공합니다.
+  ///
+  /// [W-5 수정] _currentMonth를 클래스 변수로 관리하여 changeFocusedMonth 시
+  /// build()가 반환한 스트림과 수동 구독이 동시에 활성화되는 충돌 문제를 해결합니다.
+  /// ref.invalidateSelf()를 사용하여 build()를 재호출, 단일 스트림을 유지합니다.
   ///
   /// Copied from [ChurchSchedulesViewModel].
   ChurchSchedulesViewModelProvider call(String churchId) {
@@ -89,6 +105,10 @@ class ChurchSchedulesViewModelFamily
 /// 일정 탭의 상태를 관리하는 ViewModel.
 /// 월 단위 스트림 기반으로 캘린더 이벤트 마커 및 날짜 선택 상태를 제공합니다.
 ///
+/// [W-5 수정] _currentMonth를 클래스 변수로 관리하여 changeFocusedMonth 시
+/// build()가 반환한 스트림과 수동 구독이 동시에 활성화되는 충돌 문제를 해결합니다.
+/// ref.invalidateSelf()를 사용하여 build()를 재호출, 단일 스트림을 유지합니다.
+///
 /// Copied from [ChurchSchedulesViewModel].
 class ChurchSchedulesViewModelProvider
     extends
@@ -98,6 +118,10 @@ class ChurchSchedulesViewModelProvider
         > {
   /// 일정 탭의 상태를 관리하는 ViewModel.
   /// 월 단위 스트림 기반으로 캘린더 이벤트 마커 및 날짜 선택 상태를 제공합니다.
+  ///
+  /// [W-5 수정] _currentMonth를 클래스 변수로 관리하여 changeFocusedMonth 시
+  /// build()가 반환한 스트림과 수동 구독이 동시에 활성화되는 충돌 문제를 해결합니다.
+  /// ref.invalidateSelf()를 사용하여 build()를 재호출, 단일 스트림을 유지합니다.
   ///
   /// Copied from [ChurchSchedulesViewModel].
   ChurchSchedulesViewModelProvider(String churchId)

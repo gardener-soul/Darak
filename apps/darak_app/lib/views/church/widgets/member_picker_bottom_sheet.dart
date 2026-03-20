@@ -93,7 +93,8 @@ class _MemberPickerBottomSheetState
           ),
         ],
       );
-      if (confirmed != true) return;
+      // C-4: 다이얼로그 닫힌 후 mounted 체크
+      if (confirmed != true || !mounted) return;
     }
 
     setState(() => _selectedUserId = userId);
@@ -109,15 +110,17 @@ class _MemberPickerBottomSheetState
           .read(churchMemberRepositoryProvider)
           .getMember(churchId: widget.churchId, userId: userId);
 
-      if (member?.groupId != null && member!.groupId != widget.group.id) {
+      // Bang Operator 제거: 지역 변수로 null 안전 처리
+      final currentGroupId = member?.groupId;
+      if (currentGroupId != null && currentGroupId != widget.group.id) {
         // 다른 다락방에서 이동
         await ref
             .read(churchCommunityViewModelProvider(widget.churchId).notifier)
             .moveMemberBetweenGroups(
               churchId: widget.churchId,
-              fromGroupId: member.groupId!,
+              fromGroupId: currentGroupId,
               toGroupId: widget.group.id,
-              toVillageId: widget.group.villageId ?? '',
+              toVillageId: widget.group.villageId,
               userId: userId,
             );
       } else {

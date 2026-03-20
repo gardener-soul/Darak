@@ -7,7 +7,6 @@ import '../../../repositories/user_repository.dart';
 import '../../../theme/app_theme.dart';
 import '../../../viewmodels/church/church_community_viewmodel.dart';
 import '../../../widgets/common/bouncy_button.dart';
-import '../../../widgets/common/bouncy_tap_wrapper.dart';
 import '../../../widgets/common/core/app_bottom_sheet.dart';
 import '../../../widgets/common/core/bouncy_icon_btn.dart';
 import '../../../widgets/common/core/clay_avatar.dart';
@@ -463,17 +462,12 @@ class _MemberItem extends StatelessWidget {
               size: 18,
             )
           else if (canManage)
-            BouncyTapWrapper(
+            // W-6: 이중 탭 이벤트 제거 - BouncyTapWrapper 제거, BouncyIconBtn만 사용
+            BouncyIconBtn(
+              icon: Icons.remove_circle_outline_rounded,
+              color: AppColors.softCoral,
+              size: IconBtnSize.small,
               onTap: onRemove,
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: BouncyIconBtn(
-                  icon: Icons.remove_circle_outline_rounded,
-                  color: AppColors.softCoral,
-                  size: IconBtnSize.small,
-                  onTap: onRemove,
-                ),
-              ),
             ),
         ],
       ),

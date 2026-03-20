@@ -141,9 +141,10 @@ class _ScheduleCreateBottomSheetState
       );
       return;
     }
-    if (_endAt != null && _endAt!.isBefore(_startAt!)) {
+    // W-9: 종료 시각이 시작 시각과 동일하거나 이전인 경우 모두 차단 (!isAfter)
+    if (_endAt != null && !_endAt!.isAfter(_startAt!)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('종료 일시는 시작 일시 이후여야 합니다.')),
+        const SnackBar(content: Text('종료 일시는 시작 일시보다 이후여야 합니다.')),
       );
       return;
     }
