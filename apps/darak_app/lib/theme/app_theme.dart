@@ -31,6 +31,12 @@ class AppColors {
   static const Color divider = Color(0xFFE0E0E0);
   static const Color disabled = Color(0xFFE0E0E0);
 
+  // 역할 배지 텍스트 색상
+  static const Color roleAdminText = Color(0xFFCC5555);
+  static const Color roleMinisterText = Color(0xFF7C6FCD);
+  static const Color roleVillageLeaderText = Color(0xFF5C9186);
+  static const Color roleGroupLeaderText = Color(0xFF4A8FA8);
+
   // --- Claymorphism Specifics ---
 
   // Shadow color should be a darker, warmer tone of the background
