@@ -16,6 +16,13 @@ UserRepository userRepository(Ref ref) {
   return UserRepository(firestore: ref.watch(firestoreProvider));
 }
 
+/// userId로 User 정보를 조회하는 Provider.
+/// 멤버 목록 표시 시 각 userId의 사용자 정보를 로드하는 데 사용합니다.
+@riverpod
+Future<User?> userById(Ref ref, String userId) async {
+  return ref.watch(userRepositoryProvider).getUserById(userId);
+}
+
 class UserRepository {
   final FirebaseFirestore _firestore;
 

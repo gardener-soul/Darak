@@ -32,8 +32,10 @@ class GroupTreeTile extends StatelessWidget {
       onTap: () => GroupDetailBottomSheet.show(
         context,
         group: group,
+        churchId: churchId,
         isAdmin: isAdmin,
         isLeader: _isLeader,
+        currentMember: currentMember,
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
