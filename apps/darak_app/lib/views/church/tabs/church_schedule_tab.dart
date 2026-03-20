@@ -10,6 +10,7 @@ import '../../../repositories/church_member_repository.dart';
 import '../../../theme/app_theme.dart';
 import '../../../viewmodels/church/church_roles_provider.dart';
 import '../../../viewmodels/church/church_schedules_viewmodel.dart';
+import '../../../viewmodels/church/church_detail_viewmodel.dart';
 import '../../../widgets/common/bouncy_button.dart';
 import '../../../widgets/common/clay_card.dart';
 import '../../../widgets/common/core/soft_dialog.dart';
@@ -40,12 +41,16 @@ class ChurchScheduleTab extends ConsumerWidget {
       loading: () => const Center(
         child: CircularProgressIndicator(color: AppColors.softCoral),
       ),
-      error: (e, stack) => Center(
-        child: Text(
-          '일정을 불러오지 못했어요.',
-          style: AppTextStyles.bodySmall,
-        ),
-      ),
+      error: (e, stack) {
+        // 쿼리 오류(예: 인덱스 미배포)시에도 빈 캘린더는 표시되도록 폴백
+        final now = DateTime.now();
+        return _CalendarBody(
+          churchId: churchId,
+          schedules: const [],
+          focusedMonth: DateTime(now.year, now.month),
+          selectedDate: now,
+        );
+      },
       data: (scheduleState) => _CalendarBody(
         churchId: churchId,
         schedules: scheduleState.schedules,
@@ -75,6 +80,11 @@ class _CalendarBody extends ConsumerWidget {
     final userId = ref.watch(currentUserIdProvider);
     if (userId == null) return false;
 
+    // 관리자(adminIds) 여부를 churchDetailViewModelProvider에서 직접 조회
+    final detailAsync = ref.watch(churchDetailViewModelProvider(churchId));
+    final isAdmin = detailAsync.valueOrNull?.isAdmin ?? false;
+    if (isAdmin) return true;
+
     final memberAsync = ref.watch(
       churchMemberSingleProvider((churchId: churchId, userId: userId)),
     );
@@ -89,8 +99,8 @@ class _CalendarBody extends ConsumerWidget {
             ?.level ??
         1;
 
-    // 사역자(roleLevel=99), 마을장(roleLevel=3), 관리자는 일정 작성 가능
-    return roleLevel >= 3 || roleLevel == 99;
+    // 마을장(roleLevel=3) 이상 또는 사역자(roleLevel=99)는 일정 작성 가능
+    return roleLevel >= 3;
   }
 
   Map<DateTime, List<ChurchSchedule>> _buildEventMap(

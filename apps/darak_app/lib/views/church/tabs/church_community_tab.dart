@@ -7,6 +7,7 @@ import '../../../theme/app_theme.dart';
 import '../../../viewmodels/church/church_community_viewmodel.dart';
 import '../../../viewmodels/church/church_roles_provider.dart';
 import '../../../widgets/common/bouncy_button.dart';
+import '../../../widgets/common/clay_card.dart';
 import '../widgets/village_create_bottom_sheet.dart';
 import '../widgets/village_tree_tile.dart';
 
@@ -86,18 +87,30 @@ class _CommunityBody extends StatelessWidget {
       );
     }
 
+    // 다락방에 배정되지 않은 일반 멤버에게만 온보딩 카드 표시
+    // 지역 변수로 null promotion 처리 (! bang operator 사용 금지)
+    final member = currentMember;
+    final showOnboarding = !isAdmin && member != null && member.groupId == null;
+    final headerCount = showOnboarding ? 1 : 0;
+
     return Stack(
       children: [
         ListView.builder(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-          itemCount: villages.length,
-          itemBuilder: (ctx, i) => VillageTreeTile(
-            churchId: churchId,
-            villageWithGroups: villages[i],
-            currentMember: currentMember,
-            isAdmin: isAdmin,
-            currentUserRoleLevel: currentUserRoleLevel,
-          ),
+          itemCount: headerCount + villages.length,
+          itemBuilder: (ctx, i) {
+            if (showOnboarding && i == 0) {
+              return const _NoGroupOnboardingCard();
+            }
+            final vi = i - headerCount;
+            return VillageTreeTile(
+              churchId: churchId,
+              villageWithGroups: villages[vi],
+              currentMember: currentMember,
+              isAdmin: isAdmin,
+              currentUserRoleLevel: currentUserRoleLevel,
+            );
+          },
         ),
         if (isAdmin)
           Positioned(
@@ -111,6 +124,61 @@ class _CommunityBody extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// 다락방에 배정되지 않은 일반 멤버에게 표시하는 온보딩 안내 카드
+class _NoGroupOnboardingCard extends StatelessWidget {
+  const _NoGroupOnboardingCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return ClayCard(
+      margin: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+      padding: const EdgeInsets.all(16),
+      color: AppColors.skyBlue.withValues(alpha: 0.08),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.skyBlue.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.info_outline_rounded,
+              color: AppColors.skyBlue,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '아직 다락방이 없어요',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.skyBlue,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '순장님께 다락방 배정을 요청하세요.',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textGrey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

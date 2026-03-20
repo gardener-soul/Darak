@@ -74,15 +74,14 @@ service cloud.firestore {
     // 일정 작성 가능 여부 확인
     // 교회 관리자이거나, 해당 교회 멤버 중 roleLevel >= 3(마을장) 또는 roleLevel == 99(사역자)인 경우
     // C-5: 멤버/역할 문서 존재 여부를 exists()로 먼저 확인하여 런타임 에러 방지
+    // Note: Firebase Rules 함수 내에서는 if 문 사용 불가 → &&/|| 논리 표현식으로 처리
     function isScheduleWriter(churchId) {
-      if (isChurchAdmin(churchId)) return true;
-      let memberPath = /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid);
-      if (!exists(memberPath)) return false;
-      let roleId = get(memberPath).data.roleId;
-      let rolePath = /databases/$(database)/documents/churches/$(churchId)/roles/$(roleId);
-      if (!exists(rolePath)) return false;
-      let roleLevel = get(rolePath).data.level;
-      return roleLevel >= 3 || roleLevel == 99;
+      return isChurchAdmin(churchId) ||
+        (isAuthenticated() &&
+         exists(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)) &&
+         exists(/databases/$(database)/documents/churches/$(churchId)/roles/$(get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)).data.roleId)) &&
+         (get(/databases/$(database)/documents/churches/$(churchId)/roles/$(get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)).data.roleId)).data.level >= 3 ||
+          get(/databases/$(database)/documents/churches/$(churchId)/roles/$(get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)).data.roleId)).data.level == 99));
     }
 
     // adminIds 최소 1명 유지 검증

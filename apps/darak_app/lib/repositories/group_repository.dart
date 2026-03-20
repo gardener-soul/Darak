@@ -248,6 +248,23 @@ class GroupRepository {
     }
   }
 
+  // ─── 순장 등록/변경/해제 ─────────────────────────────────────
+  /// 다락방의 순장(leaderId)을 업데이트합니다.
+  /// [leaderId]가 null이면 순장을 해제합니다.
+  Future<void> updateGroupLeader({
+    required String groupId,
+    required String? leaderId,
+  }) async {
+    try {
+      await _groupsRef.doc(groupId).update({
+        'leaderId': leaderId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (e) {
+      throw Exception('순장 변경 실패: ${e.message}');
+    }
+  }
+
   // ─── 다락방 Soft Delete ─────────────────────────────────────
   /// 다락방 문서에 deletedAt을 설정합니다 (물리 삭제 X).
   Future<void> deleteGroup(String groupId) async {

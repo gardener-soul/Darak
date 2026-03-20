@@ -105,7 +105,7 @@ class ChurchCommunityViewModel extends _$ChurchCommunityViewModel {
     required String villageId,
     required String name,
     String? description,
-    required String leaderId,
+    String? leaderId,
   }) async {
     try {
       final group = Group(
@@ -240,6 +240,22 @@ class ChurchCommunityViewModel extends _$ChurchCommunityViewModel {
           );
     } catch (e) {
       throw Exception('다락방 수정에 실패했습니다: $e');
+    }
+  }
+
+  /// 다락방 순장을 등록/변경/해제합니다.
+  /// [leaderId]가 null이면 순장을 해제합니다.
+  Future<void> updateGroupLeader({
+    required String groupId,
+    required String? leaderId,
+  }) async {
+    try {
+      await ref.read(groupRepositoryProvider).updateGroupLeader(
+            groupId: groupId,
+            leaderId: leaderId,
+          );
+    } catch (e) {
+      throw Exception('순장 변경에 실패했습니다: $e');
     }
   }
 

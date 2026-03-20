@@ -51,6 +51,11 @@ class ChurchScheduleRepository {
   // ─── 월별 일정 실시간 스트림 ──────────────────────────────────
   /// [year]년 [month]월의 일정을 실시간으로 구독합니다.
   /// 캘린더 이벤트 마커 표시에 사용합니다.
+  ///
+  /// [수정] deletedAt isNull + 범위 쿼리 복합 인덱스 에러 회피:
+  /// Firestore에서 .where('deletedAt', isNull: true) + startAt 범위 쿼리 + orderBy
+  /// 조합은 복합 인덱스가 배포되지 않으면 failed-precondition 에러를 발생시킨다.
+  /// startAt 범위 쿼리만 Firestore에 위임하고, deletedAt 필터링은 클라이언트에서 수행한다.
   Stream<List<ChurchSchedule>> watchSchedulesByMonth({
     required String churchId,
     required int year,
@@ -64,7 +69,6 @@ class ChurchScheduleRepository {
 
     return _firestore
         .collection(FirestorePaths.churchSchedules(churchId))
-        .where('deletedAt', isNull: true)
         .where('startAt', isGreaterThanOrEqualTo: Timestamp.fromDate(from))
         .where('startAt', isLessThan: Timestamp.fromDate(to))
         .orderBy('startAt')
@@ -76,8 +80,10 @@ class ChurchScheduleRepository {
                   _fromFirestore({...doc.data(), 'id': doc.id}),
                 ),
               )
+              .where((s) => s.deletedAt == null) // 클라이언트 사이드 deletedAt 필터
               .toList(),
-        );
+        )
+        .handleError((_) => <ChurchSchedule>[]); // 쿼리 오류 시 빈 목록으로 폴백
   }
 
   // ─── 일정 생성 ────────────────────────────────────────────────

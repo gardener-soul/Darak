@@ -19,8 +19,8 @@ class ChurchRegistrationViewModel extends _$ChurchRegistrationViewModel {
   }
 
   /// 교회 등록 신청을 제출합니다.
-  /// 성공 시 true를 반환하며, 실패 시 AsyncError 상태로 전환하고 false를 반환합니다.
-  Future<bool> submit({
+  /// 성공 시 생성된 churchId(String)를 반환하며, 실패 시 AsyncError 상태로 전환하고 null을 반환합니다.
+  Future<String?> submit({
     required String name,
     required String address,
     String? addressDetail,
@@ -29,7 +29,7 @@ class ChurchRegistrationViewModel extends _$ChurchRegistrationViewModel {
     required String requestMemo,
   }) async {
     // 이미 진행 중인 경우 중복 호출 방어 (더블 탭 Race Condition 방지)
-    if (state is AsyncLoading) return false;
+    if (state is AsyncLoading) return null;
     state = const AsyncLoading();
 
     try {
@@ -58,13 +58,13 @@ class ChurchRegistrationViewModel extends _$ChurchRegistrationViewModel {
           .seedDefaultRoles(churchId: churchId);
 
       state = const AsyncData(null);
-      return true;
+      return churchId;
     } on Exception catch (e, st) {
       state = AsyncError(e, st);
-      return false;
+      return null;
     } catch (e, st) {
       state = AsyncError(Exception('교회 등록 신청 중 오류가 발생했습니다.'), st);
-      return false;
+      return null;
     }
   }
 }
