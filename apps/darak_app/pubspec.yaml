@@ -47,6 +47,9 @@ dependencies:
   # 카카오 주소검색 (kpostal)
   kpostal: ^1.1.0
 
+  # 캘린더 UI
+  table_calendar: ^3.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
