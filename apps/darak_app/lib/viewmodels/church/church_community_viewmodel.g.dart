@@ -7,7 +7,7 @@ part of 'church_community_viewmodel.dart';
 // **************************************************************************
 
 String _$churchCommunityViewModelHash() =>
-    r'2758522d44577d0d387197e5b6dbc104127be7e1';
+    r'631ea3f6a9d7f0d8aaa530f562b8a5f76b46831a';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -38,26 +38,26 @@ abstract class _$ChurchCommunityViewModel
 }
 
 /// 공동체 탭(마을/다락방 트리)의 상태를 관리하는 ViewModel.
-/// VillageRepository와 GroupRepository 스트림을 조립하여 트리 구조를 제공합니다.
+/// VillageRepository와 GroupRepository 스트림을 실시간으로 결합하여 트리 구조를 제공합니다.
 ///
 /// Copied from [ChurchCommunityViewModel].
 @ProviderFor(ChurchCommunityViewModel)
 const churchCommunityViewModelProvider = ChurchCommunityViewModelFamily();
 
 /// 공동체 탭(마을/다락방 트리)의 상태를 관리하는 ViewModel.
-/// VillageRepository와 GroupRepository 스트림을 조립하여 트리 구조를 제공합니다.
+/// VillageRepository와 GroupRepository 스트림을 실시간으로 결합하여 트리 구조를 제공합니다.
 ///
 /// Copied from [ChurchCommunityViewModel].
 class ChurchCommunityViewModelFamily
     extends Family<AsyncValue<List<VillageWithGroups>>> {
   /// 공동체 탭(마을/다락방 트리)의 상태를 관리하는 ViewModel.
-  /// VillageRepository와 GroupRepository 스트림을 조립하여 트리 구조를 제공합니다.
+  /// VillageRepository와 GroupRepository 스트림을 실시간으로 결합하여 트리 구조를 제공합니다.
   ///
   /// Copied from [ChurchCommunityViewModel].
   const ChurchCommunityViewModelFamily();
 
   /// 공동체 탭(마을/다락방 트리)의 상태를 관리하는 ViewModel.
-  /// VillageRepository와 GroupRepository 스트림을 조립하여 트리 구조를 제공합니다.
+  /// VillageRepository와 GroupRepository 스트림을 실시간으로 결합하여 트리 구조를 제공합니다.
   ///
   /// Copied from [ChurchCommunityViewModel].
   ChurchCommunityViewModelProvider call(String churchId) {
@@ -87,7 +87,7 @@ class ChurchCommunityViewModelFamily
 }
 
 /// 공동체 탭(마을/다락방 트리)의 상태를 관리하는 ViewModel.
-/// VillageRepository와 GroupRepository 스트림을 조립하여 트리 구조를 제공합니다.
+/// VillageRepository와 GroupRepository 스트림을 실시간으로 결합하여 트리 구조를 제공합니다.
 ///
 /// Copied from [ChurchCommunityViewModel].
 class ChurchCommunityViewModelProvider
@@ -97,7 +97,7 @@ class ChurchCommunityViewModelProvider
           List<VillageWithGroups>
         > {
   /// 공동체 탭(마을/다락방 트리)의 상태를 관리하는 ViewModel.
-  /// VillageRepository와 GroupRepository 스트림을 조립하여 트리 구조를 제공합니다.
+  /// VillageRepository와 GroupRepository 스트림을 실시간으로 결합하여 트리 구조를 제공합니다.
   ///
   /// Copied from [ChurchCommunityViewModel].
   ChurchCommunityViewModelProvider(String churchId)

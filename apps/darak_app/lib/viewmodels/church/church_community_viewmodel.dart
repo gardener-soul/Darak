@@ -1,17 +1,19 @@
+import 'dart:async';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../models/village_with_groups.dart';
-import '../../models/village.dart';
 import '../../models/group.dart';
-import '../../repositories/village_repository.dart';
-import '../../repositories/group_repository.dart';
-import '../../repositories/church_repository.dart';
+import '../../models/village.dart';
+import '../../models/village_with_groups.dart';
 import '../../repositories/church_member_repository.dart';
+import '../../repositories/church_repository.dart';
+import '../../repositories/group_repository.dart';
+import '../../repositories/village_repository.dart';
 
 part 'church_community_viewmodel.g.dart';
 
 /// 공동체 탭(마을/다락방 트리)의 상태를 관리하는 ViewModel.
-/// VillageRepository와 GroupRepository 스트림을 조립하여 트리 구조를 제공합니다.
+/// VillageRepository와 GroupRepository 스트림을 실시간으로 결합하여 트리 구조를 제공합니다.
 @riverpod
 class ChurchCommunityViewModel extends _$ChurchCommunityViewModel {
   @override
@@ -19,17 +21,53 @@ class ChurchCommunityViewModel extends _$ChurchCommunityViewModel {
     final villageRepo = ref.watch(villageRepositoryProvider);
     final groupRepo = ref.watch(groupRepositoryProvider);
 
-    return villageRepo
-        .watchVillagesByChurch(churchId: churchId)
-        .asyncMap((villages) async {
-      // Stream.first 대신 Future 메서드를 사용하여 메모리 누수 방지
-      final groups = await groupRepo.getGroupsByChurch(churchId: churchId);
-      return villages.map((v) {
-        final villageGroups =
-            groups.where((g) => g.villageId == v.id).toList();
-        return VillageWithGroups(village: v, groups: villageGroups);
-      }).toList();
+    // 마을 스트림과 다락방 스트림을 각각 구독하여 어느 쪽 변경이든 즉시 반영
+    final villageStream = villageRepo.watchVillagesByChurch(churchId: churchId);
+    final groupStream = groupRepo.watchGroupsByChurch(churchId: churchId);
+
+    late StreamController<List<VillageWithGroups>> controller;
+    List<Village>? latestVillages;
+    List<Group>? latestGroups;
+
+    void tryEmit() {
+      final v = latestVillages;
+      final g = latestGroups;
+      if (v != null && g != null && !controller.isClosed) {
+        final result = v.map((village) {
+          final vGroups = g.where((grp) => grp.villageId == village.id).toList();
+          return VillageWithGroups(village: village, groups: vGroups);
+        }).toList();
+        controller.add(result);
+      }
+    }
+
+    controller = StreamController<List<VillageWithGroups>>(
+      onCancel: () {},
+    );
+
+    final villageSub = villageStream.listen(
+      (villages) {
+        latestVillages = villages;
+        tryEmit();
+      },
+      onError: controller.addError,
+    );
+
+    final groupSub = groupStream.listen(
+      (groups) {
+        latestGroups = groups;
+        tryEmit();
+      },
+      onError: controller.addError,
+    );
+
+    ref.onDispose(() {
+      villageSub.cancel();
+      groupSub.cancel();
+      controller.close();
     });
+
+    return controller.stream;
   }
 
   /// 새 마을을 생성하고 교회의 villageCount를 원자적으로 증가시킵니다.
