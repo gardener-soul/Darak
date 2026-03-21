@@ -89,6 +89,17 @@ service cloud.firestore {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['adminIds']) ||
         request.resource.data.adminIds.size() >= 1;
     }
+
+    // 다락방 순장 확인 헬퍼
+    function isGroupLeader(groupId) {
+      let groupData = get(/databases/$(database)/documents/groups/$(groupId)).data;
+      return groupData.leaderId == request.auth.uid;
+    }
+
+    // 7일 이내 과거 출석 기록인지 확인 (수정 기한 제한용)
+    function isWithin7Days(dateTimestamp) {
+      return dateTimestamp.seconds >= (request.time.seconds - (7 * 24 * 60 * 60));
+    }
     
     // ============================================
     // Users 컬렉션
@@ -305,21 +316,32 @@ service cloud.firestore {
     }
     
     // ============================================
-    // Attendances (출석 기록) 컬렉션
+    // Attendances (출석 기록) 컬렉션 - 루트 컬렉션
     // ============================================
     match /attendances/{attendanceId} {
-      // 읽기: 본인 기록 또는 리더는 전체 조회 가능
+      // 읽기: 본인 기록, 소속 다락방 순장, 마을장/관리자 이상
       allow read: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid || isLeader()
+        resource.data.userId == request.auth.uid || 
+        isGroupLeader(resource.data.groupId) || 
+        isAdmin() || 
+        getUserRole() in ['villageLeader', 'evangelist', 'preacher']
       );
       
-      // 생성: 리더 이상만 가능 (출석 체크는 리더가 함)
-      allow create: if isAuthenticated() && isLeader();
+      // 생성: 다락방 순장(7일 이내 제한), 마을장/관리자(제한 없음)
+      allow create: if isAuthenticated() && (
+        (isGroupLeader(request.resource.data.groupId) && isWithin7Days(request.resource.data.date)) || 
+        isAdmin() || 
+        getUserRole() in ['villageLeader', 'evangelist', 'preacher']
+      );
       
-      // 수정: 리더 이상만 가능
-      allow update: if isAuthenticated() && isLeader();
+      // 수정: 다락방 순장(7일 이내 제한), 마을장/관리자(제한 없음)
+      allow update: if isAuthenticated() && (
+        (isGroupLeader(resource.data.groupId) && isWithin7Days(resource.data.date)) ||
+        isAdmin() ||
+        getUserRole() in ['villageLeader', 'evangelist', 'preacher']
+      );
       
-      // 삭제: 관리자만 가능
+      // 삭제: 관리자만 가능 (실제로는 Soft Delete인 update로 처리 권장)
       allow delete: if isAuthenticated() && isAdmin();
     }
     
