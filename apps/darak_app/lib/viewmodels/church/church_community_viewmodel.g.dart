@@ -7,7 +7,7 @@ part of 'church_community_viewmodel.dart';
 // **************************************************************************
 
 String _$churchCommunityViewModelHash() =>
-    r'd31611e8efc8d89f8ceb732c4bbba5acf79e85e6';
+    r'b476f39f92dea9f23448ab4ca263504b38211fbb';
 
 /// Copied from Dart SDK
 class _SystemHash {

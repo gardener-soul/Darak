@@ -1,17 +1,21 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/providers/user_providers.dart';
+import '../../models/attendance_status.dart';
+import '../../models/attendance_type.dart';
 import '../../models/user.dart' as app_user;
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
+import '../../viewmodels/attendance/attendance_viewmodel.dart';
 import '../../widgets/common/clay_card.dart';
 import '../../widgets/common/core/clay_list_tile.dart';
 import '../../widgets/common/core/soft_dialog.dart';
+import 'profile_edit_screen.dart';
 import 'widgets/user_profile_header.dart';
 import 'widgets/user_stats_dashboard.dart';
-import 'profile_edit_screen.dart';
 
 /// 마이페이지 (사용자 프로필) 화면
 ///
@@ -174,6 +178,12 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             attendanceAttended: attendanceAttended,
             prayerRequestCount: prayerCount,
           ),
+          const SizedBox(height: 24),
+
+          // ─── 내 출석 기록 ──────────────────────────────────────
+          Text('최근 출석 기록', style: AppTextStyles.headlineMedium),
+          const SizedBox(height: 16),
+          _MyAttendanceSection(userId: user.id),
           const SizedBox(height: 24),
 
           // ─── 메뉴 리스트 (§6.3 Bouncing Animation) ────────────
@@ -391,6 +401,144 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       child: Divider(
         height: 1,
         color: AppColors.divider.withValues(alpha: 0.5),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 내 최근 출석 기록 섹션 Widgets
+// ═══════════════════════════════════════════════════════════════
+
+class _MyAttendanceSection extends ConsumerWidget {
+  final String userId;
+
+  const _MyAttendanceSection({required this.userId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final attendancesAsync = ref.watch(myAttendanceHistoryProvider(userId));
+
+    return attendancesAsync.when(
+      loading: () => ClayCard(
+        padding: const EdgeInsets.all(24),
+        child: const Center(
+          child: CircularProgressIndicator(color: AttendanceColors.present),
+        ),
+      ),
+      error: (_, __) => ClayCard(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          '출석 기록을 불러오지 못했어요.',
+          style: AppTextStyles.bodySmall,
+        ),
+      ),
+      data: (attendances) {
+        if (attendances.isEmpty) {
+          return ClayCard(
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.event_busy_rounded,
+                    size: 40,
+                    color: AppColors.disabled,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    '최근 한 달간 출석 기록이 없어요.',
+                    style: AppTextStyles.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ClayCard(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: List.generate(attendances.length, (i) {
+              final a = attendances[i];
+              final isLast = i == attendances.length - 1;
+              return Padding(
+                padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
+                child: _MyAttendanceTile(
+                  date: a.date,
+                  type: a.type,
+                  status: a.status,
+                ),
+              );
+            }),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MyAttendanceTile extends StatelessWidget {
+  final DateTime date;
+  final AttendanceType type;
+  final AttendanceStatus status;
+
+  static const _statusColors = {
+    AttendanceStatus.present: AttendanceColors.present,
+    AttendanceStatus.late: AttendanceColors.late,
+    AttendanceStatus.absent: AttendanceColors.absent,
+    AttendanceStatus.excused: AttendanceColors.excused,
+  };
+
+  static const _statusLabels = {
+    AttendanceStatus.present: '출석',
+    AttendanceStatus.late: '지각',
+    AttendanceStatus.absent: '결석',
+    AttendanceStatus.excused: '사유',
+  };
+
+  const _MyAttendanceTile({
+    required this.date,
+    required this.type,
+    required this.status,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = DateFormat('MM.dd (E)', 'ko');
+    final color = _statusColors[status] ?? AppColors.textGrey;
+    final label = _statusLabels[status] ?? '';
+    final typeLabel = type.label;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.pureWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              label,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(formatter.format(date), style: AppTextStyles.bodyMedium),
+          const Spacer(),
+          Text(typeLabel, style: AppTextStyles.bodySmall),
+        ],
       ),
     );
   }

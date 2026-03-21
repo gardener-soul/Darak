@@ -7,7 +7,7 @@ part of 'church_schedules_viewmodel.dart';
 // **************************************************************************
 
 String _$churchSchedulesViewModelHash() =>
-    r'8d771f2083f87c8262a670ed7be46cf2e8433f97';
+    r'67f8324a13bf2db7dc89437d6fb36b7ef4e59931';
 
 /// Copied from Dart SDK
 class _SystemHash {
