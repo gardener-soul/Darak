@@ -7,7 +7,7 @@ part of 'church_registration_viewmodel.dart';
 // **************************************************************************
 
 String _$churchRegistrationViewModelHash() =>
-    r'7c0e4ada36bbeeb1c7d1bf73a272bdbdcf269bca';
+    r'f0b39f71fe9159c41a324d4ceeb783d7bac35a92';
 
 /// 교회 등록 신청 화면의 상태를 관리하는 ViewModel.
 /// 폼 제출 및 Firestore 저장을 담당합니다.
