@@ -29,10 +29,9 @@ class ChurchMemberRepository {
   })  : _firestore = firestore,
         _auth = auth;
 
-  // ─── 교회 멤버 목록 실시간 스트림 ─────────────────────────────
-  /// [churchId] 교회의 멤버 목록을 실시간으로 구독합니다.
-  /// [filterRoleId]가 있으면 해당 역할의 멤버만 필터링합니다.
-  Stream<List<ChurchMember>> watchMembers({
+  // ─── 멤버 목록 공통 쿼리 빌더 ──────────────────────────────
+  /// [filterRoleId]가 있으면 해당 역할만 필터링합니다.
+  Query<Map<String, dynamic>> _buildMembersQuery({
     required String churchId,
     String? filterRoleId,
     int limit = 20,
@@ -43,15 +42,32 @@ class ChurchMemberRepository {
     if (filterRoleId != null) {
       query = query.where('roleId', isEqualTo: filterRoleId);
     }
-    return query.snapshots().map(
-          (snap) => snap.docs
-              .map(
-                (doc) => ChurchMember.fromJson(
-                  _fromFirestore({...doc.data(), 'userId': doc.id}),
-                ),
-              )
-              .toList(),
-        );
+    return query;
+  }
+
+  List<ChurchMember> _mapDocs(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+    return docs
+        .map(
+          (doc) => ChurchMember.fromJson(
+            _fromFirestore({...doc.data(), 'userId': doc.id}),
+          ),
+        )
+        .toList();
+  }
+
+  // ─── 교회 멤버 목록 실시간 스트림 ─────────────────────────────
+  /// [churchId] 교회의 멤버 목록을 실시간으로 구독합니다.
+  /// [filterRoleId]가 있으면 해당 역할의 멤버만 필터링합니다.
+  Stream<List<ChurchMember>> watchMembers({
+    required String churchId,
+    String? filterRoleId,
+    int limit = 20,
+  }) {
+    return _buildMembersQuery(
+      churchId: churchId,
+      filterRoleId: filterRoleId,
+      limit: limit,
+    ).snapshots().map((snap) => _mapDocs(snap.docs));
   }
 
   // ─── 교회 멤버 목록 단건 조회 (Future) ───────────────────────
@@ -63,20 +79,12 @@ class ChurchMemberRepository {
     int limit = 20,
   }) async {
     try {
-      var query = _firestore
-          .collection(FirestorePaths.churchMembers(churchId))
-          .limit(limit);
-      if (filterRoleId != null) {
-        query = query.where('roleId', isEqualTo: filterRoleId);
-      }
-      final snap = await query.get();
-      return snap.docs
-          .map(
-            (doc) => ChurchMember.fromJson(
-              _fromFirestore({...doc.data(), 'userId': doc.id}),
-            ),
-          )
-          .toList();
+      final snap = await _buildMembersQuery(
+        churchId: churchId,
+        filterRoleId: filterRoleId,
+        limit: limit,
+      ).get();
+      return _mapDocs(snap.docs);
     } catch (e) {
       throw Exception('교회 멤버 목록 조회에 실패했습니다: $e');
     }

@@ -20,39 +20,40 @@ class ChurchRoleRepository {
   ChurchRoleRepository({required FirebaseFirestore firestore})
       : _firestore = firestore;
 
+  // ─── 역할 목록 공통 쿼리 빌더 ──────────────────────────────
+  /// level 순으로 정렬된 역할 컬렉션 쿼리를 반환합니다.
+  Query<Map<String, dynamic>> _rolesQuery(String churchId) {
+    return _firestore
+        .collection(FirestorePaths.churchRoles(churchId))
+        .orderBy('level');
+  }
+
+  List<ChurchRole> _mapRoleDocs(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    return docs
+        .map(
+          (doc) => ChurchRole.fromJson(
+            _fromFirestore({...doc.data(), 'id': doc.id}),
+          ),
+        )
+        .toList();
+  }
+
   // ─── 역할 목록 실시간 스트림 ────────────────────────────────
   /// [churchId] 교회의 역할 목록을 level 순으로 실시간 구독합니다.
   Stream<List<ChurchRole>> watchRoles({required String churchId}) {
-    return _firestore
-        .collection(FirestorePaths.churchRoles(churchId))
-        .orderBy('level')
+    return _rolesQuery(churchId)
         .snapshots()
-        .map(
-          (snap) => snap.docs
-              .map(
-                (doc) => ChurchRole.fromJson(
-                  _fromFirestore({...doc.data(), 'id': doc.id}),
-                ),
-              )
-              .toList(),
-        );
+        .map((snap) => _mapRoleDocs(snap.docs));
   }
 
   // ─── 역할 목록 단순 조회 ────────────────────────────────────
   /// [churchId] 교회의 역할 목록을 level 순으로 한 번 조회합니다.
   Future<List<ChurchRole>> getRoles({required String churchId}) async {
     try {
-      final snap = await _firestore
-          .collection(FirestorePaths.churchRoles(churchId))
-          .orderBy('level')
-          .get();
-      return snap.docs
-          .map(
-            (doc) => ChurchRole.fromJson(
-              _fromFirestore({...doc.data(), 'id': doc.id}),
-            ),
-          )
-          .toList();
+      final snap = await _rolesQuery(churchId).get();
+      return _mapRoleDocs(snap.docs);
     } catch (e) {
       throw Exception('역할 목록 조회에 실패했습니다: $e');
     }

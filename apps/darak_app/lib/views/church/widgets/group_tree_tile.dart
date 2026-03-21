@@ -62,7 +62,10 @@ class GroupTreeTile extends StatelessWidget {
               child: Text(group.name, style: AppTextStyles.bodyMedium),
             ),
             if (_isMyGroup)
-              const _MyGroupBadge(),
+              const _LabelBadge(
+                label: '내 다락방',
+                color: AppColors.warmTangerine,
+              ),
             const SizedBox(width: 4),
             const Icon(
               Icons.chevron_right_rounded,
@@ -78,21 +81,24 @@ class GroupTreeTile extends StatelessWidget {
 
 // ──────────────────────────────────────────────────────────────────────────────
 
-class _MyGroupBadge extends StatelessWidget {
-  const _MyGroupBadge();
+class _LabelBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _LabelBadge({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.warmTangerine.withValues(alpha: 0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(100),
       ),
       child: Text(
-        '내 다락방',
+        label,
         style: AppTextStyles.bodySmall.copyWith(
-          color: AppColors.warmTangerine,
+          color: color,
           fontWeight: FontWeight.w700,
         ),
       ),

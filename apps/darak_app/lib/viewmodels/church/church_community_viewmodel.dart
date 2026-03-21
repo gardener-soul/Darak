@@ -154,9 +154,7 @@ class ChurchCommunityViewModel extends _$ChurchCommunityViewModel {
 
       // 2. churches/{churchId}/members/{userId} 소속 정보 업데이트
       final memberRef = firestore
-          .collection(FirestorePaths.churches)
-          .doc(churchId)
-          .collection('members')
+          .collection(FirestorePaths.churchMembers(churchId))
           .doc(userId);
       batch.update(memberRef, {
         'groupId': groupId,
@@ -188,16 +186,7 @@ class ChurchCommunityViewModel extends _$ChurchCommunityViewModel {
       });
 
       // 2. churches/{churchId}/members/{userId} 소속 정보 null 초기화
-      final memberRef = firestore
-          .collection(FirestorePaths.churches)
-          .doc(churchId)
-          .collection('members')
-          .doc(userId);
-      batch.update(memberRef, {
-        'groupId': null,
-        'villageId': null,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      _nullifyMemberGroup(batch, firestore, churchId, userId);
 
       await batch.commit();
     } catch (e) {
@@ -296,40 +285,44 @@ class ChurchCommunityViewModel extends _$ChurchCommunityViewModel {
       // 3. 첫 번째 청크 멤버 groupId/villageId null 처리
       if (chunks.isNotEmpty) {
         for (final uid in chunks.first) {
-          final memberRef = firestore
-              .collection(FirestorePaths.churches)
-              .doc(churchId)
-              .collection('members')
-              .doc(uid);
-          firstBatch.update(memberRef, {
-            'groupId': null,
-            'villageId': null,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+          _nullifyMemberGroup(firstBatch, firestore, churchId, uid);
         }
       }
 
       await firstBatch.commit();
 
-      // 나머지 청크를 별도 Batch로 순차 처리
-      for (var i = 1; i < chunks.length; i++) {
-        final batch = firestore.batch();
-        for (final uid in chunks[i]) {
-          final memberRef = firestore
-              .collection(FirestorePaths.churches)
-              .doc(churchId)
-              .collection('members')
-              .doc(uid);
-          batch.update(memberRef, {
-            'groupId': null,
-            'villageId': null,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-        }
-        await batch.commit();
+      // 나머지 청크를 병렬 Batch로 처리
+      if (chunks.length > 1) {
+        await Future.wait([
+          for (var i = 1; i < chunks.length; i++)
+            () {
+              final batch = firestore.batch();
+              for (final uid in chunks[i]) {
+                _nullifyMemberGroup(batch, firestore, churchId, uid);
+              }
+              return batch.commit();
+            }(),
+        ]);
       }
     } catch (e) {
       throw Exception('다락방 삭제에 실패했습니다: $e');
     }
+  }
+
+  /// 멤버의 groupId/villageId를 Batch에 null로 등록하는 헬퍼.
+  void _nullifyMemberGroup(
+    WriteBatch batch,
+    FirebaseFirestore firestore,
+    String churchId,
+    String uid,
+  ) {
+    final memberRef = firestore
+        .collection(FirestorePaths.churchMembers(churchId))
+        .doc(uid);
+    batch.update(memberRef, {
+      'groupId': null,
+      'villageId': null,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 }

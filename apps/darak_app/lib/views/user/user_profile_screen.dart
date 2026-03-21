@@ -87,6 +87,20 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     }
   }
 
+  // ─── 준비 중 기능 알림 SnackBar ──────────────────────────
+  void _showComingSoonSnackBar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('준비 중인 기능입니다 🔜'),
+        backgroundColor: AppColors.warmTangerine,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
   // ─── 프로필 수정 화면 열기 ────────────────────────────────
   void _openEditProfileScreen() {
     Navigator.of(context).push(
@@ -308,18 +322,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             title: '내 다락방(공동체)',
             subtitle: '소속 공동체 확인',
             leadingColor: AppColors.softLavender,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('준비 중인 기능입니다 🔜'),
-                  backgroundColor: AppColors.warmTangerine,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              );
-            },
+            onTap: _showComingSoonSnackBar,
           ),
           _buildDivider(),
           ClayListTile(
@@ -327,18 +330,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             title: '내 기도 제목',
             subtitle: '기도 제목 관리',
             leadingColor: AppColors.sageGreen,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('준비 중인 기능입니다 🔜'),
-                  backgroundColor: AppColors.warmTangerine,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              );
-            },
+            onTap: _showComingSoonSnackBar,
           ),
           _buildDivider(),
           ClayListTile(
@@ -346,18 +338,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             title: '알림 설정',
             subtitle: '푸시 알림 관리',
             leadingColor: AppColors.warmTangerine,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('준비 중인 기능입니다 🔜'),
-                  backgroundColor: AppColors.warmTangerine,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              );
-            },
+            onTap: _showComingSoonSnackBar,
           ),
           _buildDivider(),
           ClayListTile(

@@ -42,40 +42,30 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
   /// 유효성 검사
   bool _validate() {
-    setState(() {
-      _nameError = null;
-      _phoneError = null;
-    });
-
-    bool isValid = true;
+    String? nameError;
+    String? phoneError;
 
     // 이름 검증
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() {
-        _nameError = '이름을 입력해주세요.';
-      });
-      isValid = false;
+      nameError = '이름을 입력해주세요.';
     } else if (name.length > 50) {
-      setState(() {
-        _nameError = '이름은 50자 이내로 입력해주세요.';
-      });
-      isValid = false;
+      nameError = '이름은 50자 이내로 입력해주세요.';
     }
 
     // 전화번호 검증
     final phone = _phoneController.text.trim();
     if (phone.isEmpty) {
-      setState(() {
-        _phoneError = '전화번호를 입력해주세요.';
-      });
-      isValid = false;
+      phoneError = '전화번호를 입력해주세요.';
     } else if (!StringUtils.isValidKoreanPhone(phone)) {
-      setState(() {
-        _phoneError = '올바른 전화번호 형식을 입력해주세요. (예: 010-1234-5678)';
-      });
-      isValid = false;
+      phoneError = '올바른 전화번호 형식을 입력해주세요. (예: 010-1234-5678)';
     }
+
+    // 한 번의 setState로 에러 상태 업데이트
+    setState(() {
+      _nameError = nameError;
+      _phoneError = phoneError;
+    });
 
     // 생년월일 검증 (선택 사항이지만, 입력된 경우 유효성 체크)
     if (_selectedBirthDate != null &&
@@ -86,10 +76,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           backgroundColor: AppColors.softCoral,
         ),
       );
-      isValid = false;
+      return false;
     }
 
-    return isValid;
+    return nameError == null && phoneError == null;
   }
 
   /// 프로필 저장 후 온보딩 완료
@@ -123,9 +113,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.creamWhite,
       appBar: AppBar(
-        backgroundColor: AppColors.creamWhite,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
