@@ -49,11 +49,15 @@ class ChurchSchedulesViewModel extends _$ChurchSchedulesViewModel {
   }
 
   /// 캘린더 포커스 월을 변경합니다.
-  /// _currentMonth를 갱신한 뒤 ref.invalidateSelf()로 build()를 재호출하여
-  /// 새로운 월의 스트림으로 교체합니다. 수동 StreamSubscription을 사용하지 않으므로
-  /// build()가 반환한 스트림과의 충돌이 없습니다.
+  /// invalidateSelf() 전에 focusedMonth를 먼저 갱신하여,
+  /// skipLoadingOnRefresh 시 이전 값을 사용하는 동안에도 캘린더가
+  /// 새 월을 유지하도록 합니다 (스냅백 현상 방지).
   void changeFocusedMonth(String churchId, DateTime month) {
     _currentMonth = month;
+    final current = state.valueOrNull;
+    if (current != null) {
+      state = AsyncData(current.copyWith(focusedMonth: month));
+    }
     ref.invalidateSelf();
   }
 
