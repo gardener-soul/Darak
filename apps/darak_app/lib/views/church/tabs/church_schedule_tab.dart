@@ -37,18 +37,22 @@ class ChurchScheduleTab extends ConsumerWidget {
     final schedulesAsync =
         ref.watch(churchSchedulesViewModelProvider(churchId));
 
+    // 월 전환 시 invalidateSelf()로 AsyncLoading이 되더라도 이전 데이터를 유지하여
+    // 캘린더가 스피너로 교체되는 플리커 현상을 방지합니다.
     return schedulesAsync.when(
+      skipLoadingOnRefresh: true,
       loading: () => const Center(
         child: CircularProgressIndicator(color: AppColors.softCoral),
       ),
       error: (e, stack) {
-        // 쿼리 오류(예: 인덱스 미배포)시에도 빈 캘린더는 표시되도록 폴백
+        // 쿼리 오류 시에도 빈 캘린더 표시 (이전 상태의 focusedMonth 보존)
+        final prev = schedulesAsync.valueOrNull;
         final now = DateTime.now();
         return _CalendarBody(
           churchId: churchId,
-          schedules: const [],
-          focusedMonth: DateTime(now.year, now.month),
-          selectedDate: now,
+          schedules: prev?.schedules ?? const [],
+          focusedMonth: prev?.focusedMonth ?? DateTime(now.year, now.month),
+          selectedDate: prev?.selectedDate ?? now,
         );
       },
       data: (scheduleState) => _CalendarBody(
@@ -163,9 +167,14 @@ class _CalendarBody extends ConsumerWidget {
                     },
                     calendarStyle: CalendarStyle(
                       outsideDaysVisible: false,
+                      // BoxDecoration.lerp() 시 shape 불일치 assertion 방지:
+                      // 모든 셀 데코레이션을 rectangle(기본값)로 통일합니다.
+                      defaultDecoration: const BoxDecoration(),
+                      weekendDecoration: const BoxDecoration(),
+                      outsideDecoration: const BoxDecoration(),
+                      disabledDecoration: const BoxDecoration(),
                       todayDecoration: BoxDecoration(
                         color: AppColors.softLavender.withValues(alpha: 0.4),
-                        shape: BoxShape.rectangle,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: AppColors.softLavender,
@@ -174,7 +183,6 @@ class _CalendarBody extends ConsumerWidget {
                       ),
                       selectedDecoration: BoxDecoration(
                         color: AppColors.softCoral,
-                        shape: BoxShape.rectangle,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       todayTextStyle: AppTextStyles.bodyMedium.copyWith(
@@ -328,13 +336,14 @@ class _ScheduleCardWithActions extends ConsumerWidget {
     final currentUserId = ref.watch(currentUserIdProvider);
     final canModify = canEdit || schedule.createdBy == currentUserId;
 
+    // 모든 사용자가 탭하여 일정 정보를 확인할 수 있음
     return GestureDetector(
-      onTap: canModify ? () => _showOptions(context, ref) : null,
+      onTap: () => _showOptions(context, ref, canModify: canModify),
       child: ScheduleCard(schedule: schedule),
     );
   }
 
-  void _showOptions(BuildContext context, WidgetRef ref) {
+  void _showOptions(BuildContext context, WidgetRef ref, {required bool canModify}) {
     showModalBottomSheet<void>(
       context: context,
       builder: (ctx) => SafeArea(
@@ -342,77 +351,165 @@ class _ScheduleCardWithActions extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.edit_rounded),
-              title: const Text('수정'),
+              leading: const Icon(Icons.info_outline_rounded),
+              title: const Text('일정 정보'),
               onTap: () {
                 Navigator.pop(ctx);
-                ScheduleCreateBottomSheet.show(
-                  context,
-                  churchId: churchId,
-                  existingSchedule: schedule,
-                );
+                _showScheduleInfo(context);
               },
             ),
-            ListTile(
-              leading: const Icon(
-                Icons.delete_rounded,
-                color: AppColors.softCoral,
+            if (canModify) ...[
+              ListTile(
+                leading: const Icon(Icons.edit_rounded),
+                title: const Text('수정'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ScheduleCreateBottomSheet.show(
+                    context,
+                    churchId: churchId,
+                    existingSchedule: schedule,
+                  );
+                },
               ),
-              title: const Text(
-                '삭제',
-                style: TextStyle(color: AppColors.softCoral),
-              ),
-              onTap: () async {
-                Navigator.pop(ctx);
-                final confirmed = await SoftDialog.show<bool>(
-                  context: context,
-                  title: '일정 삭제',
-                  content: '정말 이 일정을 삭제하시겠어요?',
-                  actions: [
-                    SoftDialogAction(
-                      label: '취소',
-                      onPressed: () => Navigator.pop(context, false),
-                    ),
-                    SoftDialogAction(
-                      label: '삭제',
-                      isDestructive: true,
-                      onPressed: () => Navigator.pop(context, true),
-                    ),
-                  ],
-                );
-                if (confirmed != true || !context.mounted) return;
-                try {
-                  await ref
-                      .read(
-                        churchSchedulesViewModelProvider(churchId).notifier,
-                      )
-                      .deleteSchedule(
-                        churchId: churchId,
-                        scheduleId: schedule.id,
-                      );
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('일정이 삭제되었어요.')),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          e
-                              .toString()
-                              .replaceAll(RegExp(r'^Exception:\s*'), ''),
-                        ),
+              ListTile(
+                leading: const Icon(
+                  Icons.delete_rounded,
+                  color: AppColors.softCoral,
+                ),
+                title: const Text(
+                  '삭제',
+                  style: TextStyle(color: AppColors.softCoral),
+                ),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final confirmed = await SoftDialog.show<bool>(
+                    context: context,
+                    title: '일정 삭제',
+                    content: '정말 이 일정을 삭제하시겠어요?',
+                    actions: [
+                      SoftDialogAction(
+                        label: '취소',
+                        onPressed: () => Navigator.pop(context, false),
                       ),
-                    );
+                      SoftDialogAction(
+                        label: '삭제',
+                        isDestructive: true,
+                        onPressed: () => Navigator.pop(context, true),
+                      ),
+                    ],
+                  );
+                  if (confirmed != true || !context.mounted) return;
+                  try {
+                    await ref
+                        .read(
+                          churchSchedulesViewModelProvider(churchId).notifier,
+                        )
+                        .deleteSchedule(
+                          churchId: churchId,
+                          scheduleId: schedule.id,
+                        );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('일정이 삭제되었어요.')),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            e
+                                .toString()
+                                .replaceAll(RegExp(r'^Exception:\s*'), ''),
+                          ),
+                        ),
+                      );
+                    }
                   }
-                }
-              },
-            ),
+                },
+              ),
+            ],
           ],
         ),
       ),
+    );
+  }
+
+  void _showScheduleInfo(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => _ScheduleInfoSheet(schedule: schedule),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// 일정 상세 정보 바텀시트 (제목, 카테고리, 일시, 장소, 설명)
+class _ScheduleInfoSheet extends StatelessWidget {
+  final ChurchSchedule schedule;
+
+  const _ScheduleInfoSheet({required this.schedule});
+
+  String _formatDateTime(DateTime dt) {
+    return DateFormat('yyyy년 M월 d일 (E) HH:mm', 'ko_KR').format(dt);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(schedule.title, style: AppTextStyles.headlineMedium),
+            const SizedBox(height: 16),
+            _InfoRow(
+              icon: Icons.access_time_rounded,
+              text: _formatDateTime(schedule.startAt),
+            ),
+            if (schedule.location != null &&
+                schedule.location!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _InfoRow(
+                icon: Icons.location_on_rounded,
+                text: schedule.location!,
+              ),
+            ],
+            if (schedule.description != null &&
+                schedule.description!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text('설명', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey)),
+              const SizedBox(height: 4),
+              Text(schedule.description!, style: AppTextStyles.bodyMedium),
+            ],
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _InfoRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: AppColors.textGrey),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(text, style: AppTextStyles.bodyMedium),
+        ),
+      ],
     );
   }
 }

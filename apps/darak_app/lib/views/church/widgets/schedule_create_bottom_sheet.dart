@@ -52,7 +52,6 @@ class _ScheduleCreateBottomSheetState
 
   ScheduleCategory _category = ScheduleCategory.worship;
   DateTime? _startAt;
-  DateTime? _endAt;
   bool _isLoading = false;
 
   bool get _isEdit => widget.existingSchedule != null;
@@ -67,7 +66,6 @@ class _ScheduleCreateBottomSheetState
       _descController.text = s.description ?? '';
       _category = s.category;
       _startAt = s.startAt;
-      _endAt = s.endAt;
     }
   }
 
@@ -105,34 +103,6 @@ class _ScheduleCreateBottomSheetState
     });
   }
 
-  Future<void> _pickEndDateTime() async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: _endAt ?? _startAt ?? DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-    );
-    if (date == null || !mounted) return;
-
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(
-        _endAt ?? _startAt ?? DateTime.now(),
-      ),
-    );
-    if (time == null || !mounted) return;
-
-    setState(() {
-      _endAt = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time.hour,
-        time.minute,
-      );
-    });
-  }
-
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_startAt == null) {
@@ -141,14 +111,6 @@ class _ScheduleCreateBottomSheetState
       );
       return;
     }
-    // W-9: 종료 시각이 시작 시각과 동일하거나 이전인 경우 모두 차단 (!isAfter)
-    if (_endAt != null && !_endAt!.isAfter(_startAt!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('종료 일시는 시작 일시보다 이후여야 합니다.')),
-      );
-      return;
-    }
-
     final currentUserId = ref.read(currentUserIdProvider);
     if (currentUserId == null) return;
 
@@ -170,7 +132,6 @@ class _ScheduleCreateBottomSheetState
               ? null
               : _descController.text.trim(),
         };
-        if (_endAt != null) data['endAt'] = _endAt!;
 
         await vm.updateSchedule(
           churchId: widget.churchId,
@@ -183,7 +144,6 @@ class _ScheduleCreateBottomSheetState
           title: _titleController.text.trim(),
           category: _category,
           startAt: _startAt!,
-          endAt: _endAt,
           location: _locationController.text.trim().isEmpty
               ? null
               : _locationController.text.trim(),
@@ -282,14 +242,6 @@ class _ScheduleCreateBottomSheetState
               value: _startAt,
               hint: '시작 일시 선택 (필수)',
               onTap: _pickStartDateTime,
-            ),
-            const SizedBox(height: 12),
-
-            // ── 종료 일시 ──────────────────────────────────────────
-            _DateTimeField(
-              value: _endAt,
-              hint: '종료 일시 선택 (선택)',
-              onTap: _pickEndDateTime,
             ),
             const SizedBox(height: 12),
 
