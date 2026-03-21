@@ -107,7 +107,7 @@ class _ChurchDetailBody extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('탈퇴', style: TextStyle(color: Colors.red)),
+            child: const Text('탈퇴', style: TextStyle(color: AppColors.softCoral)),
           ),
         ],
       ),
@@ -124,7 +124,7 @@ class _ChurchDetailBody extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(content: Text(e.toString().replaceAll(RegExp(r'^Exception:\s*'), ''))),
         );
       }
     }
@@ -165,9 +165,9 @@ class _ChurchDetailBody extends ConsumerWidget {
                   value: 'leave',
                   child: Row(
                     children: [
-                      Icon(Icons.logout_rounded, color: Colors.red, size: 18),
+                      Icon(Icons.logout_rounded, color: AppColors.softCoral, size: 18),
                       SizedBox(width: 8),
-                      Text('교회 탈퇴', style: TextStyle(color: Colors.red)),
+                      Text('교회 탈퇴', style: TextStyle(color: AppColors.softCoral)),
                     ],
                   ),
                 ),
@@ -182,6 +182,7 @@ class _ChurchDetailBody extends ConsumerWidget {
             ChurchMembersTab(
               churchId: churchId,
               currentMember: currentMember,
+              isAdmin: isAdmin,
             ),
             ChurchCommunityTab(
               churchId: churchId,

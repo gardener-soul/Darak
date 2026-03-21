@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
 
-import '../../../models/church_schedules_state.dart';
+import '../../../core/providers/user_providers.dart';
+import '../../../models/church_schedule.dart';
 import '../../../theme/app_theme.dart';
+import '../../../viewmodels/church/church_detail_viewmodel.dart';
+import '../../../viewmodels/church/church_roles_provider.dart';
 import '../../../viewmodels/church/church_schedules_viewmodel.dart';
+import '../../../widgets/common/bouncy_button.dart';
+import '../../../widgets/common/clay_card.dart';
+import '../../../widgets/common/core/soft_dialog.dart';
 import '../widgets/schedule_card.dart';
+import '../widgets/schedule_create_bottom_sheet.dart';
 
-/// 교회 상세 - 일정 탭
-/// 이번 주 / 이번 달 전환 + 일정 목록 표시
+/// 교회 상세 - 일정 탭 (캘린더 기반 UI)
 class ChurchScheduleTab extends ConsumerWidget {
   final String churchId;
 
@@ -18,19 +26,29 @@ class ChurchScheduleTab extends ConsumerWidget {
     final schedulesAsync =
         ref.watch(churchSchedulesViewModelProvider(churchId));
 
+    // 월 전환 시 invalidateSelf()로 AsyncLoading이 되더라도 이전 데이터를 유지하여
+    // 캘린더가 스피너로 교체되는 플리커 현상을 방지합니다.
     return schedulesAsync.when(
+      skipLoadingOnRefresh: true,
       loading: () => const Center(
         child: CircularProgressIndicator(color: AppColors.softCoral),
       ),
-      error: (e, _) => Center(
-        child: Text(
-          '일정을 불러오지 못했어요.',
-          style: AppTextStyles.bodySmall,
-        ),
-      ),
-      data: (state) => _ScheduleBody(
+      error: (e, stack) {
+        // 쿼리 오류 시에도 빈 캘린더 표시 (이전 상태의 focusedMonth 보존)
+        final prev = schedulesAsync.valueOrNull;
+        final now = DateTime.now();
+        return _CalendarBody(
+          churchId: churchId,
+          schedules: prev?.schedules ?? const [],
+          focusedMonth: prev?.focusedMonth ?? DateTime(now.year, now.month),
+          selectedDate: prev?.selectedDate ?? now,
+        );
+      },
+      data: (scheduleState) => _CalendarBody(
         churchId: churchId,
-        state: state,
+        schedules: scheduleState.schedules,
+        focusedMonth: scheduleState.focusedMonth,
+        selectedDate: scheduleState.selectedDate,
       ),
     );
   }
@@ -38,40 +56,244 @@ class ChurchScheduleTab extends ConsumerWidget {
 
 // ──────────────────────────────────────────────────────────────────────────────
 
-class _ScheduleBody extends ConsumerWidget {
+class _CalendarBody extends ConsumerWidget {
   final String churchId;
-  final ChurchSchedulesState state;
+  final List<ChurchSchedule> schedules;
+  final DateTime focusedMonth;
+  final DateTime selectedDate;
 
-  const _ScheduleBody({required this.churchId, required this.state});
+  const _CalendarBody({
+    required this.churchId,
+    required this.schedules,
+    required this.focusedMonth,
+    required this.selectedDate,
+  });
+
+  bool _canWriteSchedule(WidgetRef ref, String churchId) {
+    // churchDetailViewModelProvider에 isAdmin + currentMember가 이미 포함되어 있으므로
+    // 별도 Firestore 조회 없이 재사용합니다.
+    final detail = ref.watch(churchDetailViewModelProvider(churchId)).valueOrNull;
+    if (detail == null) return false;
+    if (detail.isAdmin) return true;
+
+    final member = detail.currentMember;
+    if (member == null) return false;
+
+    final roles = ref.watch(churchRolesProvider(churchId)).valueOrNull ?? [];
+    final roleLevel =
+        roles.where((r) => r.id == member.roleId).firstOrNull?.level ?? 1;
+
+    // 마을장(roleLevel=3) 이상은 일정 작성 가능
+    return roleLevel >= 3;
+  }
+
+  Map<DateTime, List<ChurchSchedule>> _buildEventMap(
+    List<ChurchSchedule> schedules,
+  ) {
+    final map = <DateTime, List<ChurchSchedule>>{};
+    for (final s in schedules) {
+      final day = DateTime(s.startAt.year, s.startAt.month, s.startAt.day);
+      map.putIfAbsent(day, () => []).add(s);
+    }
+    return map;
+  }
+
+  List<ChurchSchedule> _getEventsForDay(
+    DateTime day,
+    Map<DateTime, List<ChurchSchedule>> eventMap,
+  ) {
+    return eventMap[DateTime(day.year, day.month, day.day)] ?? [];
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
+    final canWrite = _canWriteSchedule(ref, churchId);
+    final eventMap = _buildEventMap(schedules);
+    final selectedEvents = _getEventsForDay(selectedDate, eventMap);
+
+    return Stack(
       children: [
-        // ─── 뷰 모드 전환 SegmentedButton ──────────────────────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-          child: _ViewModeSelector(
-            currentMode: state.viewMode,
-            onModeChanged: (mode) {
-              ref
-                  .read(churchSchedulesViewModelProvider(churchId).notifier)
-                  .toggleView(mode);
-            },
-          ),
+        CustomScrollView(
+          slivers: [
+            // ── 캘린더 영역 ────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: ClayCard(
+                  padding: const EdgeInsets.all(16),
+                  child: TableCalendar<ChurchSchedule>(
+                    locale: 'ko_KR',
+                    focusedDay: focusedMonth,
+                    firstDay: DateTime(2020),
+                    lastDay: DateTime(2030),
+                    selectedDayPredicate: (day) =>
+                        isSameDay(day, selectedDate),
+                    eventLoader: (day) => _getEventsForDay(day, eventMap),
+                    onDaySelected: (selected, focused) {
+                      ref
+                          .read(
+                            churchSchedulesViewModelProvider(churchId)
+                                .notifier,
+                          )
+                          .selectDate(selected);
+                    },
+                    onPageChanged: (focused) {
+                      ref
+                          .read(
+                            churchSchedulesViewModelProvider(churchId)
+                                .notifier,
+                          )
+                          .changeFocusedMonth(churchId, focused);
+                    },
+                    calendarStyle: CalendarStyle(
+                      outsideDaysVisible: false,
+                      // BoxDecoration.lerp() 시 shape 불일치 assertion 방지:
+                      // 모든 셀 데코레이션을 rectangle(기본값)로 통일합니다.
+                      defaultDecoration: const BoxDecoration(),
+                      weekendDecoration: const BoxDecoration(),
+                      outsideDecoration: const BoxDecoration(),
+                      disabledDecoration: const BoxDecoration(),
+                      todayDecoration: BoxDecoration(
+                        color: AppColors.softLavender.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.softLavender,
+                          width: 1.5,
+                        ),
+                      ),
+                      selectedDecoration: BoxDecoration(
+                        color: AppColors.softCoral,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      todayTextStyle: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textDark,
+                      ),
+                      selectedTextStyle: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.pureWhite,
+                      ),
+                      defaultTextStyle: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textDark,
+                      ),
+                      outsideTextStyle: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.disabled,
+                      ),
+                      weekendTextStyle: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.softCoral,
+                      ),
+                      markerDecoration: const BoxDecoration(
+                        color: AppColors.softCoral,
+                        shape: BoxShape.circle,
+                      ),
+                      markerSize: 6,
+                      markersMaxCount: 3,
+                    ),
+                    headerStyle: HeaderStyle(
+                      formatButtonVisible: false,
+                      titleCentered: true,
+                      titleTextStyle: AppTextStyles.headlineMedium,
+                      leftChevronIcon: const Icon(
+                        Icons.chevron_left_rounded,
+                        color: AppColors.textGrey,
+                      ),
+                      rightChevronIcon: const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.textGrey,
+                      ),
+                    ),
+                    calendarBuilders: CalendarBuilders<ChurchSchedule>(
+                      // 요일 헤더: 토요일만 파란색, 일요일은 coral
+                      dowBuilder: (ctx, day) {
+                        if (day.weekday == DateTime.saturday) {
+                          return Center(
+                            child: Text(
+                              DateFormat.E('ko_KR').format(day),
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.skyBlue,
+                              ),
+                            ),
+                          );
+                        }
+                        return null;
+                      },
+                      // 날짜 셀: 토요일만 파란색 (일반 상태에서만 적용, 선택/오늘은 별도 처리됨)
+                      defaultBuilder: (ctx, day, focusedDay) {
+                        if (day.weekday == DateTime.saturday) {
+                          return Center(
+                            child: Text(
+                              '${day.day}',
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.skyBlue,
+                              ),
+                            ),
+                          );
+                        }
+                        return null;
+                      },
+                    ),
+                    daysOfWeekStyle: DaysOfWeekStyle(
+                      weekdayStyle: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textGrey,
+                      ),
+                      weekendStyle: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.softCoral,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // ── 선택 날짜 헤더 ──────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                child: Text(
+                  DateFormat('M월 d일 (E) 일정', 'ko_KR').format(selectedDate),
+                  style: AppTextStyles.bodyLarge,
+                ),
+              ),
+            ),
+
+            // ── 일정 목록 ───────────────────────────────────────────
+            if (selectedEvents.isEmpty)
+              const SliverToBoxAdapter(child: _EmptyDayState())
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (ctx, i) => Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: _ScheduleCardWithActions(
+                      churchId: churchId,
+                      schedule: selectedEvents[i],
+                      canEdit: canWrite,
+                    ),
+                  ),
+                  childCount: selectedEvents.length,
+                ),
+              ),
+
+            // FAB 아래 여백
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
         ),
 
-        // ─── 일정 목록 ─────────────────────────────────────────────
-        Expanded(
-          child: state.schedules.isEmpty
-              ? const _EmptyScheduleState()
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                  itemCount: state.schedules.length,
-                  itemBuilder: (ctx, i) =>
-                      ScheduleCard(schedule: state.schedules[i]),
-                ),
-        ),
+        // ── FAB ───────────────────────────────────────────────────
+        if (canWrite)
+          Positioned(
+            bottom: 24,
+            right: 24,
+            child: BouncyButton(
+              text: '+ 일정 추가',
+              isFullWidth: false,
+              onPressed: () => ScheduleCreateBottomSheet.show(
+                context,
+                churchId: churchId,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -79,80 +301,226 @@ class _ScheduleBody extends ConsumerWidget {
 
 // ──────────────────────────────────────────────────────────────────────────────
 
-class _ViewModeSelector extends StatelessWidget {
-  final ScheduleViewMode currentMode;
-  final void Function(ScheduleViewMode) onModeChanged;
+class _EmptyDayState extends StatelessWidget {
+  const _EmptyDayState();
 
-  const _ViewModeSelector({
-    required this.currentMode,
-    required this.onModeChanged,
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 160,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.event_busy_rounded,
+              size: 56,
+              color: AppColors.disabled,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '이 날에는 일정이 없어요.',
+              style: AppTextStyles.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ScheduleCardWithActions extends ConsumerWidget {
+  final String churchId;
+  final ChurchSchedule schedule;
+  final bool canEdit;
+
+  const _ScheduleCardWithActions({
+    required this.churchId,
+    required this.schedule,
+    required this.canEdit,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return SegmentedButton<ScheduleViewMode>(
-      showSelectedIcon: false,
-      style: SegmentedButton.styleFrom(
-        backgroundColor: AppColors.pureWhite,
-        foregroundColor: AppColors.textGrey,
-        selectedForegroundColor: AppColors.softCoral,
-        selectedBackgroundColor: AppColors.softCoral.withValues(alpha: 0.12),
-        side: const BorderSide(color: AppColors.divider),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        textStyle: AppTextStyles.bodySmall.copyWith(
-          fontWeight: FontWeight.w600,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentUserId = ref.watch(currentUserIdProvider);
+    final canModify = canEdit || schedule.createdBy == currentUserId;
+
+    // 모든 사용자가 탭하여 일정 정보를 확인할 수 있음
+    return GestureDetector(
+      onTap: () => _showOptions(context, ref, canModify: canModify),
+      child: ScheduleCard(schedule: schedule),
+    );
+  }
+
+  void _showOptions(BuildContext context, WidgetRef ref, {required bool canModify}) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.info_outline_rounded),
+              title: const Text('일정 정보'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showScheduleInfo(context);
+              },
+            ),
+            if (canModify) ...[
+              ListTile(
+                leading: const Icon(Icons.edit_rounded),
+                title: const Text('수정'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ScheduleCreateBottomSheet.show(
+                    context,
+                    churchId: churchId,
+                    existingSchedule: schedule,
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.delete_rounded,
+                  color: AppColors.softCoral,
+                ),
+                title: const Text(
+                  '삭제',
+                  style: TextStyle(color: AppColors.softCoral),
+                ),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  if (!context.mounted) return;
+                  final confirmed = await SoftDialog.show<bool>(
+                    context: context,
+                    title: '일정 삭제',
+                    content: '정말 이 일정을 삭제하시겠어요?',
+                    actions: [
+                      SoftDialogAction(
+                        label: '취소',
+                        onPressed: () => Navigator.pop(context, false),
+                      ),
+                      SoftDialogAction(
+                        label: '삭제',
+                        isDestructive: true,
+                        onPressed: () => Navigator.pop(context, true),
+                      ),
+                    ],
+                  );
+                  if (confirmed != true || !context.mounted) return;
+                  try {
+                    await ref
+                        .read(
+                          churchSchedulesViewModelProvider(churchId).notifier,
+                        )
+                        .deleteSchedule(
+                          churchId: churchId,
+                          scheduleId: schedule.id,
+                        );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('일정이 삭제되었어요.')),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            e
+                                .toString()
+                                .replaceAll(RegExp(r'^Exception:\s*'), ''),
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
+          ],
         ),
       ),
-      segments: const [
-        ButtonSegment(
-          value: ScheduleViewMode.weekly,
-          label: Text('이번 주'),
-          icon: Icon(Icons.view_week_rounded, size: 16),
-        ),
-        ButtonSegment(
-          value: ScheduleViewMode.monthly,
-          label: Text('이번 달'),
-          icon: Icon(Icons.calendar_month_rounded, size: 16),
-        ),
-      ],
-      selected: {currentMode},
-      onSelectionChanged: (selected) => onModeChanged(selected.first),
+    );
+  }
+
+  void _showScheduleInfo(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => _ScheduleInfoSheet(schedule: schedule),
     );
   }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
 
-class _EmptyScheduleState extends StatelessWidget {
-  const _EmptyScheduleState();
+/// 일정 상세 정보 바텀시트 (제목, 카테고리, 일시, 장소, 설명)
+class _ScheduleInfoSheet extends StatelessWidget {
+  final ChurchSchedule schedule;
+
+  const _ScheduleInfoSheet({required this.schedule});
+
+  String _formatDateTime(DateTime dt) {
+    return DateFormat('yyyy년 M월 d일 (E) HH:mm', 'ko_KR').format(dt);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.event_busy_rounded,
-            size: 56,
-            color: AppColors.textGrey,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            '등록된 일정이 없습니다',
-            style: AppTextStyles.headlineMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '해당 기간에 예정된 일정이 없어요.',
-            style: AppTextStyles.bodySmall,
-            textAlign: TextAlign.center,
-          ),
-        ],
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(schedule.title, style: AppTextStyles.headlineMedium),
+            const SizedBox(height: 16),
+            _InfoRow(
+              icon: Icons.access_time_rounded,
+              text: _formatDateTime(schedule.startAt),
+            ),
+            if (schedule.location != null &&
+                schedule.location!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _InfoRow(
+                icon: Icons.location_on_rounded,
+                text: schedule.location!,
+              ),
+            ],
+            if (schedule.description != null &&
+                schedule.description!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text('설명', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey)),
+              const SizedBox(height: 4),
+              Text(schedule.description!, style: AppTextStyles.bodyMedium),
+            ],
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _InfoRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: AppColors.textGrey),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(text, style: AppTextStyles.bodyMedium),
+        ),
+      ],
     );
   }
 }

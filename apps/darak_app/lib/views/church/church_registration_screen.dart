@@ -78,7 +78,7 @@ class _ChurchRegistrationScreenState
     // _isFormValid를 통과했더라도 race condition 방어
     if (denomination.isEmpty) return;
 
-    final success = await ref
+    final churchId = await ref
         .read(churchRegistrationViewModelProvider.notifier)
         .submit(
           name: _nameController.text.trim(),
@@ -90,15 +90,15 @@ class _ChurchRegistrationScreenState
 
     if (!mounted) return;
 
-    if (success) {
+    if (churchId != null) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => const ChurchPendingScreen(),
+          builder: (_) => ChurchPendingScreen(churchId: churchId),
         ),
       );
     } else {
       final vmState = ref.read(churchRegistrationViewModelProvider);
-      final errorMsg = vmState.error?.toString() ?? '등록 신청 중 오류가 발생했습니다.';
+      final errorMsg = vmState.error?.toString().replaceAll(RegExp(r'^Exception:\s*'), '') ?? '등록 신청 중 오류가 발생했습니다.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errorMsg)),
       );

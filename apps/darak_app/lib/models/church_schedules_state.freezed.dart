@@ -17,8 +17,10 @@ final _privateConstructorUsedError = UnsupportedError(
 
 /// @nodoc
 mixin _$ChurchSchedulesState {
-  List<ChurchSchedule> get schedules => throw _privateConstructorUsedError;
-  ScheduleViewMode get viewMode => throw _privateConstructorUsedError;
+  List<ChurchSchedule> get schedules =>
+      throw _privateConstructorUsedError; // 현재 포커스 월 전체 일정
+  DateTime get focusedMonth => throw _privateConstructorUsedError; // 캘린더 포커스 월
+  DateTime get selectedDate => throw _privateConstructorUsedError;
 
   /// Create a copy of ChurchSchedulesState
   /// with the given fields replaced by the non-null parameter values.
@@ -34,7 +36,11 @@ abstract class $ChurchSchedulesStateCopyWith<$Res> {
     $Res Function(ChurchSchedulesState) then,
   ) = _$ChurchSchedulesStateCopyWithImpl<$Res, ChurchSchedulesState>;
   @useResult
-  $Res call({List<ChurchSchedule> schedules, ScheduleViewMode viewMode});
+  $Res call({
+    List<ChurchSchedule> schedules,
+    DateTime focusedMonth,
+    DateTime selectedDate,
+  });
 }
 
 /// @nodoc
@@ -54,17 +60,25 @@ class _$ChurchSchedulesStateCopyWithImpl<
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? schedules = null, Object? viewMode = null}) {
+  $Res call({
+    Object? schedules = null,
+    Object? focusedMonth = null,
+    Object? selectedDate = null,
+  }) {
     return _then(
       _value.copyWith(
             schedules: null == schedules
                 ? _value.schedules
                 : schedules // ignore: cast_nullable_to_non_nullable
                       as List<ChurchSchedule>,
-            viewMode: null == viewMode
-                ? _value.viewMode
-                : viewMode // ignore: cast_nullable_to_non_nullable
-                      as ScheduleViewMode,
+            focusedMonth: null == focusedMonth
+                ? _value.focusedMonth
+                : focusedMonth // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            selectedDate: null == selectedDate
+                ? _value.selectedDate
+                : selectedDate // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
           )
           as $Val,
     );
@@ -80,7 +94,11 @@ abstract class _$$ChurchSchedulesStateImplCopyWith<$Res>
   ) = __$$ChurchSchedulesStateImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({List<ChurchSchedule> schedules, ScheduleViewMode viewMode});
+  $Res call({
+    List<ChurchSchedule> schedules,
+    DateTime focusedMonth,
+    DateTime selectedDate,
+  });
 }
 
 /// @nodoc
@@ -96,17 +114,25 @@ class __$$ChurchSchedulesStateImplCopyWithImpl<$Res>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? schedules = null, Object? viewMode = null}) {
+  $Res call({
+    Object? schedules = null,
+    Object? focusedMonth = null,
+    Object? selectedDate = null,
+  }) {
     return _then(
       _$ChurchSchedulesStateImpl(
         schedules: null == schedules
             ? _value._schedules
             : schedules // ignore: cast_nullable_to_non_nullable
                   as List<ChurchSchedule>,
-        viewMode: null == viewMode
-            ? _value.viewMode
-            : viewMode // ignore: cast_nullable_to_non_nullable
-                  as ScheduleViewMode,
+        focusedMonth: null == focusedMonth
+            ? _value.focusedMonth
+            : focusedMonth // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        selectedDate: null == selectedDate
+            ? _value.selectedDate
+            : selectedDate // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
       ),
     );
   }
@@ -117,7 +143,8 @@ class __$$ChurchSchedulesStateImplCopyWithImpl<$Res>
 class _$ChurchSchedulesStateImpl implements _ChurchSchedulesState {
   const _$ChurchSchedulesStateImpl({
     required final List<ChurchSchedule> schedules,
-    this.viewMode = ScheduleViewMode.weekly,
+    required this.focusedMonth,
+    required this.selectedDate,
   }) : _schedules = schedules;
 
   final List<ChurchSchedule> _schedules;
@@ -128,13 +155,16 @@ class _$ChurchSchedulesStateImpl implements _ChurchSchedulesState {
     return EqualUnmodifiableListView(_schedules);
   }
 
+  // 현재 포커스 월 전체 일정
   @override
-  @JsonKey()
-  final ScheduleViewMode viewMode;
+  final DateTime focusedMonth;
+  // 캘린더 포커스 월
+  @override
+  final DateTime selectedDate;
 
   @override
   String toString() {
-    return 'ChurchSchedulesState(schedules: $schedules, viewMode: $viewMode)';
+    return 'ChurchSchedulesState(schedules: $schedules, focusedMonth: $focusedMonth, selectedDate: $selectedDate)';
   }
 
   @override
@@ -146,15 +176,18 @@ class _$ChurchSchedulesStateImpl implements _ChurchSchedulesState {
               other._schedules,
               _schedules,
             ) &&
-            (identical(other.viewMode, viewMode) ||
-                other.viewMode == viewMode));
+            (identical(other.focusedMonth, focusedMonth) ||
+                other.focusedMonth == focusedMonth) &&
+            (identical(other.selectedDate, selectedDate) ||
+                other.selectedDate == selectedDate));
   }
 
   @override
   int get hashCode => Object.hash(
     runtimeType,
     const DeepCollectionEquality().hash(_schedules),
-    viewMode,
+    focusedMonth,
+    selectedDate,
   );
 
   /// Create a copy of ChurchSchedulesState
@@ -173,13 +206,16 @@ class _$ChurchSchedulesStateImpl implements _ChurchSchedulesState {
 abstract class _ChurchSchedulesState implements ChurchSchedulesState {
   const factory _ChurchSchedulesState({
     required final List<ChurchSchedule> schedules,
-    final ScheduleViewMode viewMode,
+    required final DateTime focusedMonth,
+    required final DateTime selectedDate,
   }) = _$ChurchSchedulesStateImpl;
 
   @override
-  List<ChurchSchedule> get schedules;
+  List<ChurchSchedule> get schedules; // 현재 포커스 월 전체 일정
   @override
-  ScheduleViewMode get viewMode;
+  DateTime get focusedMonth; // 캘린더 포커스 월
+  @override
+  DateTime get selectedDate;
 
   /// Create a copy of ChurchSchedulesState
   /// with the given fields replaced by the non-null parameter values.

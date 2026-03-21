@@ -8,20 +8,25 @@ import '../../../theme/app_theme.dart';
 import '../../../viewmodels/church/church_members_viewmodel.dart';
 import '../../../viewmodels/church/church_roles_provider.dart';
 import '../../../widgets/common/clay_card.dart';
+import '../../../widgets/common/core/bouncy_icon_btn.dart';
 import '../../../widgets/common/core/soft_chip.dart';
 import '../../../widgets/common/role_badge.dart';
 import '../../../widgets/common/soft_text_field.dart';
+import '../widgets/group_assign_bottom_sheet.dart';
 
 /// 교회 상세 - 구성원 탭
 /// 검색 + 역할 필터 + 교인 프로필 목록
+/// [isAdmin]이 true이면 각 멤버 카드에 다락방 배정 버튼이 표시됩니다.
 class ChurchMembersTab extends ConsumerStatefulWidget {
   final String churchId;
   final ChurchMember? currentMember;
+  final bool isAdmin;
 
   const ChurchMembersTab({
     super.key,
     required this.churchId,
     required this.currentMember,
+    this.isAdmin = false,
   });
 
   @override
@@ -93,7 +98,6 @@ class _ChurchMembersTabState extends ConsumerState<ChurchMembersTab> {
             ),
             data: (state) {
               if (state.members.isEmpty) {
-                // 검색/필터 조건이 있으면 "결과 없음", 없으면 "교인 없음"으로 구분
                 final isFiltering = state.searchQuery.isNotEmpty ||
                     state.filterRoleId != null;
                 return _EmptyMembersState(isFiltering: isFiltering);
@@ -101,8 +105,11 @@ class _ChurchMembersTabState extends ConsumerState<ChurchMembersTab> {
               return ListView.builder(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                 itemCount: state.members.length,
-                itemBuilder: (ctx, i) =>
-                    _MemberCard(profile: state.members[i]),
+                itemBuilder: (ctx, i) => _MemberCard(
+                  churchId: widget.churchId,
+                  profile: state.members[i],
+                  isAdmin: widget.isAdmin,
+                ),
               );
             },
           ),
@@ -182,9 +189,15 @@ class _RoleFilterChips extends StatelessWidget {
 
 /// 교인 프로필 카드
 class _MemberCard extends StatelessWidget {
+  final String churchId;
   final ChurchMemberProfile profile;
+  final bool isAdmin;
 
-  const _MemberCard({required this.profile});
+  const _MemberCard({
+    required this.churchId,
+    required this.profile,
+    required this.isAdmin,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -196,6 +209,23 @@ class _MemberCard extends StatelessWidget {
           _MemberAvatar(imageUrl: profile.profileImageUrl, name: profile.name),
           const SizedBox(width: 12),
           Expanded(child: _MemberInfo(profile: profile)),
+          if (isAdmin)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, right: 4),
+              child: BouncyIconBtn(
+                icon: Icons.meeting_room_rounded,
+                color: AppColors.skyBlue,
+                size: IconBtnSize.small,
+                tooltip: '다락방 배정',
+                onTap: () => GroupAssignBottomSheet.show(
+                  context,
+                  churchId: churchId,
+                  userId: profile.userId,
+                  userName: profile.name,
+                  currentGroupId: profile.groupId,
+                ),
+              ),
+            ),
           RoleBadge(roleName: profile.roleName, roleLevel: profile.roleLevel),
         ],
       ),
@@ -211,10 +241,11 @@ class _MemberAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (imageUrl != null && imageUrl!.isNotEmpty) {
+    final url = imageUrl;
+    if (url != null && url.isNotEmpty) {
       return CircleAvatar(
         radius: 24,
-        backgroundImage: NetworkImage(imageUrl!),
+        backgroundImage: NetworkImage(url),
         backgroundColor: AppColors.divider,
       );
     }

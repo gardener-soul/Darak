@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // Darak 앱 Firestore 보안 규칙
-// 마지막 업데이트: 2026-01-28
+// 마지막 업데이트: 2026-03-20
 //
 // 보안 원칙:
 // 1. 인증된 사용자만 데이터 접근 가능
@@ -71,6 +71,19 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid));
     }
 
+    // 일정 작성 가능 여부 확인
+    // 교회 관리자이거나, 해당 교회 멤버 중 roleLevel >= 3(마을장) 또는 roleLevel == 99(사역자)인 경우
+    // C-5: 멤버/역할 문서 존재 여부를 exists()로 먼저 확인하여 런타임 에러 방지
+    // Note: Firebase Rules 함수 내에서는 if 문 사용 불가 → &&/|| 논리 표현식으로 처리
+    function isScheduleWriter(churchId) {
+      return isChurchAdmin(churchId) ||
+        (isAuthenticated() &&
+         exists(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)) &&
+         exists(/databases/$(database)/documents/churches/$(churchId)/roles/$(get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)).data.roleId)) &&
+         (get(/databases/$(database)/documents/churches/$(churchId)/roles/$(get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)).data.roleId)).data.level >= 3 ||
+          get(/databases/$(database)/documents/churches/$(churchId)/roles/$(get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)).data.roleId)).data.level == 99));
+    }
+
     // adminIds 최소 1명 유지 검증
     function adminIdsNotEmpty() {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['adminIds']) ||
@@ -110,10 +123,15 @@ service cloud.firestore {
         && request.resource.data.keys().hasAll(['churchId', 'name', 'createdAt', 'updatedAt'])
         && isChurchAdmin(request.resource.data.churchId);
 
-      // 수정: 다락방 리더 본인 또는 해당 교회 관리자
+      // 수정: 교회 관리자는 모든 필드 수정 가능
+      //       다락방 순장(leaderId)은 name, description, updatedAt, memberIds만 수정 가능
+      //       memberIds는 순장이 멤버 추가/제거 시 필요하므로 포함
+      // C-6: 순장의 수정 가능 필드를 hasOnly로 제한하여 권한 초과 쓰기 차단
       allow update: if isAuthenticated() && (
-        resource.data.leaderId == request.auth.uid ||
-        isChurchAdmin(resource.data.churchId)
+        isChurchAdmin(resource.data.churchId) ||
+        (resource.data.leaderId == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['name', 'description', 'updatedAt', 'memberIds']))
       );
 
       // 삭제: 해당 교회 관리자만 가능
@@ -238,8 +256,11 @@ service cloud.firestore {
       match /schedules/{scheduleId} {
         // 읽기: 교회 멤버 또는 교회 관리자 가능
         allow read: if isChurchMember(churchId) || isChurchAdmin(churchId);
-        // 생성/수정/삭제: 교회 관리자만 가능
-        allow create, update, delete: if isChurchAdmin(churchId);
+        // 생성/수정: 교회 관리자 또는 마을장(roleLevel >= 3), 사역자(roleLevel == 99) 가능
+        allow create, update: if isScheduleWriter(churchId);
+        // 삭제: 교회 관리자, 마을장/사역자, 또는 일정 작성자 본인 가능
+        allow delete: if isScheduleWriter(churchId) ||
+          (isChurchMember(churchId) && resource.data.createdBy == request.auth.uid);
       }
     }
 
