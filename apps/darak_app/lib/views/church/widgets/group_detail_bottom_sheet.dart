@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../models/attendance_status.dart';
 import '../../../models/church_member.dart';
 import '../../../models/group.dart';
 import '../../../repositories/user_repository.dart';
 import '../../../theme/app_theme.dart';
+import '../../../viewmodels/attendance/attendance_viewmodel.dart';
 import '../../../viewmodels/church/church_community_viewmodel.dart';
 import '../../../widgets/common/bouncy_button.dart';
+import '../../../widgets/common/bouncy_tap_wrapper.dart';
+import '../../../widgets/common/clay_card.dart';
 import '../../../widgets/common/core/app_bottom_sheet.dart';
 import '../../../widgets/common/core/bouncy_icon_btn.dart';
 import '../../../widgets/common/core/clay_avatar.dart';
 import '../../../widgets/common/core/soft_dialog.dart';
+import 'attendance_check_bottom_sheet.dart';
+import 'attendance_history_sheet.dart';
 import 'group_edit_bottom_sheet.dart';
 import 'member_picker_bottom_sheet.dart';
 
@@ -267,8 +273,16 @@ class _GroupDetailBottomSheetState
         ),
         const SizedBox(height: 16),
 
-        // ── 멤버 수 ───────────────────────────────────────────────
-        _MemberCountRow(memberCount: memberIds.length),
+        // ── 멤버 수 + 출석 체크 버튼 ─────────────────────────────
+        _MemberCountRow(
+          memberCount: memberIds.length,
+          canManage: canManage,
+          onAttendanceTap: () => AttendanceCheckBottomSheet.show(
+            context,
+            group: widget.group,
+            churchId: widget.churchId,
+          ),
+        ),
         const SizedBox(height: 20),
 
         const Divider(color: AppColors.divider, height: 1),
@@ -300,6 +314,20 @@ class _GroupDetailBottomSheetState
             onRemoveMember: _onRemoveMemberTap,
           ),
 
+        const SizedBox(height: 8),
+
+        // ── 최근 출석 요약 카드 ─────────────────────────────────────
+        const Divider(color: AppColors.divider, height: 1),
+        const SizedBox(height: 12),
+        _RecentAttendanceSummaryCard(
+          groupId: widget.group.id,
+          onHistoryTap: () => AttendanceHistorySheet.show(
+            context,
+            groupId: widget.group.id,
+            churchId: widget.churchId,
+            groupName: widget.group.name,
+          ),
+        ),
         const SizedBox(height: 8),
       ],
     );
@@ -417,8 +445,14 @@ class _GroupLeaderInfo extends ConsumerWidget {
 
 class _MemberCountRow extends StatelessWidget {
   final int memberCount;
+  final bool canManage;
+  final VoidCallback onAttendanceTap;
 
-  const _MemberCountRow({required this.memberCount});
+  const _MemberCountRow({
+    required this.memberCount,
+    required this.canManage,
+    required this.onAttendanceTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -429,7 +463,157 @@ class _MemberCountRow extends StatelessWidget {
         Text('멤버', style: AppTextStyles.bodySmall),
         const SizedBox(width: 8),
         Text('$memberCount명', style: AppTextStyles.bodyMedium),
+        const Spacer(),
+        if (canManage)
+          BouncyButton(
+            text: '출석 체크',
+            icon: const Icon(Icons.check_rounded, size: 16, color: Colors.white),
+            color: AttendanceColors.present,
+            isFullWidth: false,
+            onPressed: onAttendanceTap,
+          ),
       ],
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 최근 출석 요약 카드
+// ──────────────────────────────────────────────────────────────────────────────
+
+class _RecentAttendanceSummaryCard extends ConsumerWidget {
+  final String groupId;
+  final VoidCallback onHistoryTap;
+
+  const _RecentAttendanceSummaryCard({
+    required this.groupId,
+    required this.onHistoryTap,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final attendancesAsync = ref.watch(recentGroupAttendancesProvider(groupId));
+
+    return ClayCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('최근 출석', style: AppTextStyles.bodySmall),
+                const SizedBox(height: 8),
+                attendancesAsync.when(
+                  loading: () => const SizedBox(
+                    height: 20,
+                    child: Center(
+                      child: LinearProgressIndicator(
+                        color: AttendanceColors.present,
+                      ),
+                    ),
+                  ),
+                  error: (_, __) => Text(
+                    '출석 기록을 불러오지 못했어요.',
+                    style: AppTextStyles.bodySmall,
+                  ),
+                  data: (attendances) {
+                    if (attendances.isEmpty) {
+                      return Text(
+                        '아직 출석 기록이 없어요.',
+                        style: AppTextStyles.bodySmall,
+                      );
+                    }
+                    // 가장 최근 날짜의 기록만 집계
+                    final latestDate = attendances
+                        .map((a) => DateTime(a.date.year, a.date.month, a.date.day))
+                        .reduce((a, b) => a.isAfter(b) ? a : b);
+                    final latestRecords = attendances
+                        .where((a) =>
+                            DateTime(a.date.year, a.date.month, a.date.day) ==
+                            latestDate)
+                        .toList();
+
+                    var present = 0, absent = 0, late = 0;
+                    for (final a in latestRecords) {
+                      switch (a.status) {
+                        case AttendanceStatus.present: present++; break;
+                        case AttendanceStatus.absent:  absent++;  break;
+                        case AttendanceStatus.late:    late++;    break;
+                        default: break;
+                      }
+                    }
+
+                    return Row(
+                      children: [
+                        _StatusBadgeSmall(
+                          label: '출석',
+                          count: present,
+                          color: AttendanceColors.present,
+                        ),
+                        const SizedBox(width: 6),
+                        _StatusBadgeSmall(
+                          label: '결석',
+                          count: absent,
+                          color: AttendanceColors.absent,
+                        ),
+                        const SizedBox(width: 6),
+                        _StatusBadgeSmall(
+                          label: '지각',
+                          count: late,
+                          color: AttendanceColors.late,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          BouncyTapWrapper(
+            onTap: onHistoryTap,
+            child: Text(
+              '기록 보기 →',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.softCoral,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusBadgeSmall extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+
+  const _StatusBadgeSmall({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 1),
+      ),
+      child: Text(
+        '$label $count',
+        style: AppTextStyles.bodySmall.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
+        ),
+      ),
     );
   }
 }
