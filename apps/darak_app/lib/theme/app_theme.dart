@@ -229,3 +229,35 @@ class AppTheme {
     );
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// 출석 상태별 시맨틱 색상 상수 (앱 전역 SSoT)
+// ═══════════════════════════════════════════════════════════════
+
+/// 출석 상태에 따른 색상 토큰.
+/// 화면마다 색이 달라지면 인지 부하가 증가하므로
+/// 이 클래스를 단일 진실 공급원(SSoT)으로 사용한다.
+class AttendanceColors {
+  AttendanceColors._();
+
+  // ── 메인 배경·아이콘 색상 ──────────────────────────────────────
+  static const Color present  = AppColors.sageGreen;       // #A7C5BD — 긍정·완료
+  static const Color late     = AppColors.warmTangerine;   // #FFB74D — 주의·경고
+  static const Color absent   = AppColors.softCoral;       // #FF8F8F — 부정·위험
+  static const Color excused  = AppColors.softLavender;    // #DCD6F7 — 중립·예외
+
+  // ── 클레이모피즘 하단 솔리드 그림자 색상 ─────────────────────────
+  static const Color presentShadow  = Color(0xFF7AA89F);
+  static const Color lateShadow     = Color(0xFFE09535);
+  static const Color absentShadow   = Color(0xFFD96C6C);
+  static const Color excusedShadow  = Color(0xFFB8B0E8);
+
+  /// 출석률에 따른 프로그레스 바 색상 자동 분기.
+  /// 80% 이상 → 초록, 50~79% → 주황, 50% 미만 → 빨강
+  static Color progressColor(double rate) {
+    if (rate >= 0.8) return present;
+    if (rate >= 0.5) return late;
+    return absent;
+  }
+}
+

@@ -14,3 +14,19 @@ enum AttendanceType {
   @JsonValue('special_event')
   specialEvent, // 특별 행사
 }
+
+/// 출석 유형 한국어 레이블 SSoT
+extension AttendanceTypeLabel on AttendanceType {
+  String get label {
+    switch (this) {
+      case AttendanceType.onlySundayService:
+        return '주일예배';
+      case AttendanceType.onlyDarak:
+        return '다락방';
+      case AttendanceType.both:
+        return '예배+다락방';
+      case AttendanceType.specialEvent:
+        return '특별집회';
+    }
+  }
+}
