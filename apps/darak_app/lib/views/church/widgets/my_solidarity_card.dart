@@ -20,25 +20,22 @@ class MySolidarityCard extends StatelessWidget {
   /// 소속 마을 이름 (없으면 null)
   String? get _villageName {
     if (currentMember.villageId == null) return null;
-    try {
-      return villages
-          .firstWhere((v) => v.village.id == currentMember.villageId)
-          .village
-          .name;
-    } catch (_) {
-      return null;
-    }
+    return villages
+        .where((v) => v.village.id == currentMember.villageId)
+        .firstOrNull
+        ?.village
+        .name;
   }
 
   /// 소속 다락방 이름 (없으면 null)
   String? get _groupName {
     if (currentMember.groupId == null) return null;
     for (final v in villages) {
-      try {
-        return v.groups.firstWhere((g) => g.id == currentMember.groupId).name;
-      } catch (_) {
-        continue;
-      }
+      final name = v.groups
+          .where((g) => g.id == currentMember.groupId)
+          .firstOrNull
+          ?.name;
+      if (name != null) return name;
     }
     return null;
   }

@@ -62,10 +62,8 @@ class ChurchScheduleRepository {
     required int month,
   }) {
     final from = DateTime(year, month, 1);
-    // 12월의 경우 다음 해 1월로 넘어가야 하므로 분기 처리
-    final to = month == 12
-        ? DateTime(year + 1, 1, 1)
-        : DateTime(year, month + 1, 1);
+    // Dart DateTime은 month 오버플로우를 자동 정규화 (예: month=13 → 다음 해 1월)
+    final to = DateTime(year, month + 1, 1);
 
     return _firestore
         .collection(FirestorePaths.churchSchedules(churchId))

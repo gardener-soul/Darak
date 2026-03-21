@@ -302,9 +302,7 @@ class GroupRepository {
       });
       // 3. ChurchMember 소속 정보 업데이트 (원자성 보장)
       final memberRef = _firestore
-          .collection('churches')
-          .doc(churchId)
-          .collection('members')
+          .collection(FirestorePaths.churchMembers(churchId))
           .doc(userId);
       batch.update(memberRef, {
         'groupId': toGroupId,
