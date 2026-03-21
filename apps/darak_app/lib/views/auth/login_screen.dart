@@ -111,9 +111,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('로그인'),
-        backgroundColor: AppColors.creamWhite,
         leading: IconButton(
-          // 뒤로가기 버튼 추가
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Navigator.of(context).pop(),
         ),

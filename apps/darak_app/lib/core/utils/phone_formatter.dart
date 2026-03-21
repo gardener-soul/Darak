@@ -8,11 +8,8 @@ class PhoneNumberFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    // 하이픈 제거한 순수 숫자만 추출
-    final text = newValue.text.replaceAll('-', '');
-
-    // 숫자만 남기기 (다른 문자 필터링)
-    final digitsOnly = text.replaceAll(RegExp(r'\D'), '');
+    // 숫자만 남기기 (하이픈 및 모든 비숫자 제거)
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'\D'), '');
 
     // 길이에 따른 포맷팅
     String formatted;

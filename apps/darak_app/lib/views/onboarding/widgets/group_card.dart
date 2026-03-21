@@ -54,7 +54,7 @@ class GroupCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 image: group.imageUrl != null
                     ? DecorationImage(
-                        image: NetworkImage(group.imageUrl ?? ''),
+                        image: NetworkImage(group.imageUrl!),
                         fit: BoxFit.cover,
                       )
                     : null,
@@ -86,7 +86,7 @@ class GroupCard extends StatelessWidget {
                   if (group.description?.isNotEmpty ?? false) ...[
                     const SizedBox(height: 4),
                     Text(
-                      group.description ?? '',
+                      group.description!,
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textGrey,
                       ),
