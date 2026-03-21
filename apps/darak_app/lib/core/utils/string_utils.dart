@@ -1,4 +1,4 @@
-import 'package:darak_app/core/utils/input_sanitizer.dart';
+import 'input_sanitizer.dart';
 
 /// 문자열 관련 유틸리티 함수 모음
 /// XSS 방어, 전화번호 검증 등 공통 로직을 제공합니다.
