@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -49,8 +50,10 @@ class AnnouncementRepository {
         .transform(
           StreamTransformer.fromHandlers(
             handleData: (data, sink) => sink.add(data),
-            handleError: (error, stackTrace, sink) =>
-                sink.add(<Announcement>[]),
+            handleError: (error, stackTrace, sink) {
+              debugPrint('공지사항 로드 실패: $error');
+              sink.add(<Announcement>[]);
+            },
           ),
         );
   }
