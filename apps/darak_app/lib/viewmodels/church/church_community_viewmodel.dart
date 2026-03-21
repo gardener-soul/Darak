@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../core/constants/firestore_paths.dart';
 import '../../core/providers/firebase_providers.dart';
 import '../../models/group.dart';
 import '../../models/village.dart';
@@ -145,7 +146,7 @@ class ChurchCommunityViewModel extends _$ChurchCommunityViewModel {
       final batch = firestore.batch();
 
       // 1. groups/{groupId}.memberIds arrayUnion
-      final groupRef = firestore.collection('groups').doc(groupId);
+      final groupRef = firestore.collection(FirestorePaths.groups).doc(groupId);
       batch.update(groupRef, {
         'memberIds': FieldValue.arrayUnion([userId]),
         'updatedAt': FieldValue.serverTimestamp(),
@@ -153,7 +154,7 @@ class ChurchCommunityViewModel extends _$ChurchCommunityViewModel {
 
       // 2. churches/{churchId}/members/{userId} 소속 정보 업데이트
       final memberRef = firestore
-          .collection('churches')
+          .collection(FirestorePaths.churches)
           .doc(churchId)
           .collection('members')
           .doc(userId);
@@ -180,7 +181,7 @@ class ChurchCommunityViewModel extends _$ChurchCommunityViewModel {
       final batch = firestore.batch();
 
       // 1. groups/{groupId}.memberIds arrayRemove
-      final groupRef = firestore.collection('groups').doc(groupId);
+      final groupRef = firestore.collection(FirestorePaths.groups).doc(groupId);
       batch.update(groupRef, {
         'memberIds': FieldValue.arrayRemove([userId]),
         'updatedAt': FieldValue.serverTimestamp(),
@@ -188,7 +189,7 @@ class ChurchCommunityViewModel extends _$ChurchCommunityViewModel {
 
       // 2. churches/{churchId}/members/{userId} 소속 정보 null 초기화
       final memberRef = firestore
-          .collection('churches')
+          .collection(FirestorePaths.churches)
           .doc(churchId)
           .collection('members')
           .doc(userId);
@@ -271,8 +272,8 @@ class ChurchCommunityViewModel extends _$ChurchCommunityViewModel {
     try {
       final firestore = ref.read(firestoreProvider);
 
-      // 멤버를 499개씩 청크로 분할 (Soft Delete + groupCount 감소 2건 예약)
-      const chunkSize = 499;
+      // 멤버를 497개씩 청크로 분할 (첫 Batch에 Soft Delete + groupCount 2건 고정 예약)
+      const chunkSize = 497;
       final chunks = <List<String>>[];
       for (var i = 0; i < memberIds.length; i += chunkSize) {
         chunks.add(memberIds.sublist(i, min(i + chunkSize, memberIds.length)));
@@ -282,21 +283,21 @@ class ChurchCommunityViewModel extends _$ChurchCommunityViewModel {
       final firstBatch = firestore.batch();
 
       // 1. 다락방 Soft Delete
-      final groupRef = firestore.collection('groups').doc(groupId);
+      final groupRef = firestore.collection(FirestorePaths.groups).doc(groupId);
       firstBatch.update(groupRef, {
         'deletedAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
       // 2. groupCount 감소
-      final churchRef = firestore.collection('churches').doc(churchId);
+      final churchRef = firestore.collection(FirestorePaths.churches).doc(churchId);
       firstBatch.update(churchRef, {'groupCount': FieldValue.increment(-1)});
 
       // 3. 첫 번째 청크 멤버 groupId/villageId null 처리
       if (chunks.isNotEmpty) {
         for (final uid in chunks.first) {
           final memberRef = firestore
-              .collection('churches')
+              .collection(FirestorePaths.churches)
               .doc(churchId)
               .collection('members')
               .doc(uid);
@@ -315,7 +316,7 @@ class ChurchCommunityViewModel extends _$ChurchCommunityViewModel {
         final batch = firestore.batch();
         for (final uid in chunks[i]) {
           final memberRef = firestore
-              .collection('churches')
+              .collection(FirestorePaths.churches)
               .doc(churchId)
               .collection('members')
               .doc(uid);

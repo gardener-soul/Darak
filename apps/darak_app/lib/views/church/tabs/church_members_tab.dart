@@ -209,10 +209,9 @@ class _MemberCard extends StatelessWidget {
           _MemberAvatar(imageUrl: profile.profileImageUrl, name: profile.name),
           const SizedBox(width: 12),
           Expanded(child: _MemberInfo(profile: profile)),
-          // 관리자: 배정 버튼 + RoleBadge 모두 표시 / 일반: RoleBadge만 표시
-          if (isAdmin) ...[
+          if (isAdmin)
             Padding(
-              padding: const EdgeInsets.only(left: 4),
+              padding: const EdgeInsets.only(left: 4, right: 4),
               child: BouncyIconBtn(
                 icon: Icons.meeting_room_rounded,
                 color: AppColors.skyBlue,
@@ -227,10 +226,7 @@ class _MemberCard extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 4),
-            RoleBadge(roleName: profile.roleName, roleLevel: profile.roleLevel),
-          ] else
-            RoleBadge(roleName: profile.roleName, roleLevel: profile.roleLevel),
+          RoleBadge(roleName: profile.roleName, roleLevel: profile.roleLevel),
         ],
       ),
     );

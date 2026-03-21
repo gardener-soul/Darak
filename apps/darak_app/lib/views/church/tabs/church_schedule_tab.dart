@@ -4,27 +4,16 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../core/providers/user_providers.dart';
-import '../../../models/church_member.dart';
 import '../../../models/church_schedule.dart';
-import '../../../repositories/church_member_repository.dart';
 import '../../../theme/app_theme.dart';
+import '../../../viewmodels/church/church_detail_viewmodel.dart';
 import '../../../viewmodels/church/church_roles_provider.dart';
 import '../../../viewmodels/church/church_schedules_viewmodel.dart';
-import '../../../viewmodels/church/church_detail_viewmodel.dart';
 import '../../../widgets/common/bouncy_button.dart';
 import '../../../widgets/common/clay_card.dart';
 import '../../../widgets/common/core/soft_dialog.dart';
 import '../widgets/schedule_card.dart';
 import '../widgets/schedule_create_bottom_sheet.dart';
-
-/// 단일 교회 멤버 정보 조회 Provider (일정 탭 권한 확인용)
-final churchMemberSingleProvider = FutureProvider.family<ChurchMember?,
-    ({String churchId, String userId})>(
-  (ref, params) => ref.watch(churchMemberRepositoryProvider).getMember(
-        churchId: params.churchId,
-        userId: params.userId,
-      ),
-);
 
 /// 교회 상세 - 일정 탭 (캘린더 기반 UI)
 class ChurchScheduleTab extends ConsumerWidget {
@@ -81,29 +70,20 @@ class _CalendarBody extends ConsumerWidget {
   });
 
   bool _canWriteSchedule(WidgetRef ref, String churchId) {
-    final userId = ref.watch(currentUserIdProvider);
-    if (userId == null) return false;
+    // churchDetailViewModelProvider에 isAdmin + currentMember가 이미 포함되어 있으므로
+    // 별도 Firestore 조회 없이 재사용합니다.
+    final detail = ref.watch(churchDetailViewModelProvider(churchId)).valueOrNull;
+    if (detail == null) return false;
+    if (detail.isAdmin) return true;
 
-    // 관리자(adminIds) 여부를 churchDetailViewModelProvider에서 직접 조회
-    final detailAsync = ref.watch(churchDetailViewModelProvider(churchId));
-    final isAdmin = detailAsync.valueOrNull?.isAdmin ?? false;
-    if (isAdmin) return true;
-
-    final memberAsync = ref.watch(
-      churchMemberSingleProvider((churchId: churchId, userId: userId)),
-    );
-    final member = memberAsync.valueOrNull;
+    final member = detail.currentMember;
     if (member == null) return false;
 
-    final rolesAsync = ref.watch(churchRolesProvider(churchId));
-    final roles = rolesAsync.valueOrNull ?? [];
-    final roleLevel = roles
-            .where((r) => r.id == member.roleId)
-            .firstOrNull
-            ?.level ??
-        1;
+    final roles = ref.watch(churchRolesProvider(churchId)).valueOrNull ?? [];
+    final roleLevel =
+        roles.where((r) => r.id == member.roleId).firstOrNull?.level ?? 1;
 
-    // 마을장(roleLevel=3) 이상 또는 사역자(roleLevel=99)는 일정 작성 가능
+    // 마을장(roleLevel=3) 이상은 일정 작성 가능
     return roleLevel >= 3;
   }
 
@@ -412,6 +392,7 @@ class _ScheduleCardWithActions extends ConsumerWidget {
                 ),
                 onTap: () async {
                   Navigator.pop(ctx);
+                  if (!context.mounted) return;
                   final confirmed = await SoftDialog.show<bool>(
                     context: context,
                     title: '일정 삭제',
