@@ -220,6 +220,36 @@ class _CalendarBody extends ConsumerWidget {
                         color: AppColors.textGrey,
                       ),
                     ),
+                    calendarBuilders: CalendarBuilders<ChurchSchedule>(
+                      // 요일 헤더: 토요일만 파란색, 일요일은 coral
+                      dowBuilder: (ctx, day) {
+                        if (day.weekday == DateTime.saturday) {
+                          return Center(
+                            child: Text(
+                              DateFormat.E('ko_KR').format(day),
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.skyBlue,
+                              ),
+                            ),
+                          );
+                        }
+                        return null;
+                      },
+                      // 날짜 셀: 토요일만 파란색 (일반 상태에서만 적용, 선택/오늘은 별도 처리됨)
+                      defaultBuilder: (ctx, day, focusedDay) {
+                        if (day.weekday == DateTime.saturday) {
+                          return Center(
+                            child: Text(
+                              '${day.day}',
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.skyBlue,
+                              ),
+                            ),
+                          );
+                        }
+                        return null;
+                      },
+                    ),
                     daysOfWeekStyle: DaysOfWeekStyle(
                       weekdayStyle: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textGrey,
