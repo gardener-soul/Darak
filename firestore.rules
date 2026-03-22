@@ -376,7 +376,10 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         resource.data.userId == request.auth.uid ||
         (resource.data.visibility == 'group' &&
-          isChurchMember(resource.data.churchId))
+          isChurchMember(resource.data.churchId)) ||
+        // followers 공개: 팔로우 수락된 관계({followerId}_{followeeId} 문서 존재 확인)
+        (resource.data.visibility == 'followers' &&
+          exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + resource.data.userId)))
       );
 
       // 생성: 본인 userId + 본인이 속한 churchId로만 생성 가능 (churchId 위변조 차단)
@@ -395,6 +398,37 @@ service cloud.firestore {
 
       // 하드 삭제: 관리자만 (앱은 Soft Delete 사용)
       allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // ============================================
+    // Follows (팔로우 관계) 컬렉션
+    // 문서 ID 패턴: {followerId}_{followeeId}
+    // ============================================
+    match /follows/{followId} {
+      // 읽기: 팔로우 관계의 당사자(followerId 또는 followeeId)만 조회 가능
+      allow read: if isAuthenticated() && (
+        resource.data.followerId == request.auth.uid ||
+        resource.data.followeeId == request.auth.uid
+      );
+
+      // 생성: 요청자 본인이 followerId여야 하고, 자기 자신에게 팔로우 불가
+      allow create: if isAuthenticated()
+        && request.resource.data.followerId == request.auth.uid
+        && request.resource.data.followerId != request.resource.data.followeeId
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasAll([
+            'followerId', 'followeeId', 'churchId', 'status', 'createdAt', 'updatedAt'
+           ]);
+
+      // 수락 처리: followeeId 본인만 status를 accepted로 변경 가능
+      allow update: if isAuthenticated()
+        && resource.data.followeeId == request.auth.uid;
+
+      // 삭제 (팔로우 취소, 팔로워 삭제, 거절): 당사자만 가능
+      allow delete: if isAuthenticated() && (
+        resource.data.followerId == request.auth.uid ||
+        resource.data.followeeId == request.auth.uid
+      );
     }
 
     // ============================================
