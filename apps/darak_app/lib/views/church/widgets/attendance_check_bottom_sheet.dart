@@ -192,7 +192,7 @@ class _AttendanceCheckBottomSheetState
           ),
           const SizedBox(height: 12),
 
-          // ── 예배 유형 칩 (Wrap으로 줄바꿈 대응) ─────────────────
+          // ── 예배 유형 칩 ─────────────────────────────────────────
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -205,21 +205,14 @@ class _AttendanceCheckBottomSheetState
                 onTap: () => _onTypeChanged(AttendanceType.onlySundayService),
               ),
               SoftChip(
-                label: '다락방',
-                icon: Icons.home_rounded,
+                label: '기도회',
+                icon: Icons.volunteer_activism_rounded,
                 color: AppColors.sageGreen,
-                isSelected: state.selectedType == AttendanceType.onlyDarak,
-                onTap: () => _onTypeChanged(AttendanceType.onlyDarak),
+                isSelected: state.selectedType == AttendanceType.prayerMeeting,
+                onTap: () => _onTypeChanged(AttendanceType.prayerMeeting),
               ),
               SoftChip(
-                label: '예배+다락방',
-                icon: Icons.layers_rounded,
-                color: AppColors.warmTangerine,
-                isSelected: state.selectedType == AttendanceType.both,
-                onTap: () => _onTypeChanged(AttendanceType.both),
-              ),
-              SoftChip(
-                label: '특별집회',
+                label: '집회',
                 icon: Icons.celebration_rounded,
                 color: AppColors.softLavender,
                 isSelected: state.selectedType == AttendanceType.specialEvent,
@@ -424,6 +417,13 @@ class _StatusButtonGroup extends StatelessWidget {
   final AttendanceStatus selected;
   final ValueChanged<AttendanceStatus> onChanged;
 
+  // 출석, 결석, 사유 3가지만 표시 (지각 제외)
+  static const _visibleStatuses = [
+    AttendanceStatus.present,
+    AttendanceStatus.absent,
+    AttendanceStatus.excused,
+  ];
+
   const _StatusButtonGroup({
     required this.selected,
     required this.onChanged,
@@ -431,12 +431,9 @@ class _StatusButtonGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // QA-5 [WARNING]: 좁은 기기에서 오버플로우를 막기 위해 Row 대신 Wrap 사용
-    return Wrap(
-      spacing: 0,
-      runSpacing: 4,
-      children: AttendanceStatus.values
-          .where((s) => s != AttendanceStatus.etc) // 'etc'는 UI에서 제외
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: _visibleStatuses
           .map((s) => _StatusBtn(
                 status: s,
                 isSelected: selected == s,
@@ -458,28 +455,24 @@ class _StatusBtn extends StatelessWidget {
 
   static const _labels = {
     AttendanceStatus.present: '출석',
-    AttendanceStatus.late: '지각',
     AttendanceStatus.absent: '결석',
     AttendanceStatus.excused: '사유',
   };
 
   static const _icons = {
     AttendanceStatus.present: Icons.check_circle_rounded,
-    AttendanceStatus.late: Icons.schedule_rounded,
     AttendanceStatus.absent: Icons.cancel_rounded,
     AttendanceStatus.excused: Icons.help_rounded,
   };
 
   static const _colors = {
     AttendanceStatus.present: AttendanceColors.present,
-    AttendanceStatus.late: AttendanceColors.late,
     AttendanceStatus.absent: AttendanceColors.absent,
     AttendanceStatus.excused: AttendanceColors.excused,
   };
 
   static const _shadowColors = {
     AttendanceStatus.present: AttendanceColors.presentShadow,
-    AttendanceStatus.late: AttendanceColors.lateShadow,
     AttendanceStatus.absent: AttendanceColors.absentShadow,
     AttendanceStatus.excused: AttendanceColors.excusedShadow,
   };
@@ -492,8 +485,8 @@ class _StatusBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _colors[status]!;
-    final shadowColor = _shadowColors[status]!;
+    final color = _colors[status] ?? AttendanceColors.present;
+    final shadowColor = _shadowColors[status] ?? AttendanceColors.presentShadow;
     final label = _labels[status];
     final icon = _icons[status];
 
@@ -506,8 +499,8 @@ class _StatusBtn extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? color.withValues(alpha: 0.2)
-              : Colors.transparent,
+              ? color.withValues(alpha: 0.15)
+              : AppColors.pureWhite,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? color : AppColors.divider,
@@ -522,7 +515,13 @@ class _StatusBtn extends StatelessWidget {
                     blurRadius: 0,
                   ),
                 ]
-              : [],
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    offset: const Offset(0, 2),
+                    blurRadius: 4,
+                  ),
+                ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
