@@ -366,6 +366,38 @@ service cloud.firestore {
     }
     
     // ============================================
+    // Prayers (기도 제목) 컬렉션
+    // ============================================
+    match /prayers/{prayerId} {
+      // 읽기:
+      //   - private: 본인만
+      //   - group:   같은 교회 멤버 (다락방 공개)
+      //   - deletedAt이 있는 문서도 본인은 조회 가능
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.visibility == 'group' &&
+          isChurchMember(resource.data.churchId))
+      );
+
+      // 생성: 본인 userId + 본인이 속한 churchId로만 생성 가능 (churchId 위변조 차단)
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.churchId ==
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.churchId
+        && request.resource.data.keys().hasAll([
+             'userId', 'churchId', 'content', 'visibility',
+             'status', 'periodType', 'startDate', 'createdAt', 'updatedAt'
+           ]);
+
+      // 수정 및 Soft Delete: 본인만 가능
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+
+      // 하드 삭제: 관리자만 (앱은 Soft Delete 사용)
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // ============================================
     // 기본 거부 규칙
     // 위에서 명시적으로 허용하지 않은 모든 접근은 거부됨
     // ============================================

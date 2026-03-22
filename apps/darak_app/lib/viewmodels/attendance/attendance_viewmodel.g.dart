@@ -639,7 +639,7 @@ class _RecentGroupAttendancesProviderElement
 }
 
 String _$attendanceCheckViewModelHash() =>
-    r'cfadbd45b6a17d5bf16b3b772b79b37f2ffe7db3';
+    r'f5ad965af91f3b2c1b68321021ea71c8f75af685';
 
 /// See also [AttendanceCheckViewModel].
 @ProviderFor(AttendanceCheckViewModel)
