@@ -228,13 +228,10 @@ class _GroupDetailBottomSheetState
           children: [
             const Text('순원 목록', style: AppTextStyles.bodyLarge),
             if (canManage)
-              SizedBox(
-                width: 136,
-                child: BouncyButton(
-                  text: '+ 순원 추가',
-                  isFullWidth: false,
-                  onPressed: _onAddMemberTap,
-                ),
+              BouncyButton(
+                text: '+ 순원 추가',
+                isFullWidth: false,
+                onPressed: _onAddMemberTap,
               ),
           ],
         ),
@@ -375,14 +372,11 @@ class _MemberCountRow extends StatelessWidget {
         Text('$memberCount명', style: AppTextStyles.bodyMedium),
         const Spacer(),
         if (canManage)
-          SizedBox(
-            width: 136,
-            child: BouncyButton(
-              text: '출석 체크',
-              color: AttendanceColors.present,
-              isFullWidth: false,
-              onPressed: onAttendanceTap,
-            ),
+          BouncyButton(
+            text: '출석 체크',
+            color: AttendanceColors.present,
+            isFullWidth: false,
+            onPressed: onAttendanceTap,
           ),
       ],
     );
