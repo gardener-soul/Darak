@@ -15,6 +15,7 @@ import '../../../widgets/common/core/app_bottom_sheet.dart';
 import '../../../widgets/common/core/bouncy_icon_btn.dart';
 import '../../../widgets/common/core/clay_avatar.dart';
 import '../../../widgets/common/core/soft_dialog.dart';
+import '../member_detail_screen.dart';
 import 'attendance_check_bottom_sheet.dart';
 import 'attendance_history_sheet.dart';
 import 'group_edit_bottom_sheet.dart';
@@ -695,6 +696,9 @@ class _MemberList extends ConsumerWidget {
             isLeader: isLeader,
             canManage: canManage,
             onRemove: () => onRemoveMember(uid, uid),
+            onTap: () => Navigator.of(context).push(
+              MemberDetailScreen.route(uid),
+            ),
           ),
           data: (user) => _MemberItem(
             uid: uid,
@@ -703,6 +707,9 @@ class _MemberList extends ConsumerWidget {
             isLeader: isLeader,
             canManage: canManage,
             onRemove: () => onRemoveMember(uid, user?.name ?? uid),
+            onTap: () => Navigator.of(context).push(
+              MemberDetailScreen.route(uid),
+            ),
           ),
         );
       },
@@ -717,6 +724,7 @@ class _MemberItem extends StatelessWidget {
   final bool isLeader;
   final bool canManage;
   final VoidCallback onRemove;
+  final VoidCallback? onTap;
 
   const _MemberItem({
     required this.uid,
@@ -725,34 +733,38 @@ class _MemberItem extends StatelessWidget {
     required this.isLeader,
     required this.canManage,
     required this.onRemove,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          ClayAvatar(imageUrl: photoUrl, size: AvatarSize.small),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(name, style: AppTextStyles.bodyMedium),
-          ),
-          if (isLeader)
-            const Icon(
-              Icons.star_rounded,
-              color: AppColors.warmTangerine,
-              size: 18,
-            )
-          else if (canManage)
-            // W-6: 이중 탭 이벤트 제거 - BouncyTapWrapper 제거, BouncyIconBtn만 사용
-            BouncyIconBtn(
-              icon: Icons.remove_circle_outline_rounded,
-              color: AppColors.softCoral,
-              size: IconBtnSize.small,
-              onTap: onRemove,
+    return BouncyTapWrapper(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            ClayAvatar(imageUrl: photoUrl, size: AvatarSize.small),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(name, style: AppTextStyles.bodyMedium),
             ),
-        ],
+            if (isLeader)
+              const Icon(
+                Icons.star_rounded,
+                color: AppColors.warmTangerine,
+                size: 18,
+              )
+            else if (canManage)
+              // W-6: 이중 탭 이벤트 제거 - BouncyTapWrapper 제거, BouncyIconBtn만 사용
+              BouncyIconBtn(
+                icon: Icons.remove_circle_outline_rounded,
+                color: AppColors.softCoral,
+                size: IconBtnSize.small,
+                onTap: onRemove,
+              ),
+          ],
+        ),
       ),
     );
   }
