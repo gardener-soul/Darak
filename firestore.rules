@@ -107,19 +107,39 @@ service cloud.firestore {
     match /users/{userId} {
       // 읽기: 본인 또는 리더는 모든 사용자 정보 조회 가능
       allow read: if isAuthenticated() && (isOwner(userId) || isLeader());
-      
+
       // 생성: 본인 계정만 생성 가능 (회원가입 시)
       allow create: if isAuthenticated() && isOwner(userId);
-      
+
       // 수정: 본인은 자신의 정보 수정 가능, 관리자는 모든 정보 수정 가능
       // 단, role 필드는 관리자만 변경 가능
       allow update: if isAuthenticated() && (
         (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) ||
         isAdmin()
       );
-      
+
       // 삭제: 관리자만 가능
       allow delete: if isAuthenticated() && isAdmin();
+
+      // ── 비공개 메모(notes) 서브컬렉션 ────────────────────────────
+      // 경로: users/{userId}/notes/{noteId}
+      // 순원 본인은 열람 불가 — 오직 리더 이상만 접근 가능
+      match /notes/{noteId} {
+        // 읽기: 리더 이상만 가능 (순원 자신에게는 비공개)
+        allow read: if isAuthenticated() && isLeader();
+
+        // 생성: 리더 이상 + 반드시 본인이 작성자여야 함
+        allow create: if isAuthenticated() && isLeader()
+          && request.resource.data.createdBy == request.auth.uid;
+
+        // 수정: 작성자 본인 또는 관리자 (Soft Delete 포함)
+        allow update: if isAuthenticated() && (
+          resource.data.createdBy == request.auth.uid || isAdmin()
+        );
+
+        // 하드 삭제: 관리자만 가능 (앱에서는 Soft Delete 사용)
+        allow delete: if isAuthenticated() && isAdmin();
+      }
     }
     
     // ============================================
