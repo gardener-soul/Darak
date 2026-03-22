@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/providers/firebase_providers.dart';
+import '../../core/providers/user_providers.dart';
 import '../../theme/app_theme.dart';
-import '../search/search_tab.dart';
+import '../../widgets/common/empty_state_view.dart';
+import '../church/church_detail_screen.dart';
+import '../church/church_list_screen.dart';
+import '../prayer/prayer_screen.dart';
 import '../user/user_profile_screen.dart';
-import 'widgets/home_dashboard.dart';
 
-/// 홈 화면 (로그인 후 메인 화면 또는 미리보기 모드)
+/// 홈 화면 — 5탭 하단 네비게이션
+/// 교제 / 기도 / 말씀 / 공동체 / 나
 class HomeScreen extends ConsumerStatefulWidget {
-  /// true이면 미리보기 모드 (로그인 없이 둘러보기)
   final bool isPreview;
 
   const HomeScreen({super.key, this.isPreview = false});
@@ -19,116 +21,169 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 3; // 기본 진입: 공동체
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  /// 검색 탭(인덱스 1)으로 이동합니다.
-  void navigateToSearch() {
-    _onItemTapped(1);
+    setState(() => _selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
-    // 미리보기 모드에서는 currentUser가 null일 수 있음
-    final user = ref.watch(firebaseAuthProvider).currentUser;
-    final userName = user?.displayName ?? '친구';
-
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
-      body: SafeArea(
-        child: IndexedStack(
-          index: _selectedIndex,
-          children: [
-            // 0. 홈 탭
-            HomeDashboard(
-              user: user,
-              userName: userName,
-              isPreview: widget.isPreview,
-              onSearchTabRequested: navigateToSearch,
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          // 0. 교제 (준비 중)
+          const SafeArea(
+            child: EmptyStateView(
+              icon: Icons.handshake_rounded,
+              message: '교제 기능 준비 중이에요',
+              subMessage: '곧 만나요 :)',
             ),
-            // 1. 검색 탭 (기존 게시판 탭 대체)
-            const SearchTab(),
-            // 2. 채팅 (준비 중)
-            _buildPlaceholder('채팅'),
-            // 3. 마이페이지
-            const UserProfileScreen(),
-          ],
-        ),
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          child: BottomNavigationBar(
-            items: const <BottomNavigationBarItem>[
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_rounded),
-                label: '홈',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.search_rounded),
-                label: '검색',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.chat_bubble_rounded),
-                label: '채팅',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_rounded),
-                label: '마이페이지',
-              ),
-            ],
-            currentIndex: _selectedIndex,
-            selectedItemColor: AppColors.softCoral,
-            unselectedItemColor: AppColors.textGrey,
-            backgroundColor: AppColors.pureWhite,
-            type: BottomNavigationBarType.fixed,
-            showUnselectedLabels: true,
-            selectedLabelStyle: AppTextStyles.bodySmall.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-            unselectedLabelStyle: AppTextStyles.bodySmall.copyWith(
-              fontWeight: FontWeight.w500,
-            ),
-            onTap: _onItemTapped,
-            elevation: 0,
           ),
-        ),
+          // 1. 기도
+          const PrayerScreen(),
+          // 2. 말씀 (준비 중)
+          const SafeArea(
+            child: EmptyStateView(
+              icon: Icons.menu_book_rounded,
+              message: '말씀 기능 준비 중이에요',
+              subMessage: '곧 만나요 :)',
+            ),
+          ),
+          // 3. 공동체
+          _CommunityTab(isPreview: widget.isPreview),
+          // 4. 나
+          const UserProfileScreen(),
+        ],
+      ),
+      bottomNavigationBar: _BottomNav(
+        selectedIndex: _selectedIndex,
+        onTap: _onItemTapped,
       ),
     );
   }
+}
 
-  Widget _buildPlaceholder(String title) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.construction_rounded,
-            size: 48,
-            color: AppColors.textGrey,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '$title 기능 준비 중입니다!',
-            style: AppTextStyles.headlineMedium.copyWith(
-              color: AppColors.textGrey,
+// ─────────────────────────────────────────────────────────────────────────────
+// 공동체 탭
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// 공동체 탭 — 교회 등록 여부에 따라 교회 상세 또는 안내 화면 표시.
+/// 중첩 Navigator로 내부 서브 화면(순원 상세 등) 스택을 탭 안에서 관리합니다.
+class _CommunityTab extends ConsumerWidget {
+  final bool isPreview;
+
+  const _CommunityTab({required this.isPreview});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (isPreview) {
+      return const SafeArea(
+        child: EmptyStateView(
+          icon: Icons.lock_rounded,
+          message: '로그인 후 이용할 수 있어요',
+        ),
+      );
+    }
+
+    final userAsync = ref.watch(currentUserProvider);
+
+    return userAsync.when(
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: AppColors.softCoral),
+      ),
+      error: (_, _) => const Center(
+        child: Text('정보를 불러오지 못했어요.'),
+      ),
+      data: (user) {
+        final churchId = user?.churchId;
+        if (churchId == null) {
+          return SafeArea(
+            child: EmptyStateView(
+              icon: Icons.church_rounded,
+              message: '아직 교회에 등록되지 않았어요',
+              subMessage: '교회를 검색하고 등록 신청을 해보세요!',
+              actionLabel: '교회 찾기',
+              onAction: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ChurchListScreen()),
+              ),
             ),
+          );
+        }
+        return Navigator(
+          onGenerateRoute: (_) => MaterialPageRoute(
+            builder: (_) => ChurchDetailScreen(churchId: churchId),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 하단 네비게이션 바
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BottomNav extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onTap;
+
+  const _BottomNav({required this.selectedIndex, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: BottomNavigationBar(
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.handshake_rounded),
+              label: '교제',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.volunteer_activism_rounded),
+              label: '기도',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.menu_book_rounded),
+              label: '말씀',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.church_rounded),
+              label: '공동체',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_rounded),
+              label: '나',
+            ),
+          ],
+          currentIndex: selectedIndex,
+          onTap: onTap,
+          selectedItemColor: AppColors.softCoral,
+          unselectedItemColor: AppColors.textGrey,
+          backgroundColor: AppColors.pureWhite,
+          type: BottomNavigationBarType.fixed,
+          showUnselectedLabels: true,
+          selectedLabelStyle: AppTextStyles.bodySmall.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+          unselectedLabelStyle: AppTextStyles.bodySmall.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+          elevation: 0,
+        ),
       ),
     );
   }

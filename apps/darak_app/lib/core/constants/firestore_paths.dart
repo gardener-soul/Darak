@@ -46,6 +46,9 @@ class FirestorePaths {
   static String churchInvitations(String churchId) =>
       'churches/$churchId/invitations';
 
+  /// 기도 제목 컬렉션
+  static const prayers = 'prayers';
+
   /// 순원 비공개 메모 서브컬렉션 경로
   static String userNotes(String userId) => 'users/$userId/notes';
 }

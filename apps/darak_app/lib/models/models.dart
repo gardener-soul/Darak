@@ -30,3 +30,9 @@ export 'note.dart';
 export 'attendance.dart';
 export 'attendance_type.dart';
 export 'attendance_status.dart';
+
+// 기도 관련
+export 'prayer.dart';
+export 'prayer_visibility.dart';
+export 'prayer_status.dart';
+export 'prayer_period_type.dart';
