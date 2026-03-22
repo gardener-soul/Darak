@@ -193,7 +193,7 @@ class _GroupAttendanceByMonthProviderElement
 }
 
 String _$villageAttendanceSummaryHash() =>
-    r'6958176f71c0f660248cc62ace43e43ccd0c26a5';
+    r'e33b7a06c42cd92d71e93361ee0aa7646d26ee9c';
 
 /// 마을 전체 출석 현황 Provider (VillageAttendanceSheet용)
 ///
@@ -216,17 +216,17 @@ class VillageAttendanceSummaryFamily
   /// Copied from [villageAttendanceSummary].
   VillageAttendanceSummaryProvider call(
     List<String> groupIds,
-    DateTime from,
-    DateTime to,
+    DateTime startDate,
+    DateTime endDate,
   ) {
-    return VillageAttendanceSummaryProvider(groupIds, from, to);
+    return VillageAttendanceSummaryProvider(groupIds, startDate, endDate);
   }
 
   @override
   VillageAttendanceSummaryProvider getProviderOverride(
     covariant VillageAttendanceSummaryProvider provider,
   ) {
-    return call(provider.groupIds, provider.from, provider.to);
+    return call(provider.groupIds, provider.startDate, provider.endDate);
   }
 
   static const Iterable<ProviderOrFamily>? _dependencies = null;
@@ -254,14 +254,14 @@ class VillageAttendanceSummaryProvider
   /// Copied from [villageAttendanceSummary].
   VillageAttendanceSummaryProvider(
     List<String> groupIds,
-    DateTime from,
-    DateTime to,
+    DateTime startDate,
+    DateTime endDate,
   ) : this._internal(
         (ref) => villageAttendanceSummary(
           ref as VillageAttendanceSummaryRef,
           groupIds,
-          from,
-          to,
+          startDate,
+          endDate,
         ),
         from: villageAttendanceSummaryProvider,
         name: r'villageAttendanceSummaryProvider',
@@ -272,8 +272,8 @@ class VillageAttendanceSummaryProvider
         allTransitiveDependencies:
             VillageAttendanceSummaryFamily._allTransitiveDependencies,
         groupIds: groupIds,
-        from: from,
-        to: to,
+        startDate: startDate,
+        endDate: endDate,
       );
 
   VillageAttendanceSummaryProvider._internal(
@@ -284,13 +284,13 @@ class VillageAttendanceSummaryProvider
     required super.debugGetCreateSourceHash,
     required super.from,
     required this.groupIds,
-    required this.from,
-    required this.to,
+    required this.startDate,
+    required this.endDate,
   }) : super.internal();
 
   final List<String> groupIds;
-  final DateTime from;
-  final DateTime to;
+  final DateTime startDate;
+  final DateTime endDate;
 
   @override
   Override overrideWith(
@@ -307,8 +307,8 @@ class VillageAttendanceSummaryProvider
         allTransitiveDependencies: null,
         debugGetCreateSourceHash: null,
         groupIds: groupIds,
-        from: from,
-        to: to,
+        startDate: startDate,
+        endDate: endDate,
       ),
     );
   }
@@ -322,16 +322,16 @@ class VillageAttendanceSummaryProvider
   bool operator ==(Object other) {
     return other is VillageAttendanceSummaryProvider &&
         other.groupIds == groupIds &&
-        other.from == from &&
-        other.to == to;
+        other.startDate == startDate &&
+        other.endDate == endDate;
   }
 
   @override
   int get hashCode {
     var hash = _SystemHash.combine(0, runtimeType.hashCode);
     hash = _SystemHash.combine(hash, groupIds.hashCode);
-    hash = _SystemHash.combine(hash, from.hashCode);
-    hash = _SystemHash.combine(hash, to.hashCode);
+    hash = _SystemHash.combine(hash, startDate.hashCode);
+    hash = _SystemHash.combine(hash, endDate.hashCode);
 
     return _SystemHash.finish(hash);
   }
@@ -344,11 +344,11 @@ mixin VillageAttendanceSummaryRef
   /// The parameter `groupIds` of this provider.
   List<String> get groupIds;
 
-  /// The parameter `from` of this provider.
-  DateTime get from;
+  /// The parameter `startDate` of this provider.
+  DateTime get startDate;
 
-  /// The parameter `to` of this provider.
-  DateTime get to;
+  /// The parameter `endDate` of this provider.
+  DateTime get endDate;
 }
 
 class _VillageAttendanceSummaryProviderElement
@@ -360,9 +360,10 @@ class _VillageAttendanceSummaryProviderElement
   List<String> get groupIds =>
       (origin as VillageAttendanceSummaryProvider).groupIds;
   @override
-  DateTime get from => (origin as VillageAttendanceSummaryProvider).from;
+  DateTime get startDate =>
+      (origin as VillageAttendanceSummaryProvider).startDate;
   @override
-  DateTime get to => (origin as VillageAttendanceSummaryProvider).to;
+  DateTime get endDate => (origin as VillageAttendanceSummaryProvider).endDate;
 }
 
 String _$myAttendanceHistoryHash() =>
