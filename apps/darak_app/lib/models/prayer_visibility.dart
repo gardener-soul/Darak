@@ -5,6 +5,9 @@ enum PrayerVisibility {
 
   /// 같은 다락방 구성원 열람
   group,
+
+  /// 팔로워에게 공개
+  followers,
 }
 
 extension PrayerVisibilityX on PrayerVisibility {
@@ -14,6 +17,8 @@ extension PrayerVisibilityX on PrayerVisibility {
         return '나만 보기';
       case PrayerVisibility.group:
         return '다락방 공개';
+      case PrayerVisibility.followers:
+        return '팔로워 공개';
     }
   }
 
@@ -23,6 +28,8 @@ extension PrayerVisibilityX on PrayerVisibility {
         return 'private';
       case PrayerVisibility.group:
         return 'group';
+      case PrayerVisibility.followers:
+        return 'followers';
     }
   }
 
@@ -30,6 +37,8 @@ extension PrayerVisibilityX on PrayerVisibility {
     switch (value) {
       case 'group':
         return PrayerVisibility.group;
+      case 'followers':
+        return PrayerVisibility.followers;
       default:
         return PrayerVisibility.private;
     }

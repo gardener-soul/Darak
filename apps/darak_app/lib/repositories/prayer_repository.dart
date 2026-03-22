@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' show min;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -160,6 +161,51 @@ class PrayerRepository {
       debugPrint('기도 삭제 실패: $e');
       rethrow;
     }
+  }
+
+  // ─── 팔로잉 기도 목록 스트림 ──────────────────────────────────────────────
+
+  /// 팔로잉 중인 사용자들의 followers 공개 기도 제목 실시간 구독
+  /// Firestore whereIn 30개 제한을 처리하기 위해 30개씩 chunk 분할 후 병합
+  Stream<List<Prayer>> watchFollowersPrayers({
+    required List<String> followeeIds,
+  }) {
+    if (followeeIds.isEmpty) {
+      return Stream.value([]);
+    }
+
+    // 30개씩 chunk 분할 (Firestore whereIn 제한)
+    final chunks = <List<String>>[];
+    for (var i = 0; i < followeeIds.length; i += 30) {
+      chunks.add(followeeIds.sublist(i, min(i + 30, followeeIds.length)));
+    }
+
+    // 각 chunk 스트림을 병합 후 최신순 정렬
+    final streams = chunks.map(
+      (chunk) => _col
+          .where('userId', whereIn: chunk)
+          .where('visibility', isEqualTo: PrayerVisibility.followers.toJson())
+          .where('deletedAt', isNull: true)
+          .orderBy('createdAt', descending: true)
+          .snapshots()
+          .map(_snapToPrayerList),
+    );
+
+    if (streams.length == 1) {
+      return streams.first.transform(_errorHandler('팔로잉 기도 목록'));
+    }
+
+    // 여러 스트림을 combineLatest 방식으로 병합
+    return streams
+        .reduce(
+          (combined, stream) => combined.asyncExpand(
+            (a) => stream.map(
+              (b) => [...a, ...b]
+                ..sort((x, y) => y.createdAt.compareTo(x.createdAt)),
+            ),
+          ),
+        )
+        .transform(_errorHandler('팔로잉 기도 목록'));
   }
 
   // ─── 내부 헬퍼 ───────────────────────────────────────────────────────────

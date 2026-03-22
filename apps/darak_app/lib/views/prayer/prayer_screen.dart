@@ -6,6 +6,7 @@ import '../../models/prayer.dart';
 import '../../theme/app_theme.dart';
 import '../../viewmodels/prayer/community_prayer_viewmodel.dart';
 import '../../viewmodels/prayer/prayer_list_viewmodel.dart';
+import '../../widgets/common/core/soft_chip.dart';
 import '../../widgets/common/skeleton_card.dart';
 import 'widgets/community_prayer_card.dart';
 import 'widgets/prayer_calendar.dart';
@@ -92,7 +93,10 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen>
                         groupId: user.groupId,
                       ),
                       // 공동체 기도 탭
-                      _CommunityPrayerTab(groupId: user.groupId),
+                      _CommunityPrayerTab(
+                        groupId: user.groupId,
+                        userId: user.id,
+                      ),
                     ],
                   ),
                 ),
@@ -259,43 +263,126 @@ class _MyPrayerContent extends ConsumerWidget {
 
 // ─── 공동체 기도 탭 ───────────────────────────────────────────────────────────
 
-class _CommunityPrayerTab extends ConsumerWidget {
+class _CommunityPrayerTab extends ConsumerStatefulWidget {
   final String? groupId;
+  final String userId;
 
-  const _CommunityPrayerTab({this.groupId});
+  const _CommunityPrayerTab({this.groupId, required this.userId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final id = groupId;
+  ConsumerState<_CommunityPrayerTab> createState() =>
+      _CommunityPrayerTabState();
+}
+
+class _CommunityPrayerTabState extends ConsumerState<_CommunityPrayerTab> {
+  CommunityPrayerFilter _filter = CommunityPrayerFilter.all;
+
+  @override
+  Widget build(BuildContext context) {
+    final id = widget.groupId;
     if (id == null) {
       return const PrayerNoGroupEmptyState();
     }
 
-    final prayersAsync = ref.watch(communityPrayerListProvider(id));
-    // 공동체 기도는 작성자 이름이 필요하지만 MVP에서는 userId만 있으므로
-    // 별도 User 조회 없이 userId 일부를 표시 (추후 denormalize 가능)
+    // 필터에 따라 적절한 Provider 선택
+    final AsyncValue<List<Prayer>> prayersAsync;
+    switch (_filter) {
+      case CommunityPrayerFilter.all:
+        prayersAsync = ref.watch(
+          mergedCommunityPrayerListProvider(id, widget.userId),
+        );
+      case CommunityPrayerFilter.group:
+        prayersAsync = ref.watch(communityPrayerListProvider(id));
+      case CommunityPrayerFilter.followers:
+        prayersAsync = ref.watch(followingPrayerListProvider(widget.userId));
+    }
 
-    return prayersAsync.when(
-      loading: () => const _SkeletonList(),
-      error: (_, _) => const _InlineError(),
-      data: (prayers) {
-        if (prayers.isEmpty) {
-          return const PrayerCommunityEmptyState();
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-          itemCount: prayers.length,
-          itemBuilder: (context, i) {
-            final p = prayers[i];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: CommunityPrayerCard(
-                prayer: p,
-                // TODO: 작성자 실명 조회로 교체 필요
-                authorName: p.userId.length >= 6 ? '기도자 ${p.userId.substring(0, 6)}' : '기도자',
-              ),
-            );
-          },
+    return Column(
+      children: [
+        // ─── 필터 칩 ─────────────────────────────────────────────
+        _CommunityFilterChips(
+          selected: _filter,
+          onSelected: (f) => setState(() => _filter = f),
+        ),
+        // ─── 기도 목록 ───────────────────────────────────────────
+        Expanded(
+          child: prayersAsync.when(
+            loading: () => const _SkeletonList(),
+            error: (_, _) => const _InlineError(),
+            data: (prayers) {
+              if (prayers.isEmpty) {
+                return const PrayerCommunityEmptyState();
+              }
+              return _CommunityPrayerList(prayers: prayers);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CommunityFilterChips extends StatelessWidget {
+  final CommunityPrayerFilter selected;
+  final ValueChanged<CommunityPrayerFilter> onSelected;
+
+  const _CommunityFilterChips({
+    required this.selected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      child: Row(
+        children: [
+          SoftChip(
+            label: '전체',
+            color: AppColors.softCoral,
+            isSelected: selected == CommunityPrayerFilter.all,
+            onTap: () => onSelected(CommunityPrayerFilter.all),
+          ),
+          const SizedBox(width: 8),
+          SoftChip(
+            label: '다락방',
+            color: AppColors.sageGreen,
+            isSelected: selected == CommunityPrayerFilter.group,
+            onTap: () => onSelected(CommunityPrayerFilter.group),
+          ),
+          const SizedBox(width: 8),
+          SoftChip(
+            label: '팔로잉',
+            color: AppColors.softLavender,
+            isSelected: selected == CommunityPrayerFilter.followers,
+            onTap: () => onSelected(CommunityPrayerFilter.followers),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CommunityPrayerList extends StatelessWidget {
+  final List<Prayer> prayers;
+
+  const _CommunityPrayerList({required this.prayers});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+      itemCount: prayers.length,
+      itemBuilder: (context, i) {
+        final p = prayers[i];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: CommunityPrayerCard(
+            prayer: p,
+            authorName: p.userId.length >= 6
+                ? '기도자 ${p.userId.substring(0, 6)}'
+                : '기도자',
+          ),
         );
       },
     );

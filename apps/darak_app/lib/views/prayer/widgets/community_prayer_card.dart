@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../models/prayer.dart';
+import '../../../models/prayer_visibility.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/common/bouncy_tap_wrapper.dart';
 import '../../../widgets/common/clay_card.dart';
+import '../../../widgets/common/core/soft_chip.dart';
 
-/// 공동체 기도 탭용 카드 — 작성자 정보 포함
+/// 공동체 기도 탭용 카드 — 작성자 정보 + 출처 라벨 포함
 class CommunityPrayerCard extends StatelessWidget {
   final Prayer prayer;
   final String authorName;
@@ -28,10 +30,27 @@ class CommunityPrayerCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 작성자 정보
-            _AuthorRow(
-              name: authorName,
-              imageUrl: authorImageUrl,
+            // 작성자 정보 + 출처 라벨
+            Row(
+              children: [
+                Expanded(
+                  child: _AuthorRow(
+                    name: authorName,
+                    imageUrl: authorImageUrl,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // 출처 라벨: 다락방 / 팔로잉
+                SoftChip(
+                  label: prayer.visibility == PrayerVisibility.followers
+                      ? '팔로잉'
+                      : '다락방',
+                  color: prayer.visibility == PrayerVisibility.followers
+                      ? AppColors.softLavender
+                      : AppColors.sageGreen,
+                  isSelected: true,
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             // 기도 제목

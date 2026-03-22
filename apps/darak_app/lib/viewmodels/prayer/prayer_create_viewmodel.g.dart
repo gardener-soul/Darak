@@ -7,7 +7,7 @@ part of 'prayer_create_viewmodel.dart';
 // **************************************************************************
 
 String _$prayerCreateViewModelHash() =>
-    r'eb05809ce69552f1cecfdf86776632e44da59659';
+    r'b482cf58506428e8e8c6dfe976805383c53f55e1';
 
 /// See also [PrayerCreateViewModel].
 @ProviderFor(PrayerCreateViewModel)
