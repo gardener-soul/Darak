@@ -46,6 +46,7 @@ class _MemberNoteInputSheetState extends ConsumerState<MemberNoteInputSheet> {
   }
 
   Future<void> _onSave() async {
+    if (_isLoading) return;
     final content = _controller.text.trim();
     if (content.isEmpty) return;
 

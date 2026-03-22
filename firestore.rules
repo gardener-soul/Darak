@@ -37,11 +37,11 @@ service cloud.firestore {
       return role == 'admin' || role == 'pastor';
     }
     
-    // 리더 확인 (darakLeader, villageLeader, evangelist, preacher, pastor, admin 포함)
+    // 리더 확인 (@JsonValue 기준 - darak_leader, village_leader, evangelist, preacher, pastor, admin)
     function isLeader() {
       let role = getUserRole();
-      return role == 'darakLeader' || role == 'villageLeader' || 
-             role == 'evangelist' || role == 'preacher' || 
+      return role == 'darak_leader' || role == 'village_leader' ||
+             role == 'evangelist' || role == 'preacher' ||
              role == 'pastor' || role == 'admin';
     }
     

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/attendance_status.dart';
 import '../../../models/church_member.dart';
 import '../../../models/group.dart';
+import '../../../core/utils/string_utils.dart';
 import '../../../repositories/user_repository.dart';
 import '../../../theme/app_theme.dart';
 import '../../../viewmodels/attendance/attendance_viewmodel.dart';
@@ -117,7 +118,7 @@ class _GroupDetailBottomSheetState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            e.toString().replaceAll(RegExp(r'^Exception:\s*'), ''),
+            StringUtils.cleanExceptionMessage(e),
           ),
         ),
       );
@@ -183,7 +184,7 @@ class _GroupDetailBottomSheetState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString().replaceAll(RegExp(r'^Exception:\s*'), '')),
+          content: Text(StringUtils.cleanExceptionMessage(e)),
         ),
       );
     } finally {
@@ -238,7 +239,7 @@ class _GroupDetailBottomSheetState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            e.toString().replaceAll(RegExp(r'^Exception:\s*'), ''),
+            StringUtils.cleanExceptionMessage(e),
           ),
         ),
       );

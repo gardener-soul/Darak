@@ -106,15 +106,16 @@ class MemberNoteRepository {
 
   // ─── 내부 헬퍼: Timestamp → ISO 8601 변환 ──────────────────────
   Map<String, dynamic> _fromFirestore(Map<String, dynamic> data, String docId) {
+    // null은 그대로 null로 전달 — serverTimestamp() 대기 상태를 모델이 그대로 수용
+    final createdAt = _toIso8601(data['createdAt']);
+    final updatedAt = _toIso8601(data['updatedAt']);
+    final deletedAt = _toIso8601(data['deletedAt']);
     return {
       ...data,
       'id': docId,
-      // null은 그대로 null로 전달 — serverTimestamp() 대기 상태를 모델이 그대로 수용
-      if (_toIso8601(data['createdAt']) != null)
-        'createdAt': _toIso8601(data['createdAt']),
-      if (_toIso8601(data['updatedAt']) != null)
-        'updatedAt': _toIso8601(data['updatedAt']),
-      if (data['deletedAt'] != null) 'deletedAt': _toIso8601(data['deletedAt']),
+      if (createdAt != null) 'createdAt': createdAt,
+      if (updatedAt != null) 'updatedAt': updatedAt,
+      if (deletedAt != null) 'deletedAt': deletedAt,
     };
   }
 

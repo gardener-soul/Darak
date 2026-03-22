@@ -33,7 +33,23 @@ class MemberDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _MemberDetailScreenState extends ConsumerState<MemberDetailScreen> {
-  bool _notesStarted = false;
+  @override
+  void initState() {
+    super.initState();
+    // 첫 프레임 완료 후 권한을 확인하여 메모 구독 시작 (단 한 번)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final currentUser = ref.read(currentUserProvider).valueOrNull;
+      final canSeeNotes = currentUser != null &&
+          currentUser.id != widget.userId &&
+          currentUser.role.isLeaderOrAbove;
+      if (canSeeNotes) {
+        ref
+            .read(memberDetailViewModelProvider(widget.userId).notifier)
+            .startWatchingNotes();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,16 +63,6 @@ class _MemberDetailScreenState extends ConsumerState<MemberDetailScreen> {
     final canSeeNotes = currentUser != null &&
         currentUser.id != widget.userId &&
         currentUser.role.isLeaderOrAbove;
-
-    // 권한 확인 후 메모 구독 시작 (단 한 번)
-    if (canSeeNotes && !_notesStarted) {
-      _notesStarted = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref
-            .read(memberDetailViewModelProvider(widget.userId).notifier)
-            .startWatchingNotes();
-      });
-    }
 
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
