@@ -62,7 +62,7 @@ class AttendanceCheckViewModel extends _$AttendanceCheckViewModel {
   AttendanceCheckState build() {
     return AttendanceCheckState(
       selectedDate: DateTime.now(),
-      selectedType: AttendanceType.onlyDarak,
+      selectedType: AttendanceType.onlySundayService,
       memberStatuses: const {},
     );
   }

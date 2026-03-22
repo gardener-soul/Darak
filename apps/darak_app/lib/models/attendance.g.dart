@@ -38,8 +38,7 @@ Map<String, dynamic> _$$AttendanceImplToJson(_$AttendanceImpl instance) =>
 
 const _$AttendanceTypeEnumMap = {
   AttendanceType.onlySundayService: 'onlySundayService',
-  AttendanceType.onlyDarak: 'onlyDarak',
-  AttendanceType.both: 'both',
+  AttendanceType.prayerMeeting: 'prayer_meeting',
   AttendanceType.specialEvent: 'special_event',
 };
 
