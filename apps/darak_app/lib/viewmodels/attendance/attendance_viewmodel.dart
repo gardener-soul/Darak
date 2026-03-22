@@ -62,7 +62,7 @@ class AttendanceCheckViewModel extends _$AttendanceCheckViewModel {
   AttendanceCheckState build() {
     return AttendanceCheckState(
       selectedDate: DateTime.now(),
-      selectedType: AttendanceType.onlyDarak,
+      selectedType: AttendanceType.onlySundayService,
       memberStatuses: const {},
     );
   }
@@ -210,14 +210,14 @@ Stream<List<Attendance>> groupAttendanceByMonth(
 Future<List<Attendance>> villageAttendanceSummary(
   Ref ref,
   List<String> groupIds,
-  DateTime from,
-  DateTime to,
+  DateTime startDate,
+  DateTime endDate,
 ) async {
   final repo = ref.watch(attendanceRepositoryProvider);
   return repo.getAttendancesByGroups(
     groupIds: groupIds,
-    from: from,
-    to: to,
+    from: startDate,
+    to: endDate,
   );
 }
 

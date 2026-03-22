@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/attendance_status.dart';
 import '../../../models/church_member.dart';
 import '../../../models/group.dart';
+import '../../../core/utils/string_utils.dart';
 import '../../../repositories/user_repository.dart';
 import '../../../theme/app_theme.dart';
 import '../../../viewmodels/attendance/attendance_viewmodel.dart';
@@ -15,6 +16,7 @@ import '../../../widgets/common/core/app_bottom_sheet.dart';
 import '../../../widgets/common/core/bouncy_icon_btn.dart';
 import '../../../widgets/common/core/clay_avatar.dart';
 import '../../../widgets/common/core/soft_dialog.dart';
+import '../member_detail_screen.dart';
 import 'attendance_check_bottom_sheet.dart';
 import 'attendance_history_sheet.dart';
 import 'group_edit_bottom_sheet.dart';
@@ -22,6 +24,7 @@ import 'member_picker_bottom_sheet.dart';
 
 /// 다락방 상세 바텀시트
 /// 다락방 이름 + 순장 정보 + 멤버 목록 + 수정/삭제 + 순원 추가/제거
+/// 순장 변경은 '다락방 수정' 버튼에서 일괄 처리합니다.
 class GroupDetailBottomSheet extends ConsumerStatefulWidget {
   final Group group;
   final String churchId;
@@ -66,7 +69,6 @@ class GroupDetailBottomSheet extends ConsumerStatefulWidget {
 class _GroupDetailBottomSheetState
     extends ConsumerState<GroupDetailBottomSheet> {
   bool _isDeletingGroup = false;
-  bool _isUpdatingLeader = false;
 
   Future<void> _onEditTap() async {
     if (!mounted) return;
@@ -114,11 +116,7 @@ class _GroupDetailBottomSheetState
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceAll(RegExp(r'^Exception:\s*'), ''),
-          ),
-        ),
+        SnackBar(content: Text(StringUtils.cleanExceptionMessage(e))),
       );
     } finally {
       if (mounted) setState(() => _isDeletingGroup = false);
@@ -133,61 +131,6 @@ class _GroupDetailBottomSheetState
       churchId: widget.churchId,
       group: widget.group,
     );
-  }
-
-  /// 순장 선택: MemberPickerBottomSheet를 단일 선택 모드로 재활용하거나
-  /// 현재 순원 목록 중에서 선택하는 다이얼로그를 표시합니다.
-  Future<void> _onLeaderEditTap() async {
-    final memberIds = widget.group.memberIds ?? [];
-    if (memberIds.isEmpty) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('다락방에 순원을 먼저 추가한 후 순장을 지정해주세요.')),
-      );
-      return;
-    }
-
-    // 순원 목록 중 한 명을 선택하는 BottomSheet (shimple list)
-    if (!mounted) return;
-    final selectedUserId = await showModalBottomSheet<String?>(
-      context: context,
-      backgroundColor: AppColors.creamWhite,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      builder: (ctx) => _LeaderPickerSheet(
-        churchId: widget.churchId,
-        group: widget.group,
-        currentLeaderId: widget.group.leaderId,
-      ),
-    );
-
-    // null: 취소, 'remove': 순장 해제, 기타: userId 선택
-    if (selectedUserId == null || !mounted) return;
-
-    setState(() => _isUpdatingLeader = true);
-    try {
-      final newLeaderId = selectedUserId == 'remove' ? null : selectedUserId;
-      await ref
-          .read(churchCommunityViewModelProvider(widget.churchId).notifier)
-          .updateGroupLeader(
-            groupId: widget.group.id,
-            leaderId: newLeaderId,
-          );
-      if (!mounted) return;
-      final msg = newLeaderId == null ? '순장이 해제되었어요.' : '순장이 변경되었어요.';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-      Navigator.of(context).pop();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll(RegExp(r'^Exception:\s*'), '')),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isUpdatingLeader = false);
-    }
   }
 
   Future<void> _onRemoveMemberTap(String userId, String userName) async {
@@ -235,11 +178,7 @@ class _GroupDetailBottomSheetState
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceAll(RegExp(r'^Exception:\s*'), ''),
-          ),
-        ),
+        SnackBar(content: Text(StringUtils.cleanExceptionMessage(e))),
       );
     }
   }
@@ -264,13 +203,8 @@ class _GroupDetailBottomSheetState
         ),
         const SizedBox(height: 20),
 
-        // ── 순장 정보 ─────────────────────────────────────────────
-        _GroupLeaderInfo(
-          leaderId: widget.group.leaderId,
-          canManage: canManage,
-          isUpdatingLeader: _isUpdatingLeader,
-          onEditTap: _onLeaderEditTap,
-        ),
+        // ── 순장 정보 (표시만, 수정은 다락방 수정에서) ───────────
+        _GroupLeaderInfo(leaderId: widget.group.leaderId),
         const SizedBox(height: 16),
 
         // ── 멤버 수 + 출석 체크 버튼 ─────────────────────────────
@@ -294,10 +228,13 @@ class _GroupDetailBottomSheetState
           children: [
             const Text('순원 목록', style: AppTextStyles.bodyLarge),
             if (canManage)
-              BouncyButton(
-                text: '+ 순원 추가',
-                isFullWidth: false,
-                onPressed: _onAddMemberTap,
+              SizedBox(
+                width: 136,
+                child: BouncyButton(
+                  text: '+ 순원 추가',
+                  isFullWidth: false,
+                  onPressed: _onAddMemberTap,
+                ),
               ),
           ],
         ),
@@ -381,31 +318,22 @@ class _HeaderRow extends StatelessWidget {
   }
 }
 
+/// 순장 정보 표시 (수정 기능 없음 - 다락방 수정에서 처리)
 class _GroupLeaderInfo extends ConsumerWidget {
   final String? leaderId;
-  final bool canManage;
-  final bool isUpdatingLeader;
-  final VoidCallback onEditTap;
 
-  const _GroupLeaderInfo({
-    required this.leaderId,
-    required this.canManage,
-    required this.isUpdatingLeader,
-    required this.onEditTap,
-  });
+  const _GroupLeaderInfo({required this.leaderId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // leaderId가 있으면 실제 이름 조회
-    final leaderAsync = leaderId != null
-        ? ref.watch(userByIdProvider(leaderId!))
-        : null;
+    final leaderAsync =
+        leaderId != null ? ref.watch(userByIdProvider(leaderId!)) : null;
     final leaderName = leaderAsync?.valueOrNull?.name;
 
-    final displayText = leaderId == null
-        ? '순장 없음'
-        : (leaderName ?? '조회 중...');
-    final displayColor = leaderId == null ? AppColors.textGrey : AppColors.textDark;
+    final displayText =
+        leaderId == null ? '순장 없음' : (leaderName ?? '조회 중...');
+    final displayColor =
+        leaderId == null ? AppColors.textGrey : AppColors.textDark;
 
     return Row(
       children: [
@@ -420,24 +348,6 @@ class _GroupLeaderInfo extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (canManage)
-          isUpdatingLeader
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.warmTangerine,
-                  ),
-                )
-              : BouncyIconBtn(
-                  icon: leaderId == null
-                      ? Icons.person_add_rounded
-                      : Icons.edit_rounded,
-                  color: AppColors.warmTangerine,
-                  size: IconBtnSize.small,
-                  onTap: onEditTap,
-                ),
       ],
     );
   }
@@ -465,12 +375,14 @@ class _MemberCountRow extends StatelessWidget {
         Text('$memberCount명', style: AppTextStyles.bodyMedium),
         const Spacer(),
         if (canManage)
-          BouncyButton(
-            text: '출석 체크',
-            icon: const Icon(Icons.check_rounded, size: 16, color: Colors.white),
-            color: AttendanceColors.present,
-            isFullWidth: false,
-            onPressed: onAttendanceTap,
+          SizedBox(
+            width: 136,
+            child: BouncyButton(
+              text: '출석 체크',
+              color: AttendanceColors.present,
+              isFullWidth: false,
+              onPressed: onAttendanceTap,
+            ),
           ),
       ],
     );
@@ -524,23 +436,19 @@ class _RecentAttendanceSummaryCard extends ConsumerWidget {
                         style: AppTextStyles.bodySmall,
                       );
                     }
-                    // 가장 최근 날짜의 기록만 집계
-                    final latestDate = attendances
-                        .map((a) => DateTime(a.date.year, a.date.month, a.date.day))
-                        .reduce((a, b) => a.isAfter(b) ? a : b);
-                    final latestRecords = attendances
-                        .where((a) =>
-                            DateTime(a.date.year, a.date.month, a.date.day) ==
-                            latestDate)
-                        .toList();
-
-                    var present = 0, absent = 0, late = 0;
-                    for (final a in latestRecords) {
-                      switch (a.status) {
-                        case AttendanceStatus.present: present++; break;
-                        case AttendanceStatus.absent:  absent++;  break;
-                        case AttendanceStatus.late:    late++;    break;
-                        default: break;
+                    // 가장 최근 날짜의 기록만 단일 순회로 집계
+                    DateTime? latestDate;
+                    var present = 0, absent = 0;
+                    for (final a in attendances) {
+                      final d = DateTime(a.date.year, a.date.month, a.date.day);
+                      if (latestDate == null || d.isAfter(latestDate)) {
+                        latestDate = d;
+                        present = 0;
+                        absent = 0;
+                      }
+                      if (d == latestDate) {
+                        if (a.status == AttendanceStatus.present) present++;
+                        if (a.status == AttendanceStatus.absent) absent++;
                       }
                     }
 
@@ -556,12 +464,6 @@ class _RecentAttendanceSummaryCard extends ConsumerWidget {
                           label: '결석',
                           count: absent,
                           color: AttendanceColors.absent,
-                        ),
-                        const SizedBox(width: 6),
-                        _StatusBadgeSmall(
-                          label: '지각',
-                          count: late,
-                          color: AttendanceColors.late,
                         ),
                       ],
                     );
@@ -695,6 +597,9 @@ class _MemberList extends ConsumerWidget {
             isLeader: isLeader,
             canManage: canManage,
             onRemove: () => onRemoveMember(uid, uid),
+            onTap: () => Navigator.of(context).push(
+              MemberDetailScreen.route(uid),
+            ),
           ),
           data: (user) => _MemberItem(
             uid: uid,
@@ -703,6 +608,9 @@ class _MemberList extends ConsumerWidget {
             isLeader: isLeader,
             canManage: canManage,
             onRemove: () => onRemoveMember(uid, user?.name ?? uid),
+            onTap: () => Navigator.of(context).push(
+              MemberDetailScreen.route(uid),
+            ),
           ),
         );
       },
@@ -717,6 +625,7 @@ class _MemberItem extends StatelessWidget {
   final bool isLeader;
   final bool canManage;
   final VoidCallback onRemove;
+  final VoidCallback? onTap;
 
   const _MemberItem({
     required this.uid,
@@ -725,121 +634,35 @@ class _MemberItem extends StatelessWidget {
     required this.isLeader,
     required this.canManage,
     required this.onRemove,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          ClayAvatar(imageUrl: photoUrl, size: AvatarSize.small),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(name, style: AppTextStyles.bodyMedium),
-          ),
-          if (isLeader)
-            const Icon(
-              Icons.star_rounded,
-              color: AppColors.warmTangerine,
-              size: 18,
-            )
-          else if (canManage)
-            // W-6: 이중 탭 이벤트 제거 - BouncyTapWrapper 제거, BouncyIconBtn만 사용
-            BouncyIconBtn(
-              icon: Icons.remove_circle_outline_rounded,
-              color: AppColors.softCoral,
-              size: IconBtnSize.small,
-              onTap: onRemove,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// 순장 선택 바텀시트
-// ──────────────────────────────────────────────────────────────────────────────
-
-/// 다락방 순원 목록 중에서 순장을 선택하는 바텀시트.
-/// - 반환값: 선택한 userId (String) | 'remove' (순장 해제) | null (취소)
-class _LeaderPickerSheet extends ConsumerWidget {
-  final String churchId;
-  final Group group;
-  final String? currentLeaderId;
-
-  const _LeaderPickerSheet({
-    required this.churchId,
-    required this.group,
-    required this.currentLeaderId,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final memberIds = group.memberIds ?? [];
-
-    return SafeArea(
+    return BouncyTapWrapper(
+      onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
           children: [
-            // 헤더
-            Row(
-              children: [
-                const Icon(Icons.star_rounded, color: AppColors.warmTangerine, size: 20),
-                const SizedBox(width: 8),
-                Text('순장 선택', style: AppTextStyles.headlineMedium),
-              ],
+            ClayAvatar(imageUrl: photoUrl, size: AvatarSize.small),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(name, style: AppTextStyles.bodyMedium),
             ),
-            const SizedBox(height: 4),
-            Text(
-              '새 순장으로 지정할 순원을 선택해주세요.',
-              style: AppTextStyles.bodySmall,
-            ),
-            const SizedBox(height: 16),
-            const Divider(color: AppColors.divider, height: 1),
-            // 순원 목록
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 300),
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: memberIds.length,
-                itemBuilder: (ctx, i) {
-                  final uid = memberIds[i];
-                  final userAsync = ref.watch(userByIdProvider(uid));
-                  final isCurrentLeader = uid == currentLeaderId;
-
-                  final name = userAsync.valueOrNull?.name ?? uid;
-                  final photoUrl = userAsync.valueOrNull?.profileImageUrl;
-
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                    leading: ClayAvatar(imageUrl: photoUrl, size: AvatarSize.small),
-                    title: Text(name, style: AppTextStyles.bodyMedium),
-                    trailing: isCurrentLeader
-                        ? const Icon(Icons.star_rounded, color: AppColors.warmTangerine, size: 18)
-                        : null,
-                    onTap: () => Navigator.pop(context, uid),
-                  );
-                },
+            if (isLeader)
+              const Icon(
+                Icons.star_rounded,
+                color: AppColors.warmTangerine,
+                size: 18,
+              )
+            else if (canManage)
+              BouncyIconBtn(
+                icon: Icons.remove_circle_outline_rounded,
+                color: AppColors.softCoral,
+                size: IconBtnSize.small,
+                onTap: onRemove,
               ),
-            ),
-            // 순장 해제 버튼 (현재 순장이 있을 때만)
-            if (currentLeaderId != null) ...[
-              const Divider(color: AppColors.divider, height: 1),
-              const SizedBox(height: 8),
-              TextButton.icon(
-                onPressed: () => Navigator.pop(context, 'remove'),
-                icon: const Icon(Icons.person_remove_rounded, color: AppColors.softCoral, size: 18),
-                label: Text(
-                  '순장 해제',
-                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.softCoral),
-                ),
-              ),
-            ],
           ],
         ),
       ),

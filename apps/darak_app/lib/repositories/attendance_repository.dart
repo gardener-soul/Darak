@@ -266,10 +266,8 @@ class AttendanceRepository {
     switch (type) {
       case AttendanceType.onlySundayService:
         return 'onlySundayService';
-      case AttendanceType.onlyDarak:
-        return 'onlyDarak';
-      case AttendanceType.both:
-        return 'both';
+      case AttendanceType.prayerMeeting:
+        return 'prayer_meeting';
       case AttendanceType.specialEvent:
         return 'special_event';
     }

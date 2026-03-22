@@ -54,6 +54,12 @@ class StringUtils {
     return phone;
   }
 
+  /// Exception 메시지에서 'Exception: ' 접두사를 제거하여 사용자에게 표시할 메시지를 반환
+  /// try-catch에서 caught된 에러를 ScaffoldMessenger/SnackBar에 전달하기 전에 사용합니다.
+  static String cleanExceptionMessage(Object exception) {
+    return exception.toString().replaceAll(RegExp(r'^Exception:\s*'), '');
+  }
+
   /// 생년월일 유효성 검증
   /// [birthDate]: 검증할 생년월일
   /// 반환: 유효하면 true (미래 날짜나 120년 이상 과거는 false)

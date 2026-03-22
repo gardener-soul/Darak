@@ -182,7 +182,6 @@ class _ChurchDetailBody extends ConsumerWidget {
             ChurchMembersTab(
               churchId: churchId,
               currentMember: currentMember,
-              isAdmin: isAdmin,
             ),
             ChurchCommunityTab(
               churchId: churchId,

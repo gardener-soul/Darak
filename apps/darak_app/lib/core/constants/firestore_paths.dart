@@ -45,4 +45,7 @@ class FirestorePaths {
   /// 교회별 초대 서브컬렉션 경로
   static String churchInvitations(String churchId) =>
       'churches/$churchId/invitations';
+
+  /// 순원 비공개 메모 서브컬렉션 경로
+  static String userNotes(String userId) => 'users/$userId/notes';
 }
