@@ -293,27 +293,49 @@ service cloud.firestore {
         allow delete: if isScheduleWriter(churchId) ||
           (isChurchMember(churchId) && resource.data.createdBy == request.auth.uid);
       }
+
+      // ── 번개 모임(meetups) 서브컬렉션 ─────────────────────────────
+      // 경로: churches/{churchId}/meetups/{meetupId}
+      match /meetups/{meetupId} {
+        // 읽기: 교회 멤버 또는 교회 관리자 가능
+        allow read: if isChurchMember(churchId) || isChurchAdmin(churchId);
+
+        // 생성: 교회 멤버 누구나 가능 (권한 완전 개방)
+        allow create: if isChurchMember(churchId)
+          && request.resource.data.meetLeaderId == request.auth.uid
+          && request.resource.data.churchId == churchId
+          && request.resource.data.keys().hasAll([
+               'id', 'name', 'churchId', 'meetLeaderId', 'createdAt', 'updatedAt'
+             ]);
+
+        // 수정: 주최자/관리자는 전체 수정
+        //       일반 멤버는 participantIds·reportedBy 배열 연산만 허용
+        //       단, reportedBy 변경은 주최자 본인에게 차단 (자기 신고 어뷰징 방지)
+        allow update: if isAuthenticated() && (
+          isChurchAdmin(churchId) ||
+          resource.data.meetLeaderId == request.auth.uid ||
+          (isChurchMember(churchId) &&
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['participantIds', 'reportedBy', 'updatedAt']) &&
+            // reportedBy 변경 시 주최자 본인은 불가
+            (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['reportedBy']) ||
+              resource.data.meetLeaderId != request.auth.uid))
+        );
+
+        // 삭제(Soft Delete 포함): 주최자 또는 교회 관리자만 가능
+        allow delete: if isAuthenticated() && (
+          resource.data.meetLeaderId == request.auth.uid ||
+          isChurchAdmin(churchId)
+        );
+      }
     }
 
     // ============================================
-    // Meetups (번개 모임) 컬렉션
+    // Meetups (루트 번개 모임 컬렉션) - 미사용 / 완전 차단
+    // 실제 번개 모임 데이터는 churches/{churchId}/meetups 서브컬렉션을 사용합니다.
     // ============================================
     match /meetups/{meetupId} {
-      // 읽기: 로그인한 사용자는 모든 번개 조회 가능
-      allow read: if isAuthenticated();
-      
-      // 생성: 로그인한 사용자는 번개 생성 가능
-      allow create: if isAuthenticated();
-      
-      // 수정: 번개 주최자 또는 관리자만 가능
-      allow update: if isAuthenticated() && (
-        resource.data.meetLeaderId == request.auth.uid || isAdmin()
-      );
-      
-      // 삭제: 번개 주최자 또는 관리자만 가능
-      allow delete: if isAuthenticated() && (
-        resource.data.meetLeaderId == request.auth.uid || isAdmin()
-      );
+      allow read, write: if false;
     }
     
     // ============================================
