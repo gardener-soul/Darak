@@ -49,7 +49,8 @@ class _MeetupCreateBottomSheetState
   final _descController = TextEditingController();
 
   DateTime? _scheduledAt;
-  bool _isUnlimited = true;
+  // 기본값: 숫자 지정(4명) 선택 상태. '제한없음'을 명시적으로 선택할 때만 제한없음으로 처리
+  bool _isUnlimited = false;
   int _maxParticipants = 4;
   bool _isLoading = false;
 
@@ -81,15 +82,24 @@ class _MeetupCreateBottomSheetState
     );
     if (time == null || !mounted) return;
 
-    setState(() {
-      _scheduledAt = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time.hour,
-        time.minute,
+    final selectedDateTime = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+
+    // W-4: 과거 시간 선택 방어
+    if (selectedDateTime.isBefore(DateTime.now())) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('현재 시간 이후로 설정해주세요.')),
       );
-    });
+      return;
+    }
+
+    setState(() => _scheduledAt = selectedDateTime);
   }
 
   Future<void> _submit() async {
@@ -107,6 +117,7 @@ class _MeetupCreateBottomSheetState
     setState(() => _isLoading = true);
     try {
       final now = DateTime.now();
+      final desc = _descController.text.trim();
       final meetup = MeetUp(
         id: '',
         name: _nameController.text.trim(),
@@ -114,9 +125,7 @@ class _MeetupCreateBottomSheetState
         meetLeaderId: currentUserId,
         createdAt: now,
         updatedAt: now,
-        description: _descController.text.trim().isEmpty
-            ? null
-            : _descController.text.trim(),
+        description: desc.isEmpty ? null : desc,
         scheduledAt: _scheduledAt,
         maxParticipants: _isUnlimited ? null : _maxParticipants,
         participantIds: [currentUserId],
@@ -127,10 +136,11 @@ class _MeetupCreateBottomSheetState
           .createMeetup(churchId: widget.churchId, meetup: meetup);
 
       if (!mounted) return;
-      Navigator.of(context).pop();
+      // C-3: Navigator.pop 이전에 SnackBar 먼저 등록
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('번개 모임이 생성되었어요! ⚡')),
       );
+      Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -183,9 +193,9 @@ class _MeetupCreateBottomSheetState
             ),
             const SizedBox(height: 20),
 
-            // ── 최대 인원 설정 ────────────────────────────────────
+            // ── 참여 인원 설정 ────────────────────────────────────
             Text(
-              '최대 참여 인원',
+              '참여 인원',
               style: AppTextStyles.bodyMedium.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -316,40 +326,44 @@ class _MaxParticipantsStepper extends StatelessWidget {
         const SizedBox(width: 12),
 
         // 스텝퍼 (제한있을 때만 활성화)
+        // W-5: isUnlimited 시 터치 이벤트도 차단
         AnimatedOpacity(
           opacity: isUnlimited ? 0.4 : 1.0,
           duration: const Duration(milliseconds: 200),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.pureWhite,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppColors.divider, width: 1.5),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _StepperButton(
-                  icon: Icons.remove_rounded,
-                  onTap: (!isUnlimited && value > 2)
-                      ? () => onValueChanged(value - 1)
-                      : null,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    '$value명',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontWeight: FontWeight.w700,
+          child: IgnorePointer(
+            ignoring: isUnlimited,
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.pureWhite,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AppColors.divider, width: 1.5),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _StepperButton(
+                    icon: Icons.remove_rounded,
+                    onTap: (!isUnlimited && value > 2)
+                        ? () => onValueChanged(value - 1)
+                        : null,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      '$value명',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
-                _StepperButton(
-                  icon: Icons.add_rounded,
-                  onTap: (!isUnlimited && value < 50)
-                      ? () => onValueChanged(value + 1)
-                      : null,
-                ),
-              ],
+                  _StepperButton(
+                    icon: Icons.add_rounded,
+                    onTap: (!isUnlimited && value < 50)
+                        ? () => onValueChanged(value + 1)
+                        : null,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
