@@ -14,27 +14,148 @@ import '../../../widgets/common/clay_card.dart';
 import '../../../widgets/common/core/soft_dialog.dart';
 import '../widgets/schedule_card.dart';
 import '../widgets/schedule_create_bottom_sheet.dart';
+import 'church_meetup_tab.dart';
 
-/// 교회 상세 - 일정 탭 (캘린더 기반 UI)
-class ChurchScheduleTab extends ConsumerWidget {
+/// 교회 상세 - 일정/번개 탭 (세그먼트 컨트롤 기반)
+class ChurchScheduleTab extends ConsumerStatefulWidget {
   final String churchId;
 
   const ChurchScheduleTab({super.key, required this.churchId});
+
+  @override
+  ConsumerState<ChurchScheduleTab> createState() => _ChurchScheduleTabState();
+}
+
+class _ChurchScheduleTabState extends ConsumerState<ChurchScheduleTab> {
+  int _selectedIndex = 0; // 0: 일정, 1: 번개
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: _SegmentedControl(
+            selectedIndex: _selectedIndex,
+            onChanged: (i) => setState(() => _selectedIndex = i),
+          ),
+        ),
+        Expanded(
+          child: _selectedIndex == 0
+              ? _ScheduleContent(churchId: widget.churchId)
+              : ChurchMeetupTab(churchId: widget.churchId),
+        ),
+      ],
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+
+class _SegmentedControl extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+
+  const _SegmentedControl({
+    required this.selectedIndex,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.divider.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        children: [
+          _SegmentItem(
+            label: '📅  일정',
+            isSelected: selectedIndex == 0,
+            onTap: () => onChanged(0),
+          ),
+          _SegmentItem(
+            label: '⚡  번개',
+            isSelected: selectedIndex == 1,
+            onTap: () => onChanged(1),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SegmentItem extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _SegmentItem({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.pureWhite : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppColors.clayShadow.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: AppTextStyles.bodySmall.copyWith(
+                fontWeight:
+                    isSelected ? FontWeight.w700 : FontWeight.normal,
+                color:
+                    isSelected ? AppColors.textDark : AppColors.textGrey,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// 기존 일정 탭 콘텐츠
+class _ScheduleContent extends ConsumerWidget {
+  final String churchId;
+
+  const _ScheduleContent({required this.churchId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final schedulesAsync =
         ref.watch(churchSchedulesViewModelProvider(churchId));
 
-    // 월 전환 시 invalidateSelf()로 AsyncLoading이 되더라도 이전 데이터를 유지하여
-    // 캘린더가 스피너로 교체되는 플리커 현상을 방지합니다.
     return schedulesAsync.when(
       skipLoadingOnRefresh: true,
       loading: () => const Center(
         child: CircularProgressIndicator(color: AppColors.softCoral),
       ),
       error: (e, stack) {
-        // 쿼리 오류 시에도 빈 캘린더 표시 (이전 상태의 focusedMonth 보존)
         final prev = schedulesAsync.valueOrNull;
         final now = DateTime.now();
         return _CalendarBody(
