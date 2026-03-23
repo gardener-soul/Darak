@@ -38,7 +38,6 @@ class _PrayerCreateSheetState extends ConsumerState<PrayerCreateSheet> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(prayerCreateViewModelProvider);
-    final vm = ref.read(prayerCreateViewModelProvider.notifier);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -73,7 +72,7 @@ class _PrayerCreateSheetState extends ConsumerState<PrayerCreateSheet> {
             hintText: '기도 제목을 입력하세요',
             maxLines: 3,
             minLines: 2,
-            onChanged: vm.updateContent,
+            onChanged: ref.read(prayerCreateViewModelProvider.notifier).updateContent,
           ),
           // 글자 수 카운터 + 에러
           Padding(
@@ -109,7 +108,7 @@ class _PrayerCreateSheetState extends ConsumerState<PrayerCreateSheet> {
           const SizedBox(height: 10),
           _PeriodTypeChips(
             selected: state.periodType,
-            onSelected: vm.updatePeriodType,
+            onSelected: ref.read(prayerCreateViewModelProvider.notifier).updatePeriodType,
           ),
 
           // 날짜 범위 표시 (indefinite 제외)
@@ -119,7 +118,7 @@ class _PrayerCreateSheetState extends ConsumerState<PrayerCreateSheet> {
               start: state.startDate,
               end: state.endDate,
               periodType: state.periodType,
-              onTap: () => _pickDateRange(context, state, vm),
+              onTap: () => _pickDateRange(context, state),
             ),
           ],
           const SizedBox(height: 20),
@@ -136,7 +135,7 @@ class _PrayerCreateSheetState extends ConsumerState<PrayerCreateSheet> {
           _VisibilityChips(
             selected: state.visibility,
             hasGroup: widget.groupId != null,
-            onSelected: vm.updateVisibility,
+            onSelected: ref.read(prayerCreateViewModelProvider.notifier).updateVisibility,
           ),
           const SizedBox(height: 28),
 
@@ -146,7 +145,7 @@ class _PrayerCreateSheetState extends ConsumerState<PrayerCreateSheet> {
             onPressed: state.isLoading
                 ? null
                 : () async {
-                    final ok = await vm.submit(
+                    final ok = await ref.read(prayerCreateViewModelProvider.notifier).submit(
                       userId: widget.userId,
                       churchId: widget.churchId,
                       groupId: widget.groupId,
@@ -174,12 +173,13 @@ class _PrayerCreateSheetState extends ConsumerState<PrayerCreateSheet> {
   Future<void> _pickDateRange(
     BuildContext context,
     PrayerCreateState state,
-    PrayerCreateViewModel vm,
   ) async {
+    final now = DateTime.now();
     final picked = await showDateRangePicker(
       context: context,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      // 선택된 날짜가 오늘보다 과거이면 그 날짜부터 시작 허용
+      firstDate: state.startDate.isBefore(now) ? state.startDate : now,
+      lastDate: now.add(const Duration(days: 365)),
       initialDateRange: DateTimeRange(
         start: state.startDate,
         end: state.endDate ?? state.startDate.add(const Duration(days: 6)),
@@ -194,7 +194,7 @@ class _PrayerCreateSheetState extends ConsumerState<PrayerCreateSheet> {
       ),
     );
     if (picked != null) {
-      vm.updateDateRange(picked.start, picked.end);
+      ref.read(prayerCreateViewModelProvider.notifier).updateDateRange(picked.start, picked.end);
     }
   }
 }
@@ -231,7 +231,8 @@ class _PeriodTypeChips extends StatelessWidget {
               boxShadow: isSelected ? AppDecorations.floatingShadow : null,
             ),
             child: Text(
-              type.label,
+              // 등록 시점 기준으로 "매일" 대신 "오늘"로 표시
+              type == PrayerPeriodType.daily ? '오늘' : type.label,
               style: AppTextStyles.bodySmall.copyWith(
                 color: isSelected ? AppColors.pureWhite : AppColors.textDark,
                 fontWeight: FontWeight.w600,
@@ -259,12 +260,13 @@ class _DateRangeRow extends StatelessWidget {
     required this.onTap,
   });
 
+  static final _fmt = DateFormat('yyyy.MM.dd');
+
   @override
   Widget build(BuildContext context) {
-    final fmt = DateFormat('yyyy.MM.dd');
     final label = end != null
-        ? '${fmt.format(start)} ~ ${fmt.format(end!)}'
-        : fmt.format(start);
+        ? '${_fmt.format(start)} ~ ${_fmt.format(end!)}'
+        : _fmt.format(start);
 
     return GestureDetector(
       onTap: periodType == PrayerPeriodType.daily ? onTap : null,
