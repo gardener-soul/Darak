@@ -216,6 +216,40 @@ class UserRepository {
     }
   }
 
+  // ─── 교인 이름 검색 ──────────────────────────────────────────
+  /// 같은 교회 소속 교인을 이름으로 접두어 검색합니다. (본인 제외)
+  /// 검색 방식: name >= query && name < query + '\uf8ff' (Firestore 범위 쿼리)
+  Future<List<User>> searchUsersByName({
+    required String churchId,
+    required String query,
+    required String excludeUserId,
+    int limit = 20,
+  }) async {
+    try {
+      final trimmed = query.trim();
+      final snap = await _usersRef
+          .where('churchId', isEqualTo: churchId)
+          .where('name', isGreaterThanOrEqualTo: trimmed)
+          .where('name', isLessThan: '$trimmed\uf8ff')
+          .limit(limit)
+          .get();
+
+      final results = <User>[];
+      for (final doc in snap.docs) {
+        // 본인 제외
+        if (doc.id == excludeUserId) continue;
+        final data = {
+          ...doc.data(),
+          'id': doc.id,
+        };
+        results.add(User.fromJson(_fromFirestore(data)));
+      }
+      return results;
+    } on FirebaseException catch (e) {
+      throw Exception('교인 검색 실패: ${e.message}');
+    }
+  }
+
   // ─── 프로필 전체 정보 수정 (마이페이지 전용) ─────────────────
   /// 마이페이지에서 모든 프로필 정보를 수정할 수 있습니다.
   /// name, phone, birthDate, bio를 업데이트합니다.

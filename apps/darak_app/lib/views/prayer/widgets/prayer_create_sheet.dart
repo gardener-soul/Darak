@@ -327,6 +327,7 @@ class _VisibilityChips extends StatelessWidget {
           spacing: 8,
           children: PrayerVisibility.values.map((v) {
             final isSelected = v == selected;
+            // group: 다락방 없을 때 비활성, followers: 항상 활성
             final isDisabled =
                 v == PrayerVisibility.group && !hasGroup;
 

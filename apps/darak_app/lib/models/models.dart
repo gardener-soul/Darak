@@ -36,3 +36,7 @@ export 'prayer.dart';
 export 'prayer_visibility.dart';
 export 'prayer_status.dart';
 export 'prayer_period_type.dart';
+
+// 팔로우 관련
+export 'follow/follow.dart';
+export 'follow/follow_status.dart';
