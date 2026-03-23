@@ -22,6 +22,7 @@ class PrayerListViewModel extends Notifier<void> {
     String prayerId, {
     required String content,
     PrayerPeriodType? periodType,
+    DateTime? startDate,
     DateTime? endDate,
     PrayerVisibility? visibility,
   }) async {
@@ -30,6 +31,7 @@ class PrayerListViewModel extends Notifier<void> {
             prayerId: prayerId,
             content: content,
             periodType: periodType,
+            startDate: startDate,
             endDate: endDate,
             visibility: visibility,
           );

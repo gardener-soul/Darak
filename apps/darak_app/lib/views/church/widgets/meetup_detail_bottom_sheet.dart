@@ -15,19 +15,23 @@ import '../../../widgets/common/core/clay_avatar.dart';
 import '../../../widgets/common/core/soft_dialog.dart';
 
 /// userId로 유저를 스트림 구독하는 Provider (이 파일에서만 사용)
-final _userByIdProvider = StreamProvider.family<User?, String>((ref, userId) {
+/// autoDispose 적용으로 미사용 시 자동 해제
+final _userByIdProvider =
+    StreamProvider.autoDispose.family<User?, String>((ref, userId) {
   return ref.watch(userRepositoryProvider).watchUser(userId);
 });
 
 /// 번개 모임 상세 바텀시트
-class MeetupDetailBottomSheet extends ConsumerWidget {
+class MeetupDetailBottomSheet extends ConsumerStatefulWidget {
   final MeetUp meetup;
   final String churchId;
+  final ScrollController? scrollController;
 
   const MeetupDetailBottomSheet({
     super.key,
     required this.meetup,
     required this.churchId,
+    this.scrollController,
   });
 
   static Future<void> show(
@@ -52,6 +56,7 @@ class MeetupDetailBottomSheet extends ConsumerWidget {
           child: MeetupDetailBottomSheet(
             meetup: meetup,
             churchId: churchId,
+            scrollController: scrollController, // scrollController 주입
           ),
         ),
       ),
@@ -59,7 +64,20 @@ class MeetupDetailBottomSheet extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MeetupDetailBottomSheet> createState() =>
+      _MeetupDetailBottomSheetState();
+}
+
+class _MeetupDetailBottomSheetState
+    extends ConsumerState<MeetupDetailBottomSheet> {
+  /// 중복 탭 방어용 로딩 상태
+  bool _isLoading = false;
+
+  MeetUp get meetup => widget.meetup;
+  String get churchId => widget.churchId;
+
+  @override
+  Widget build(BuildContext context) {
     final currentUserId = ref.watch(currentUserIdProvider);
     final isParticipating =
         currentUserId != null && meetup.participantIds.contains(currentUserId);
@@ -70,179 +88,206 @@ class MeetupDetailBottomSheet extends ConsumerWidget {
     final hasReported =
         currentUserId != null && meetup.reportedBy.contains(currentUserId);
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 핸들 바
-        Center(
-          child: Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.divider,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // 제목 + 신고 배지
-        Row(
-          children: [
-            Expanded(
-              child: Text(meetup.name, style: AppTextStyles.headlineMedium),
-            ),
-            if (isReported)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.warmTangerine.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.warning_amber_rounded,
-                      size: 12,
-                      color: AppColors.warmTangerine,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '신고됨',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        fontSize: 11,
-                        color: AppColors.warmTangerine,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
+    return SingleChildScrollView(
+      controller: widget.scrollController, // DraggableScrollableSheet scrollController 주입
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 핸들 바
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(2),
               ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        // 일시
-        if (meetup.scheduledAt != null) ...[
-          _InfoRow(
-            icon: Icons.bolt_rounded,
-            iconColor: AppColors.warmTangerine,
-            text: DateFormat('yyyy년 M월 d일 (E) HH:mm', 'ko_KR')
-                .format(meetup.scheduledAt!),
-          ),
-          const SizedBox(height: 8),
-        ],
-
-        // 인원 정보
-        _InfoRow(
-          icon: Icons.people_rounded,
-          iconColor: AppColors.sageGreen,
-          text: meetup.maxParticipants != null
-              ? '${meetup.participantIds.length} / ${meetup.maxParticipants}명 참여 중'
-              : '${meetup.participantIds.length}명 참여 중 (제한없음)',
-        ),
-        const SizedBox(height: 12),
-
-        // 설명
-        if (meetup.description != null && meetup.description!.isNotEmpty) ...[
-          Text(
-            meetup.description!,
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textGrey,
             ),
-          ),
-          const SizedBox(height: 16),
-        ],
-
-        // 참여자 명단
-        if (meetup.participantIds.isNotEmpty) ...[
-          Text(
-            '참여자',
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textGrey,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _ParticipantsList(
-            participantIds: meetup.participantIds,
-            currentUserId: currentUserId,
           ),
           const SizedBox(height: 20),
-        ],
 
-        // 신고 경고 배너
-        if (isReported) ...[
-          ClayCard(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.warning_amber_rounded,
-                  color: AppColors.warmTangerine,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '다른 사용자가 신고한 모임이에요 👀\n참여 시 주의하세요.',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textDark,
-                    ),
+          // 제목 + 신고 배지
+          Row(
+            children: [
+              Expanded(
+                child: Text(meetup.name, style: AppTextStyles.headlineMedium),
+              ),
+              if (isReported)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.warmTangerine.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        size: 12,
+                        color: AppColors.warmTangerine,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '신고됨',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontSize: 11,
+                          color: AppColors.warmTangerine,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
           const SizedBox(height: 16),
-        ],
 
-        // 버튼 영역
-        Row(
-          children: [
-            // 신고 버튼 (주최자 본인 제외, 미신고 상태일 때)
-            if (!isLeader && !hasReported)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: _OutlineIconButton(
-                  icon: Icons.flag_outlined,
-                  onTap: () => _onReport(context, ref),
-                ),
-              ),
-            // 삭제 버튼 (주최자 본인)
-            if (isLeader)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: _OutlineIconButton(
-                  icon: Icons.delete_outline_rounded,
-                  color: AppColors.softCoral,
-                  onTap: () => _onDelete(context, ref),
-                ),
-              ),
-            // 참여/취소/마감 버튼
-            Expanded(
-              child: BouncyButton(
-                text: isParticipating
-                    ? '참여 취소'
-                    : (isFull ? '마감됨' : '참여하기'),
-                onPressed: (isFull && !isParticipating)
-                    ? null
-                    : () => _onJoinOrLeave(context, ref, isParticipating),
+          // 일시
+          if (meetup.scheduledAt != null) ...[
+            _InfoRow(
+              icon: Icons.bolt_rounded,
+              iconColor: AppColors.warmTangerine,
+              text: DateFormat('yyyy년 M월 d일 (E) HH:mm', 'ko_KR')
+                  .format(meetup.scheduledAt!),
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          // 인원 정보
+          _InfoRow(
+            icon: Icons.people_rounded,
+            iconColor: AppColors.sageGreen,
+            text: meetup.maxParticipants != null
+                ? '${meetup.participantIds.length} / ${meetup.maxParticipants}명 참여 중'
+                : '${meetup.participantIds.length}명 참여 중 (제한없음)',
+          ),
+          const SizedBox(height: 12),
+
+          // 모임 설명 (레이블 + 구분선으로 시각적 구분)
+          if (meetup.description != null &&
+              meetup.description!.isNotEmpty) ...[
+            const Divider(height: 1, color: AppColors.divider),
+            const SizedBox(height: 12),
+            Text(
+              '모임 설명',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textGrey,
+                fontWeight: FontWeight.w600,
               ),
             ),
+            const SizedBox(height: 6),
+            Text(
+              meetup.description!,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textDark,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
           ],
-        ),
-        const SizedBox(height: 24),
-      ],
+
+          // 참여자 명단
+          if (meetup.participantIds.isNotEmpty) ...[
+            Text(
+              '참여자',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textGrey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _ParticipantsList(
+              participantIds: meetup.participantIds,
+              currentUserId: currentUserId,
+            ),
+            const SizedBox(height: 20),
+          ],
+
+          // 신고 경고 배너
+          if (isReported) ...[
+            ClayCard(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: AppColors.warmTangerine,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '다른 사용자가 신고한 모임이에요 👀\n참여 시 주의하세요.',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // 버튼 영역
+          Row(
+            children: [
+              // 신고 버튼 (주최자 본인 제외, 미신고 상태일 때)
+              if (!isLeader && !hasReported)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _OutlineIconButton(
+                    icon: Icons.flag_outlined,
+                    // 로딩 중 비활성화
+                    onTap: _isLoading ? null : _onReport,
+                  ),
+                ),
+              // 삭제 버튼 (주최자 본인)
+              if (isLeader)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _OutlineIconButton(
+                    icon: Icons.delete_outline_rounded,
+                    color: AppColors.softCoral,
+                    // 로딩 중 비활성화
+                    onTap: _isLoading ? null : _onDelete,
+                  ),
+                ),
+              // 참여/취소/마감 버튼
+              Expanded(
+                child: BouncyButton(
+                  text: _isLoading
+                      ? '처리 중...'
+                      : (isParticipating
+                          ? '참여 취소'
+                          : (isFull ? '마감됨' : '참여하기')),
+                  onPressed: (_isLoading || (isFull && !isParticipating))
+                      ? null
+                      : () => _onJoinOrLeave(isParticipating),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 
-  Future<void> _onJoinOrLeave(
-    BuildContext context,
-    WidgetRef ref,
-    bool isParticipating,
-  ) async {
+  /// isLoading 상태 관리 보일러플레이트 헬퍼
+  Future<void> _runWithLoading(Future<void> Function() action) async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _onJoinOrLeave(bool isParticipating) async {
     // 신고된 모임 참여 시 경고 모달
     if (!isParticipating && meetup.reportedBy.isNotEmpty) {
       final confirmed = await SoftDialog.show<bool>(
@@ -264,45 +309,36 @@ class MeetupDetailBottomSheet extends ConsumerWidget {
     }
 
     try {
-      final notifier =
-          ref.read(meetupViewModelProvider(churchId).notifier);
-      if (isParticipating) {
-        await notifier.leaveMeetup(
-          churchId: churchId,
-          meetupId: meetup.id,
-        );
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('참여를 취소했어요.')),
-          );
-          Navigator.pop(context);
+      await _runWithLoading(() async {
+        final notifier = ref.read(meetupViewModelProvider(churchId).notifier);
+        if (isParticipating) {
+          await notifier.leaveMeetup(churchId: churchId, meetupId: meetup.id);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('참여를 취소했어요.')),
+            );
+            Navigator.pop(context);
+          }
+        } else {
+          await notifier.joinMeetup(churchId: churchId, meetupId: meetup.id);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('번개 모임에 참여했어요! ⚡')),
+            );
+            Navigator.pop(context);
+          }
         }
-      } else {
-        await notifier.joinMeetup(
-          churchId: churchId,
-          meetupId: meetup.id,
-        );
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('번개 모임에 참여했어요! ⚡')),
-          );
-          Navigator.pop(context);
-        }
-      }
+      });
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              StringUtils.cleanExceptionMessage(e),
-            ),
-          ),
+          SnackBar(content: Text(StringUtils.cleanExceptionMessage(e))),
         );
       }
     }
   }
 
-  Future<void> _onReport(BuildContext context, WidgetRef ref) async {
+  Future<void> _onReport() async {
     final confirmed = await SoftDialog.show<bool>(
       context: context,
       title: '모임 신고',
@@ -319,33 +355,31 @@ class MeetupDetailBottomSheet extends ConsumerWidget {
         ),
       ],
     );
-    if (confirmed != true || !context.mounted) return;
+    if (confirmed != true || !mounted) return;
 
     try {
-      await ref.read(meetupViewModelProvider(churchId).notifier).reportMeetup(
-            churchId: churchId,
-            meetupId: meetup.id,
+      await _runWithLoading(() async {
+        await ref.read(meetupViewModelProvider(churchId).notifier).reportMeetup(
+              churchId: churchId,
+              meetupId: meetup.id,
+            );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('신고가 접수되었어요.')),
           );
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('신고가 접수되었어요.')),
-        );
-        Navigator.pop(context);
-      }
+          Navigator.pop(context);
+        }
+      });
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              StringUtils.cleanExceptionMessage(e),
-            ),
-          ),
+          SnackBar(content: Text(StringUtils.cleanExceptionMessage(e))),
         );
       }
     }
   }
 
-  Future<void> _onDelete(BuildContext context, WidgetRef ref) async {
+  Future<void> _onDelete() async {
     final confirmed = await SoftDialog.show<bool>(
       context: context,
       title: '번개 모임 삭제',
@@ -362,26 +396,24 @@ class MeetupDetailBottomSheet extends ConsumerWidget {
         ),
       ],
     );
-    if (confirmed != true || !context.mounted) return;
+    if (confirmed != true || !mounted) return;
 
     try {
-      await ref.read(meetupViewModelProvider(churchId).notifier).deleteMeetup(
-            churchId: churchId,
-            meetupId: meetup.id,
-          );
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('번개 모임이 삭제되었어요.')));
-        Navigator.pop(context);
-      }
+      await _runWithLoading(() async {
+        await ref.read(meetupViewModelProvider(churchId).notifier).deleteMeetup(
+              churchId: churchId,
+              meetupId: meetup.id,
+            );
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('번개 모임이 삭제되었어요.')));
+          Navigator.pop(context);
+        }
+      });
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              StringUtils.cleanExceptionMessage(e),
-            ),
-          ),
+          SnackBar(content: Text(StringUtils.cleanExceptionMessage(e))),
         );
       }
     }
@@ -511,7 +543,15 @@ class _AvatarSkeleton extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Container(width: 32, height: 8, color: AppColors.disabled),
+        // S-5: Skeleton borderRadius 추가
+        Container(
+          width: 32,
+          height: 8,
+          decoration: BoxDecoration(
+            color: AppColors.disabled,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
       ],
     );
   }
@@ -564,19 +604,19 @@ class _OutlineIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // BouncyButton vertical padding 18 + 텍스트 높이와 동일하게 맞춤
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 48,
-        height: 48,
+        width: 56,
+        height: 56,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.divider, width: 1.5),
           color: AppColors.pureWhite,
         ),
-        child: Icon(icon, color: color, size: 20),
+        child: Icon(icon, color: color, size: 22),
       ),
     );
   }
 }
-

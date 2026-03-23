@@ -14,6 +14,24 @@ enum PrayerPeriodType {
 }
 
 extension PrayerPeriodTypeX on PrayerPeriodType {
+  /// 기간 유형에 따른 기본 종료일 계산
+  /// daily: 당일, weekly: 이번 주 일요일, monthly: 이번 달 말일, indefinite: null
+  DateTime? defaultEndDate(DateTime from) {
+    switch (this) {
+      case PrayerPeriodType.daily:
+        return from;
+      case PrayerPeriodType.weekly:
+        final daysUntilSunday = DateTime.sunday - from.weekday;
+        return from.add(
+          Duration(days: daysUntilSunday <= 0 ? 7 + daysUntilSunday : daysUntilSunday),
+        );
+      case PrayerPeriodType.monthly:
+        return DateTime(from.year, from.month + 1, 0);
+      case PrayerPeriodType.indefinite:
+        return null;
+    }
+  }
+
   String get label {
     switch (this) {
       case PrayerPeriodType.daily:

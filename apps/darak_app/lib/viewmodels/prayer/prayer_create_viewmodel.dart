@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../models/prayer_period_type.dart';
 import '../../models/prayer_visibility.dart';
 import '../../repositories/prayer_repository.dart';
+import 'prayer_list_viewmodel.dart';
 
 part 'prayer_create_viewmodel.g.dart';
 
@@ -59,10 +60,11 @@ class PrayerCreateState {
 class PrayerCreateViewModel extends _$PrayerCreateViewModel {
   @override
   PrayerCreateState build() {
-    final now = DateTime.now();
+    // 캘린더에서 선택된 날짜를 시작일 기준으로 사용 (watch로 날짜 변경 반응)
+    final selectedDate = ref.watch(selectedPrayerDateProvider);
     return PrayerCreateState(
-      startDate: now,
-      endDate: _defaultEndDate(PrayerPeriodType.weekly, now),
+      startDate: selectedDate,
+      endDate: PrayerPeriodType.weekly.defaultEndDate(selectedDate),
     );
   }
 
@@ -71,11 +73,12 @@ class PrayerCreateViewModel extends _$PrayerCreateViewModel {
   }
 
   void updatePeriodType(PrayerPeriodType type) {
-    final now = DateTime.now();
+    // 기간 유형 변경 시 현재 startDate 기준으로 재계산
+    final base = state.startDate;
     state = state.copyWith(
       periodType: type,
-      startDate: now,
-      endDate: _defaultEndDate(type, now),
+      startDate: base,
+      endDate: type.defaultEndDate(base),
       clearEndDate: type == PrayerPeriodType.indefinite,
     );
   }
@@ -121,22 +124,4 @@ class PrayerCreateViewModel extends _$PrayerCreateViewModel {
     }
   }
 
-  // ─── 내부 헬퍼 ──────────────────────────────────────────────────────────
-
-  DateTime? _defaultEndDate(PrayerPeriodType type, DateTime from) {
-    switch (type) {
-      case PrayerPeriodType.daily:
-        return from.add(const Duration(days: 6));
-      case PrayerPeriodType.weekly:
-        // 이번 주 일요일까지
-        // 일요일 당일(weekday=7)이면 daysUntilSunday=0이 되어 오늘로 고정되는 버그 방지
-        final daysUntilSunday = DateTime.sunday - from.weekday;
-        return from.add(Duration(days: daysUntilSunday <= 0 ? 7 + daysUntilSunday : daysUntilSunday));
-      case PrayerPeriodType.monthly:
-        // 이번 달 말일까지
-        return DateTime(from.year, from.month + 1, 0);
-      case PrayerPeriodType.indefinite:
-        return null;
-    }
-  }
 }

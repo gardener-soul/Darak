@@ -81,7 +81,10 @@ class _PrayerCalendarState extends ConsumerState<PrayerCalendar> {
             shape: BoxShape.circle,
           ),
           markersMaxCount: 2,
+          markersAlignment: Alignment.bottomCenter,
+          markerSize: 5,
         ),
+        rowHeight: 52,
         calendarBuilders: CalendarBuilders(
           markerBuilder: (context, day, events) {
             if (events.isEmpty) return const SizedBox.shrink();
@@ -101,6 +104,7 @@ class _PrayerCalendarState extends ConsumerState<PrayerCalendar> {
           },
         ),
         headerStyle: HeaderStyle(
+          titleTextFormatter: (date, _) => '${date.year}년 ${date.month}월',
           formatButtonTextStyle: AppTextStyles.bodySmall.copyWith(
             color: AppColors.softCoral,
           ),

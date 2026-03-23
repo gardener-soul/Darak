@@ -23,9 +23,9 @@ void _showPrayerCreateSheet(
   String? groupId,
 }) {
   if (churchId.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('교회 등록 후 이용 가능합니다.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('교회 등록 후 이용 가능합니다.')));
     return;
   }
   showModalBottomSheet(
@@ -35,11 +35,8 @@ void _showPrayerCreateSheet(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
-    builder: (_) => PrayerCreateSheet(
-      userId: userId,
-      churchId: churchId,
-      groupId: groupId,
-    ),
+    builder: (_) =>
+        PrayerCreateSheet(userId: userId, churchId: churchId, groupId: groupId),
   );
 }
 
@@ -228,10 +225,7 @@ class _MyPrayerContent extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 32),
             child: Center(
-              child: Text(
-                '이 날 기도 제목이 없어요',
-                style: AppTextStyles.bodySmall,
-              ),
+              child: Text('이 날 기도 제목이 없어요', style: AppTextStyles.bodySmall),
             ),
           )
         else
@@ -467,12 +461,13 @@ class _InlineError extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.wifi_off_rounded, color: AppColors.textGrey, size: 48),
-          const SizedBox(height: 12),
-          Text(
-            '네트워크 연결을 확인해주세요',
-            style: AppTextStyles.bodySmall,
+          const Icon(
+            Icons.wifi_off_rounded,
+            color: AppColors.textGrey,
+            size: 48,
           ),
+          const SizedBox(height: 12),
+          Text('네트워크 연결을 확인해주세요', style: AppTextStyles.bodySmall),
         ],
       ),
     );

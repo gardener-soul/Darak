@@ -9,6 +9,7 @@ import '../../../models/prayer_visibility.dart';
 import '../../../theme/app_theme.dart';
 import '../../../viewmodels/prayer/prayer_list_viewmodel.dart';
 import '../../../widgets/common/bouncy_button.dart';
+import '../../../widgets/common/core/soft_dialog.dart';
 import '../../../widgets/common/soft_text_field.dart';
 
 /// 기도 제목 상세/수정 바텀시트
@@ -27,17 +28,24 @@ class PrayerDetailSheet extends ConsumerStatefulWidget {
 }
 
 class _PrayerDetailSheetState extends ConsumerState<PrayerDetailSheet> {
+  static final _fmt = DateFormat('yyyy.MM.dd');
+
   late TextEditingController _contentController;
   late PrayerVisibility _visibility;
+  late PrayerPeriodType _periodType;
+  late DateTime _startDate;
+  late DateTime? _endDate;
   bool _isEditMode = false;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _contentController =
-        TextEditingController(text: widget.prayer.content);
+    _contentController = TextEditingController(text: widget.prayer.content);
     _visibility = widget.prayer.visibility;
+    _periodType = widget.prayer.periodType;
+    _startDate = widget.prayer.startDate;
+    _endDate = widget.prayer.endDate;
   }
 
   @override
@@ -50,7 +58,6 @@ class _PrayerDetailSheetState extends ConsumerState<PrayerDetailSheet> {
   Widget build(BuildContext context) {
     final prayer = widget.prayer;
     final isAnswered = prayer.status == PrayerStatus.answered;
-    final fmt = DateFormat('yyyy.MM.dd');
 
     return Padding(
       padding: EdgeInsets.only(
@@ -122,19 +129,36 @@ class _PrayerDetailSheetState extends ConsumerState<PrayerDetailSheet> {
             ),
           const SizedBox(height: 16),
 
-          // 기간 정보
-          _InfoRow(
-            icon: Icons.calendar_today_rounded,
-            label: prayer.endDate != null
-                ? '${fmt.format(prayer.startDate)} ~ ${fmt.format(prayer.endDate!)}'
-                : '${fmt.format(prayer.startDate)} ~ (기간 없음)',
-          ),
-          const SizedBox(height: 8),
-          // 기간 유형
-          _InfoRow(
-            icon: Icons.repeat_rounded,
-            label: prayer.periodType.label,
-          ),
+          // 기간 정보 (수정 모드에서 편집 가능)
+          if (_isEditMode) ...[
+            _EditPeriodTypeChips(
+              selected: _periodType,
+              onSelected: (type) => setState(() {
+                _periodType = type;
+                _endDate = type.defaultEndDate(_startDate);
+              }),
+            ),
+            const SizedBox(height: 10),
+            if (_periodType != PrayerPeriodType.indefinite)
+              _EditDateRangeRow(
+                start: _startDate,
+                end: _endDate,
+                periodType: _periodType,
+                onTap: () => _pickDateRange(context),
+              ),
+          ] else ...[
+            _InfoRow(
+              icon: Icons.calendar_today_rounded,
+              label: _endDate != null
+                  ? '${_fmt.format(_startDate)} ~ ${_fmt.format(_endDate!)}'
+                  : '${_fmt.format(_startDate)} ~ (기간 없음)',
+            ),
+            const SizedBox(height: 8),
+            _InfoRow(
+              icon: Icons.repeat_rounded,
+              label: _periodType.label,
+            ),
+          ],
           const SizedBox(height: 8),
 
           // 공개 범위 (수정 모드에서 변경 가능)
@@ -157,7 +181,7 @@ class _PrayerDetailSheetState extends ConsumerState<PrayerDetailSheet> {
             const SizedBox(height: 8),
             _InfoRow(
               icon: Icons.check_circle_rounded,
-              label: '응답됨 · ${fmt.format(prayer.answeredAt!)}',
+              label: '응답됨 · ${_fmt.format(prayer.answeredAt!)}',
               color: AppColors.sageGreen,
             ),
           ],
@@ -177,6 +201,34 @@ class _PrayerDetailSheetState extends ConsumerState<PrayerDetailSheet> {
     );
   }
 
+  // ─── 헬퍼 ──────────────────────────────────────────────────────────────────
+
+  Future<void> _pickDateRange(BuildContext context) async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDateRange: DateTimeRange(
+        start: _startDate,
+        end: _endDate ?? _startDate.add(const Duration(days: 6)),
+      ),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: Theme.of(context).colorScheme.copyWith(
+                primary: AppColors.softCoral,
+              ),
+        ),
+        child: child ?? const SizedBox.shrink(),
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        _startDate = picked.start;
+        _endDate = picked.end;
+      });
+    }
+  }
+
   // ─── 액션 ──────────────────────────────────────────────────────────────────
 
   Future<void> _saveEdit() async {
@@ -188,12 +240,12 @@ class _PrayerDetailSheetState extends ConsumerState<PrayerDetailSheet> {
             widget.prayer.id,
             content: newContent,
             visibility: _visibility,
+            periodType: _periodType,
+            startDate: _startDate,
+            endDate: _endDate,
           );
-      setState(() {
-        _isEditMode = false;
-        _isLoading = false;
-      });
       if (mounted) {
+        setState(() => _isEditMode = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('수정되었어요'),
@@ -211,7 +263,9 @@ class _PrayerDetailSheetState extends ConsumerState<PrayerDetailSheet> {
           const SnackBar(content: Text('저장에 실패했어요. 다시 시도해주세요.')),
         );
       }
-      setState(() => _isLoading = false);
+    } finally {
+      // finally로 _isLoading 해제 보장 (mounted 무관하게 상태 복원)
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -252,33 +306,28 @@ class _PrayerDetailSheetState extends ConsumerState<PrayerDetailSheet> {
             const SnackBar(content: Text('처리에 실패했어요. 다시 시도해주세요.')),
           );
         }
-        setState(() => _isLoading = false);
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
 
   Future<void> _confirmDelete() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await SoftDialog.show<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20)),
-        title: const Text('기도 제목 삭제'),
-        content: const Text('이 기도 제목을 삭제할까요?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              '삭제',
-              style: TextStyle(color: AppColors.softCoral),
-            ),
-          ),
-        ],
-      ),
+      title: '기도 제목 삭제',
+      content: '이 기도 제목을 삭제할까요?',
+      actions: [
+        SoftDialogAction(
+          label: '취소',
+          onPressed: () => Navigator.pop(context, false),
+        ),
+        SoftDialogAction(
+          label: '삭제',
+          isDestructive: true,
+          onPressed: () => Navigator.pop(context, true),
+        ),
+      ],
     );
     if (confirmed == true) {
       setState(() => _isLoading = true);
@@ -294,7 +343,8 @@ class _PrayerDetailSheetState extends ConsumerState<PrayerDetailSheet> {
             const SnackBar(content: Text('삭제에 실패했어요. 다시 시도해주세요.')),
           );
         }
-        setState(() => _isLoading = false);
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
@@ -413,6 +463,101 @@ class _VisibilitySelector extends StatelessWidget {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+// ─── 수정 모드 기간 유형 칩 ──────────────────────────────────────────────────
+
+class _EditPeriodTypeChips extends StatelessWidget {
+  final PrayerPeriodType selected;
+  final ValueChanged<PrayerPeriodType> onSelected;
+
+  const _EditPeriodTypeChips({required this.selected, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      children: PrayerPeriodType.values.map((type) {
+        final isSelected = type == selected;
+        return GestureDetector(
+          onTap: () => onSelected(type),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.softCoral : AppColors.pureWhite,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isSelected ? AppColors.softCoral : AppColors.divider,
+              ),
+            ),
+            child: Text(
+              type.label,
+              style: AppTextStyles.bodySmall.copyWith(
+                fontSize: 13,
+                color: isSelected ? AppColors.pureWhite : AppColors.textDark,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+// ─── 수정 모드 날짜 범위 행 ───────────────────────────────────────────────────
+
+class _EditDateRangeRow extends StatelessWidget {
+  final DateTime start;
+  final DateTime? end;
+  final PrayerPeriodType periodType;
+  final VoidCallback onTap;
+
+  const _EditDateRangeRow({
+    required this.start,
+    required this.end,
+    required this.periodType,
+    required this.onTap,
+  });
+
+  static final _fmt = DateFormat('yyyy.MM.dd');
+
+  @override
+  Widget build(BuildContext context) {
+    final label = end != null
+        ? '${_fmt.format(start)} ~ ${_fmt.format(end!)}'
+        : _fmt.format(start);
+
+    return GestureDetector(
+      onTap: periodType == PrayerPeriodType.daily ? onTap : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.pureWhite,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.divider),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.date_range_rounded, size: 16, color: AppColors.softCoral),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textDark,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (periodType == PrayerPeriodType.daily) ...[
+              const Spacer(),
+              const Icon(Icons.edit_rounded, size: 14, color: AppColors.textGrey),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
