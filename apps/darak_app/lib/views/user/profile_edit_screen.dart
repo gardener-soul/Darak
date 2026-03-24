@@ -91,8 +91,8 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     });
 
     // 생년월일 검증 (선택 사항이지만, 입력된 경우 유효성 체크)
-    if (_selectedBirthDate != null &&
-        !StringUtils.isValidBirthDate(_selectedBirthDate)) {
+    final birthDate = _selectedBirthDate;
+    if (birthDate != null && !StringUtils.isValidBirthDate(birthDate)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('올바른 생년월일을 선택해주세요.'),
@@ -182,10 +182,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // 섹션 제목
-                      Text(
-                        '내 정보 수정',
-                        style: AppTextStyles.headlineMedium,
-                      ),
+                      Text('내 정보 수정', style: AppTextStyles.headlineMedium),
                       const SizedBox(height: 8),
                       Text(
                         '변경된 정보는 즉시 반영됩니다',
@@ -291,17 +288,12 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   Widget _buildFieldLabel(String label, {required bool isRequired}) {
     return Row(
       children: [
-        Text(
-          label,
-          style: AppTextStyles.bodyLarge,
-        ),
+        Text(label, style: AppTextStyles.bodyLarge),
         if (isRequired) ...[
           const SizedBox(width: 4),
           Text(
             '*',
-            style: AppTextStyles.bodyLarge.copyWith(
-              color: AppColors.softCoral,
-            ),
+            style: AppTextStyles.bodyLarge.copyWith(color: AppColors.softCoral),
           ),
         ],
       ],
@@ -320,9 +312,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         Expanded(
           child: Text(
             error,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.softCoral,
-            ),
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.softCoral),
           ),
         ),
       ],

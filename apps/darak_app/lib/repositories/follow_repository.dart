@@ -172,14 +172,48 @@ class FollowRepository {
     try {
       final doc = await _col.doc(_docId(followerId, followeeId)).get();
       if (!doc.exists) return null;
+      final rawData = doc.data();
+      if (rawData == null) return null;
       final data = _fromFirestore(
-        Map<String, dynamic>.from(doc.data()!)..['id'] = doc.id,
+        Map<String, dynamic>.from(rawData)..['id'] = doc.id,
       );
       final follow = Follow.fromJson(data);
       return follow.status;
     } catch (e) {
       debugPrint('팔로우 상태 조회 실패: $e');
       return null;
+    }
+  }
+
+  // ─── 팔로잉/팔로워 수 집계 ──────────────────────────────────────────────────
+
+  /// 팔로잉 수 (accepted 상태만 카운트)
+  Future<int> getFollowingCount({required String userId}) async {
+    try {
+      final agg = await _col
+          .where('followerId', isEqualTo: userId)
+          .where('status', isEqualTo: FollowStatus.accepted.toJson())
+          .count()
+          .get();
+      return agg.count ?? 0;
+    } catch (e) {
+      debugPrint('팔로잉 수 조회 실패: $e');
+      return 0;
+    }
+  }
+
+  /// 팔로워 수 (accepted 상태만 카운트)
+  Future<int> getFollowerCount({required String userId}) async {
+    try {
+      final agg = await _col
+          .where('followeeId', isEqualTo: userId)
+          .where('status', isEqualTo: FollowStatus.accepted.toJson())
+          .count()
+          .get();
+      return agg.count ?? 0;
+    } catch (e) {
+      debugPrint('팔로워 수 조회 실패: $e');
+      return 0;
     }
   }
 

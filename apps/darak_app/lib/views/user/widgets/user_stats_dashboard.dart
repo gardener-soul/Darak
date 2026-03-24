@@ -9,6 +9,9 @@ import '../../../theme/app_theme.dart';
 /// - padding: EdgeInsets.all(24)
 /// - 숫자: 아주 크고 볼드(FontWeight.w900)
 /// - 라벨: Soft Gray로 작게 배치하여 시각적 위계 확립
+@Deprecated(
+  'SpiritualDashboardCard로 대체됨. 이 위젯은 다음 릴리즈에서 삭제될 예정입니다.',
+)
 class UserStatsDashboard extends StatelessWidget {
   final String? groupName;
   final int? attendanceTotal;
