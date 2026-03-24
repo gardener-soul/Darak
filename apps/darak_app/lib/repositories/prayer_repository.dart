@@ -208,7 +208,77 @@ class PrayerRepository {
         .transform(_errorHandler('팔로잉 기도 목록'));
   }
 
+  // ─── 응답된 기도 건수 조회 (마이페이지 대시보드용) ───────────────────────────
+
+  /// 응답된 기도 건수를 반환합니다. AggregateQuery 사용으로 비용 절감.
+  Future<int> getAnsweredPrayerCount({required String userId}) async {
+    try {
+      final agg = await _answeredPrayersQuery(userId).count().get();
+      return agg.count ?? 0;
+    } catch (e) {
+      debugPrint('기도 응답 건수 조회 실패 (count fallback 시도): $e');
+      try {
+        final snap = await _answeredPrayersQuery(userId).limit(999).get();
+        return snap.docs.length;
+      } catch (_) {
+        return 0;
+      }
+    }
+  }
+
+  // ─── 응답된 기도 미리보기 조회 (마이페이지 인라인 3건) ──────────────────
+
+  /// 최근 응답된 기도제목 3건을 반환합니다.
+  Future<List<Prayer>> getAnsweredPrayerPreview({required String userId}) async {
+    try {
+      final snap = await _answeredPrayersQuery(userId)
+          .orderBy('answeredAt', descending: true)
+          .limit(3)
+          .get();
+      return _snapToPrayerList(snap);
+    } catch (e) {
+      debugPrint('기도 응답 미리보기 조회 실패: $e');
+      return [];
+    }
+  }
+
+  // ─── 응답된 기도 전체 목록 페이지네이션 조회 (PrayerArchiveScreen) ─────────
+
+  /// 응답된 기도제목을 커서 기반 페이지네이션으로 반환합니다.
+  Future<({List<Prayer> prayers, DocumentSnapshot? lastDoc})>
+      getAnsweredPrayers({
+    required String userId,
+    DocumentSnapshot? lastDoc,
+    int pageSize = 20,
+  }) async {
+    try {
+      Query<Map<String, dynamic>> query = _answeredPrayersQuery(userId)
+          .orderBy('answeredAt', descending: true)
+          .limit(pageSize);
+
+      if (lastDoc != null) {
+        query = query.startAfterDocument(lastDoc);
+      }
+
+      final snap = await query.get();
+      final prayers = _snapToPrayerList(snap);
+      final newLastDoc = snap.docs.isNotEmpty ? snap.docs.last : null;
+      return (prayers: prayers, lastDoc: newLastDoc);
+    } catch (e) {
+      debugPrint('기도 응답 아카이브 조회 실패: $e');
+      return (prayers: <Prayer>[], lastDoc: null);
+    }
+  }
+
   // ─── 내부 헬퍼 ───────────────────────────────────────────────────────────
+
+  /// 응답된 기도 공통 기저 쿼리 (userId + status=answered + deletedAt=null)
+  Query<Map<String, dynamic>> _answeredPrayersQuery(String userId) {
+    return _col
+        .where('userId', isEqualTo: userId)
+        .where('status', isEqualTo: PrayerStatus.answered.toJson())
+        .where('deletedAt', isNull: true);
+  }
 
   static const _dateTimeFields = {
     'startDate',

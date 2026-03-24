@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -109,12 +110,7 @@ class AttendanceRepository {
           .where('date', isLessThan: Timestamp.fromDate(dayEnd))
           .get();
 
-      return snap.docs
-          .map((doc) => Attendance.fromJson(
-                _fromFirestore({...doc.data(), 'id': doc.id}),
-              ))
-          .where((a) => a.deletedAt == null) // 클라이언트 사이드 Soft Delete 필터
-          .toList();
+      return _snapToAttendanceList(snap);
     } catch (e) {
       throw Exception('출석 기록 조회에 실패했습니다: $e');
     }
@@ -137,13 +133,11 @@ class AttendanceRepository {
         .where('date', isLessThan: Timestamp.fromDate(to))
         .orderBy('date', descending: false)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => Attendance.fromJson(
-                  _fromFirestore({...doc.data(), 'id': doc.id}),
-                ))
-            .where((a) => a.deletedAt == null) // 클라이언트 사이드 필터
-            .toList())
-        .handleError((_) => <Attendance>[]);
+        .map(_snapToAttendanceList)
+        .handleError((e, stackTrace) {
+          debugPrint('월별 출석 스트림 오류: $e');
+          return <Attendance>[];
+        });
   }
 
   // ─── 복수 다락방 기간별 출석 집계 조회 ─────────────────────────
@@ -172,12 +166,7 @@ class AttendanceRepository {
             .orderBy('date', descending: false)
             .get();
 
-        return snap.docs
-            .map((doc) => Attendance.fromJson(
-                  _fromFirestore({...doc.data(), 'id': doc.id}),
-                ))
-            .where((a) => a.deletedAt == null)
-            .toList();
+        return _snapToAttendanceList(snap);
       });
 
       final results = await Future.wait(futures);
@@ -201,12 +190,7 @@ class AttendanceRepository {
           .limit(limit)
           .get();
 
-      return snap.docs
-          .map((doc) => Attendance.fromJson(
-                _fromFirestore({...doc.data(), 'id': doc.id}),
-              ))
-          .where((a) => a.deletedAt == null)
-          .toList();
+      return _snapToAttendanceList(snap);
     } catch (e) {
       throw Exception('내 출석 기록 조회에 실패했습니다: $e');
     }
@@ -225,12 +209,7 @@ class AttendanceRepository {
           .limit(limit)
           .get();
 
-      return snap.docs
-          .map((doc) => Attendance.fromJson(
-                _fromFirestore({...doc.data(), 'id': doc.id}),
-              ))
-          .where((a) => a.deletedAt == null)
-          .toList();
+      return _snapToAttendanceList(snap);
     } catch (e) {
       throw Exception('최근 출석 기록 조회에 실패했습니다: $e');
     }
@@ -249,6 +228,62 @@ class AttendanceRepository {
     } catch (e) {
       throw Exception('출석 기록 삭제에 실패했습니다: $e');
     }
+  }
+
+  // ─── 히트맵용 기간 내 출석 데이터 조회 (마이페이지) ─────────────
+  /// 특정 기간의 모든 출석 기록을 조회합니다 (히트맵 렌더링용).
+  Future<List<Attendance>> getHeatmapAttendances({
+    required String userId,
+    required DateTime from,
+  }) async {
+    try {
+      final snap = await _firestore
+          .collection(FirestorePaths.attendances)
+          .where('userId', isEqualTo: userId)
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(from))
+          .orderBy('date', descending: false)
+          .get();
+
+      return _snapToAttendanceList(snap);
+    } catch (e) {
+      throw Exception('히트맵 출석 데이터 조회에 실패했습니다: $e');
+    }
+  }
+
+  // ─── 연속 출석 계산용 최근 출석 기록 조회 ──────────────────────
+  /// present/late 상태의 출석 기록을 최신순으로 조회합니다.
+  Future<List<Attendance>> getAttendancesForStreak({
+    required String userId,
+    int limit = 100,
+  }) async {
+    try {
+      final snap = await _firestore
+          .collection(FirestorePaths.attendances)
+          .where('userId', isEqualTo: userId)
+          .where('status', whereIn: [
+            AttendanceStatus.present.name,
+            AttendanceStatus.late.name,
+          ])
+          .orderBy('date', descending: true)
+          .limit(limit)
+          .get();
+
+      return _snapToAttendanceList(snap);
+    } catch (e) {
+      throw Exception('연속 출석 기록 조회에 실패했습니다: $e');
+    }
+  }
+
+  // ─── 내부 헬퍼: QuerySnapshot → Attendance 리스트 변환 ────────────
+  List<Attendance> _snapToAttendanceList(
+    QuerySnapshot<Map<String, dynamic>> snap,
+  ) {
+    return snap.docs
+        .map((doc) => Attendance.fromJson(
+              _fromFirestore({...doc.data(), 'id': doc.id}),
+            ))
+        .where((a) => a.deletedAt == null)
+        .toList();
   }
 
   // ─── 내부 헬퍼: Timestamp → ISO 8601 변환 ──────────────────────
