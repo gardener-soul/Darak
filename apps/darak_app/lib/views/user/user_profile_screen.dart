@@ -1,21 +1,25 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
-
 import '../../core/providers/user_providers.dart';
-import '../../models/attendance_status.dart';
-import '../../models/attendance_type.dart';
 import '../../models/user.dart' as app_user;
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
-import '../../viewmodels/attendance/attendance_viewmodel.dart';
 import '../../widgets/common/clay_card.dart';
+import '../../widgets/common/skeleton_card.dart';
 import '../../widgets/common/core/clay_list_tile.dart';
 import '../../widgets/common/core/soft_dialog.dart';
 import 'profile_edit_screen.dart';
+import 'widgets/attendance_heatmap.dart';
+import 'widgets/monthly_attendance_bar.dart';
+import 'widgets/prayer_archive_preview.dart';
+import 'widgets/relationship_summary_card.dart';
+import 'widgets/spiritual_dashboard_card.dart';
 import 'widgets/user_profile_header.dart';
-import 'widgets/user_stats_dashboard.dart';
+
+import '../../viewmodels/follow/follow_stats_viewmodel.dart';
+import '../../viewmodels/user/prayer_archive_viewmodel.dart';
+import '../../viewmodels/user/spiritual_dashboard_viewmodel.dart';
+import '../follow/follow_list_screen.dart';
 
 /// 마이페이지 (사용자 프로필) 화면
 ///
@@ -30,21 +34,14 @@ class UserProfileScreen extends ConsumerStatefulWidget {
 
 class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   bool _isLoggingOut = false;
-  Timer? _shimmerTimer;
-  bool _shimmerFlag = false;
 
   @override
   void initState() {
     super.initState();
-    // 800ms 주기로 Shimmer 깜빡임 애니메이션 (Pulse) 강제 발생
-    _shimmerTimer = Timer.periodic(const Duration(milliseconds: 800), (timer) {
-      if (mounted) setState(() => _shimmerFlag = !_shimmerFlag);
-    });
   }
 
   @override
   void dispose() {
-    _shimmerTimer?.cancel();
     super.dispose();
   }
 
@@ -98,18 +95,24 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         content: const Text('준비 중인 기능입니다 🔜'),
         backgroundColor: AppColors.warmTangerine,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 
   // ─── 프로필 수정 화면 열기 ────────────────────────────────
   void _openEditProfileScreen() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const ProfileEditScreen()));
+  }
+
+  // ─── 팔로잉/팔로워 목록 열기 ─────────────────────────────
+  /// [initialTab] 0 = 팔로잉, 1 = 팔로워
+  void _openFollowList(int initialTab) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const ProfileEditScreen(),
+        builder: (context) => FollowListScreen(initialTab: initialTab),
       ),
     );
   }
@@ -141,11 +144,17 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   // 정상 데이터 UI (메인 프로필 화면)
   // ═══════════════════════════════════════════════════════════════
   Widget _buildProfileContent(app_user.User user) {
-    // 출석 통계 파싱 (null 안전)
-    final stats = user.attendanceStats;
-    final attendanceTotal = stats?['total'] as int?;
-    final attendanceAttended = stats?['attended'] as int?;
-    final prayerCount = user.prayerRequests?.length ?? 0;
+    final prayerPreviewAsync = ref.watch(
+      answeredPrayerPreviewProvider(user.id),
+    );
+    final prayerCountAsync = ref.watch(answeredPrayerCountProvider(user.id));
+    // 팔로잉/팔로워 수 실데이터 (§3-4 기획서)
+    final followStatsAsync = ref.watch(followStatsProvider(user.id));
+    // 연속 출석 주수 — 뱃지 시스템에 전달 (로딩/에러 시 0으로 fallback)
+    final dashboardAsync = ref.watch(
+      spiritualDashboardProvider((userId: user.id, groupId: user.groupId)),
+    );
+    final consecutiveWeeks = dashboardAsync.valueOrNull?.consecutiveWeeks ?? 0;
 
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
@@ -154,7 +163,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ─── 타이틀 ──────────────────────────────────────────
-          Text('마이페이지', style: AppTextStyles.headlineLarge),
+          Text('나의 여정', style: AppTextStyles.headlineLarge),
           const SizedBox(height: 24),
 
           // ─── 프로필 헤더 카드 (§6.1 Clay Avatar) ──────────────
@@ -168,22 +177,40 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
           ),
           const SizedBox(height: 24),
 
-          // ─── 통계 대시보드 (§6.2 Stats Dashboard) ─────────────
-          Text('내 활동 요약', style: AppTextStyles.headlineMedium),
+          // ─── 영적 여정 요약 ────────────────────────────────────
+          SpiritualDashboardCard(userId: user.id, groupId: user.groupId),
+          const SizedBox(height: 24),
+
+          // ─── 출석 히트맵 ───────────────────────────────────────
+          AttendanceHeatmap(
+            userId: user.id,
+            consecutiveWeeks: consecutiveWeeks,
+          ),
           const SizedBox(height: 16),
-          UserStatsDashboard(
-            // Phase 3: Firestore 실데이터 바인딩
-            groupName: null, // TODO: groupId로 group name 조회 (추후 구현)
-            attendanceTotal: attendanceTotal,
-            attendanceAttended: attendanceAttended,
-            prayerRequestCount: prayerCount,
+          MonthlyAttendanceBar(userId: user.id),
+          const SizedBox(height: 24),
+
+          // ─── 기도 응답 아카이브 ────────────────────────────────
+          prayerPreviewAsync.when(
+            loading: () => _shimmerBox(double.infinity, 140),
+            error: (err, st) => const SizedBox.shrink(),
+            data: (prayers) => PrayerArchivePreview(
+              count: prayerCountAsync.valueOrNull ?? 0,
+              prayers: prayers,
+              onGoToPrayer: _showComingSoonSnackBar,
+            ),
           ),
           const SizedBox(height: 24),
 
-          // ─── 내 출석 기록 ──────────────────────────────────────
-          Text('최근 출석 기록', style: AppTextStyles.headlineMedium),
-          const SizedBox(height: 16),
-          _MyAttendanceSection(userId: user.id),
+          // ─── 관계망 요약 (팔로잉/팔로워 실데이터 연결) ────────────
+          RelationshipSummaryCard(
+            followingCount: followStatsAsync.valueOrNull?.following ?? 0,
+            followerCount: followStatsAsync.valueOrNull?.follower ?? 0,
+            clubCount: user.clubIds?.length ?? 0,
+            onFollowingTap: () => _openFollowList(0),
+            onFollowerTap: () => _openFollowList(1),
+            onFindMembers: _showComingSoonSnackBar,
+          ),
           const SizedBox(height: 24),
 
           // ─── 메뉴 리스트 (§6.3 Bouncing Animation) ────────────
@@ -206,7 +233,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('마이페이지', style: AppTextStyles.headlineLarge),
+          Text('나의 여정', style: AppTextStyles.headlineLarge),
           const SizedBox(height: 24),
           // 프로필 헤더 스켈레톤
           ClayCard(
@@ -249,16 +276,10 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     double? width,
     bool isCircle = false,
   }) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 800),
-      curve: Curves.easeInOut,
+    return SkeletonCard(
       width: width ?? maxWidth,
       height: height,
-      decoration: BoxDecoration(
-        color: AppColors.divider.withValues(alpha: _shimmerFlag ? 0.2 : 0.6),
-        borderRadius: isCircle ? null : BorderRadius.circular(12),
-        shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
-      ),
+      borderRadius: isCircle ? 999 : 12,
     );
   }
 
@@ -336,14 +357,6 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
           ),
           _buildDivider(),
           ClayListTile(
-            leadingIcon: Icons.menu_book_rounded,
-            title: '내 기도 제목',
-            subtitle: '기도 제목 관리',
-            leadingColor: AppColors.sageGreen,
-            onTap: _showComingSoonSnackBar,
-          ),
-          _buildDivider(),
-          ClayListTile(
             leadingIcon: Icons.notifications_rounded,
             title: '알림 설정',
             subtitle: '푸시 알림 관리',
@@ -401,144 +414,6 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       child: Divider(
         height: 1,
         color: AppColors.divider.withValues(alpha: 0.5),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// 내 최근 출석 기록 섹션 Widgets
-// ═══════════════════════════════════════════════════════════════
-
-class _MyAttendanceSection extends ConsumerWidget {
-  final String userId;
-
-  const _MyAttendanceSection({required this.userId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final attendancesAsync = ref.watch(myAttendanceHistoryProvider(userId));
-
-    return attendancesAsync.when(
-      loading: () => ClayCard(
-        padding: const EdgeInsets.all(24),
-        child: const Center(
-          child: CircularProgressIndicator(color: AttendanceColors.present),
-        ),
-      ),
-      error: (_, __) => ClayCard(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          '출석 기록을 불러오지 못했어요.',
-          style: AppTextStyles.bodySmall,
-        ),
-      ),
-      data: (attendances) {
-        if (attendances.isEmpty) {
-          return ClayCard(
-            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.event_busy_rounded,
-                    size: 40,
-                    color: AppColors.disabled,
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    '최근 한 달간 출석 기록이 없어요.',
-                    style: AppTextStyles.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return ClayCard(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: List.generate(attendances.length, (i) {
-              final a = attendances[i];
-              final isLast = i == attendances.length - 1;
-              return Padding(
-                padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
-                child: _MyAttendanceTile(
-                  date: a.date,
-                  type: a.type,
-                  status: a.status,
-                ),
-              );
-            }),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _MyAttendanceTile extends StatelessWidget {
-  final DateTime date;
-  final AttendanceType type;
-  final AttendanceStatus status;
-
-  static const _statusColors = {
-    AttendanceStatus.present: AttendanceColors.present,
-    AttendanceStatus.late: AttendanceColors.late,
-    AttendanceStatus.absent: AttendanceColors.absent,
-    AttendanceStatus.excused: AttendanceColors.excused,
-  };
-
-  static const _statusLabels = {
-    AttendanceStatus.present: '출석',
-    AttendanceStatus.late: '지각',
-    AttendanceStatus.absent: '결석',
-    AttendanceStatus.excused: '사유',
-  };
-
-  const _MyAttendanceTile({
-    required this.date,
-    required this.type,
-    required this.status,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final formatter = DateFormat('MM.dd (E)', 'ko');
-    final color = _statusColors[status] ?? AppColors.textGrey;
-    final label = _statusLabels[status] ?? '';
-    final typeLabel = type.label;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.pureWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.divider),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              label,
-              style: AppTextStyles.bodySmall.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(formatter.format(date), style: AppTextStyles.bodyMedium),
-          const Spacer(),
-          Text(typeLabel, style: AppTextStyles.bodySmall),
-        ],
       ),
     );
   }

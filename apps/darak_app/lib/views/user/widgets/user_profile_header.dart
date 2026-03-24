@@ -8,7 +8,7 @@ import '../../../widgets/common/core/clay_avatar.dart';
 /// 디자인 컨셉 (MYPAGE_PLAN §6.1):
 /// - 둥근 아바타 이미지에 4px 두께의 Soft Indigo 보더로 Clay 질감
 /// - 아바타 하단에 은은한 BoxShadow로 입체감(Tactile)
-/// - 이름, 이메일(마스킹), 상태 메시지(bio), 교회 등록일, 팔로잉/팔로워 수 표시
+/// - 이름, 이메일(마스킹), 상태 메시지(bio), 함께한 지 N일째 표시
 class UserProfileHeader extends StatelessWidget {
   final String displayName;
   final String email;
@@ -16,24 +16,6 @@ class UserProfileHeader extends StatelessWidget {
   final String? bio;
   final DateTime? registerDate;
   final VoidCallback onEditPressed;
-
-  /// 팔로잉 수 (null이면 미표시)
-  final int? followingCount;
-
-  /// 팔로워 수 (null이면 미표시)
-  final int? followerCount;
-
-  /// 팔로우 요청 배지 수 (null 또는 0이면 미표시)
-  final int? pendingRequestCount;
-
-  /// 팔로잉 수 탭 콜백
-  final VoidCallback? onFollowingTap;
-
-  /// 팔로워 수 탭 콜백
-  final VoidCallback? onFollowerTap;
-
-  /// 팔로우 요청 탭 콜백
-  final VoidCallback? onRequestsTap;
 
   /// 교인 검색 탭 콜백
   final VoidCallback? onSearchTap;
@@ -46,12 +28,6 @@ class UserProfileHeader extends StatelessWidget {
     required this.onEditPressed,
     this.bio,
     this.registerDate,
-    this.followingCount,
-    this.followerCount,
-    this.pendingRequestCount,
-    this.onFollowingTap,
-    this.onFollowerTap,
-    this.onRequestsTap,
     this.onSearchTap,
   });
 
@@ -66,10 +42,23 @@ class UserProfileHeader extends StatelessWidget {
     return '${name.substring(0, 2)}${'*' * (name.length - 2)}@$domain';
   }
 
-  // ─── 날짜 포맷 헬퍼 ─────────────────────────────────────────
-  String _formatDate(DateTime? date) {
+  // ─── 날짜 포맷 헬퍼 (함께한 지 N일째) ────────────────────────
+  String _formatJoinDays(DateTime? date) {
     if (date == null) return '';
-    return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
+    final now = DateTime.now();
+    // 시간 부분을 제거하고 날짜만 비교
+    final today = DateTime(now.year, now.month, now.day);
+    final joinDate = DateTime(date.year, date.month, date.day);
+    final diff = today.difference(joinDate).inDays + 1;
+
+    if (diff < 365) {
+      return '함께한 지 ${diff}일째';
+    } else {
+      final years = diff ~/ 365;
+      final days = diff % 365;
+      if (days == 0) return '함께한 지 ${years}년째';
+      return '함께한 지 ${years}년 ${days}일째';
+    }
   }
 
   @override
@@ -86,11 +75,6 @@ class UserProfileHeader extends StatelessWidget {
               Expanded(child: _buildUserInfo()),
             ],
           ),
-          // ─── 팔로잉/팔로워 통계 ──────────────────────────────
-          if (followingCount != null || followerCount != null) ...[
-            const SizedBox(height: 16),
-            _buildFollowStats(),
-          ],
           // ─── 상태 메시지(bio) ────────────────────────────────
           if (bio != null && bio!.isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -132,54 +116,28 @@ class UserProfileHeader extends StatelessWidget {
             ),
           ],
         ),
-        // 교회 등록일
+        // 함께한 지 N일째 표시
         if (registerDate != null) ...[
           const SizedBox(height: 4),
           Row(
             children: [
               Icon(
-                Icons.calendar_today_rounded,
+                Icons.favorite_rounded,
                 size: 14,
-                color: AppColors.textGrey,
+                color: AppColors.softCoral,
               ),
               const SizedBox(width: 6),
               Text(
-                '등록일 ${_formatDate(registerDate)}',
-                style: AppTextStyles.bodySmall.copyWith(fontSize: 12),
+                _formatJoinDays(registerDate),
+                style: AppTextStyles.bodySmall.copyWith(
+                  fontSize: 12,
+                  color: AppColors.softCoral,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
         ],
-      ],
-    );
-  }
-
-  /// 팔로잉/팔로워 통계 영역
-  Widget _buildFollowStats() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (followingCount != null)
-          _FollowStatItem(
-            label: '팔로잉',
-            count: followingCount!,
-            onTap: onFollowingTap,
-          ),
-        if (followingCount != null && followerCount != null)
-          Container(
-            width: 1,
-            height: 24,
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            color: AppColors.divider,
-          ),
-        if (followerCount != null)
-          _FollowStatItem(
-            label: '팔로워',
-            count: followerCount!,
-            onTap: onFollowerTap,
-            badgeCount: pendingRequestCount,
-            onBadgeTap: onRequestsTap,
-          ),
       ],
     );
   }
@@ -258,80 +216,6 @@ class UserProfileHeader extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-// ─── 팔로잉/팔로워 통계 항목 위젯 ─────────────────────────────────────────────
-
-class _FollowStatItem extends StatelessWidget {
-  final String label;
-  final int count;
-  final VoidCallback? onTap;
-
-  /// 팔로워 요청 배지 수 (0 또는 null이면 미표시)
-  final int? badgeCount;
-  final VoidCallback? onBadgeTap;
-
-  const _FollowStatItem({
-    required this.label,
-    required this.count,
-    this.onTap,
-    this.badgeCount,
-    this.onBadgeTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final hasBadge = (badgeCount ?? 0) > 0;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Text(
-                '$count',
-                style: AppTextStyles.headlineMedium.copyWith(fontSize: 20),
-              ),
-              // 요청 배지
-              if (hasBadge)
-                Positioned(
-                  right: -14,
-                  top: -4,
-                  child: GestureDetector(
-                    onTap: onBadgeTap,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.softCoral,
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Text(
-                        '$badgeCount',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.pureWhite,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: AppTextStyles.bodySmall.copyWith(fontSize: 12),
-          ),
-        ],
-      ),
     );
   }
 }
