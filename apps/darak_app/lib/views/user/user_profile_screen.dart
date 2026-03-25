@@ -16,10 +16,15 @@ import 'widgets/relationship_summary_card.dart';
 import 'widgets/spiritual_dashboard_card.dart';
 import 'widgets/user_profile_header.dart';
 
+import '../../viewmodels/follow/follow_request_viewmodel.dart';
 import '../../viewmodels/follow/follow_stats_viewmodel.dart';
 import '../../viewmodels/user/prayer_archive_viewmodel.dart';
 import '../../viewmodels/user/spiritual_dashboard_viewmodel.dart';
+import '../church/church_detail_screen.dart';
 import '../follow/follow_list_screen.dart';
+import '../follow/follow_requests_screen.dart';
+import '../follow/follow_search_screen.dart';
+import 'prayer_archive_screen.dart';
 
 /// 마이페이지 (사용자 프로필) 화면
 ///
@@ -34,16 +39,6 @@ class UserProfileScreen extends ConsumerStatefulWidget {
 
 class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   bool _isLoggingOut = false;
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
 
   // ─── 로그아웃 ───────────────────────────────────────────────
   Future<void> _handleLogout() async {
@@ -117,6 +112,59 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     );
   }
 
+  // ─── 교회 미등록 안내 스낵바 ──────────────────────────────
+  void _showChurchRequiredSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.warmTangerine,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  // ─── 기도 응답 아카이브 화면 열기 ─────────────────────────
+  void _openPrayerArchive() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PrayerArchiveScreen()),
+    );
+  }
+
+  // ─── 교인 찾기(팔로우 검색) 화면 열기 ─────────────────────
+  void _openFollowSearch() {
+    final user = ref.read(currentUserProvider).valueOrNull;
+    if (user?.churchId == null) {
+      _showChurchRequiredSnackBar('교회 등록 후 교인 찾기가 가능합니다');
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const FollowSearchScreen()),
+    );
+  }
+
+  // ─── 내 다락방(교회 상세) 화면 열기 ──────────────────────
+  void _openMyChurch(String? churchId) {
+    if (churchId == null) {
+      _showChurchRequiredSnackBar('교회 등록 후 이용 가능합니다');
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChurchDetailScreen(churchId: churchId),
+      ),
+    );
+  }
+
+  // ─── 팔로우 요청 목록 화면 열기 ───────────────────────────
+  void _openFollowRequests() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const FollowRequestsScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // ═══════════════════════════════════════════════════════════
@@ -155,6 +203,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       spiritualDashboardProvider((userId: user.id, groupId: user.groupId)),
     );
     final consecutiveWeeks = dashboardAsync.valueOrNull?.consecutiveWeeks ?? 0;
+    // 나에게 온 팔로우 요청 수 (0이면 배너 숨김)
+    final pendingRequestCount = ref
+            .watch(pendingFollowRequestCountProvider(user.id))
+            .valueOrNull ??
+        0;
 
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
@@ -175,7 +228,53 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             bio: user.bio,
             onEditPressed: _openEditProfileScreen,
           ),
-          const SizedBox(height: 24),
+
+          // ─── 팔로우 요청 배너 (요청 건수 >= 1 일 때만 노출) ───────
+          if (pendingRequestCount > 0) ...[
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: _openFollowRequests,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.warmTangerine.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.warmTangerine.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.person_add_rounded,
+                      color: AppColors.warmTangerine,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '팔로우 요청 $pendingRequestCount건이 있어요',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.warmTangerine,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.warmTangerine,
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (pendingRequestCount == 0) const SizedBox(height: 24),
 
           // ─── 영적 여정 요약 ────────────────────────────────────
           SpiritualDashboardCard(userId: user.id, groupId: user.groupId),
@@ -197,7 +296,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             data: (prayers) => PrayerArchivePreview(
               count: prayerCountAsync.valueOrNull ?? 0,
               prayers: prayers,
-              onGoToPrayer: _showComingSoonSnackBar,
+              onGoToPrayer: _openPrayerArchive,
             ),
           ),
           const SizedBox(height: 24),
@@ -209,14 +308,14 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             clubCount: user.clubIds?.length ?? 0,
             onFollowingTap: () => _openFollowList(0),
             onFollowerTap: () => _openFollowList(1),
-            onFindMembers: _showComingSoonSnackBar,
+            onFindMembers: _openFollowSearch,
           ),
           const SizedBox(height: 24),
 
           // ─── 메뉴 리스트 (§6.3 Bouncing Animation) ────────────
           Text('설정', style: AppTextStyles.headlineMedium),
           const SizedBox(height: 16),
-          _buildMenuSection(),
+          _buildMenuSection(user.churchId),
           const SizedBox(height: 32),
         ],
       ),
@@ -343,7 +442,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   // ═══════════════════════════════════════════════════════════════
   // 메뉴 리스트 섹션
   // ═══════════════════════════════════════════════════════════════
-  Widget _buildMenuSection() {
+  Widget _buildMenuSection(String? churchId) {
     return ClayCard(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
       child: Column(
@@ -352,8 +451,8 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             leadingIcon: Icons.people_rounded,
             title: '내 다락방(공동체)',
             subtitle: '소속 공동체 확인',
-            leadingColor: AppColors.softLavender,
-            onTap: _showComingSoonSnackBar,
+            leadingColor: AppColors.sageGreen,
+            onTap: () => _openMyChurch(churchId),
           ),
           _buildDivider(),
           ClayListTile(

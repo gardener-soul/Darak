@@ -17,6 +17,15 @@ Stream<List<Follow>> pendingFollowRequests(Ref ref, String userId) {
       .watchPendingRequests(userId: userId);
 }
 
+/// 나에게 온 팔로우 요청 수 실시간 스트림
+@riverpod
+Stream<int> pendingFollowRequestCount(Ref ref, String userId) {
+  return ref
+      .watch(followRepositoryProvider)
+      .watchPendingRequests(userId: userId)
+      .map((list) => list.length);
+}
+
 // ─── 팔로우 요청 액션 ViewModel ───────────────────────────────────────────────
 
 /// 팔로우 요청 수락/거절 액션 ViewModel
