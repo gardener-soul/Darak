@@ -12,6 +12,7 @@ import '../../widgets/common/core/soft_chip.dart';
 import '../../widgets/common/core/soft_dialog.dart';
 import '../../widgets/common/empty_state_view.dart';
 import '../../widgets/common/bouncy_button.dart';
+import '../church/member_detail_screen.dart';
 
 /// 팔로잉 / 팔로워 목록 화면
 ///
@@ -193,29 +194,42 @@ class _FollowingItem extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          ClayAvatar(
-            imageUrl: user?.profileImageUrl,
-            size: AvatarSize.small,
-          ),
-          const SizedBox(width: 12),
+          // 아바타+이름 영역 탭 시 상대 프로필로 이동
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  user?.name ?? '로딩 중...',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w600,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).push(
+                MemberDetailScreen.route(follow.followeeId),
+              ),
+              child: Row(
+                children: [
+                  ClayAvatar(
+                    imageUrl: user?.profileImageUrl,
+                    size: AvatarSize.small,
                   ),
-                ),
-                if (user?.groupName != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    user!.groupName!,
-                    style: AppTextStyles.bodySmall.copyWith(fontSize: 12),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.name ?? '로딩 중...',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (user?.groupName != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            user!.groupName!,
+                            style: AppTextStyles.bodySmall,
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ],
-              ],
+              ),
             ),
           ),
           BouncyButton(
@@ -352,29 +366,42 @@ class _FollowerItem extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          ClayAvatar(
-            imageUrl: user?.profileImageUrl,
-            size: AvatarSize.small,
-          ),
-          const SizedBox(width: 12),
+          // 아바타+이름 영역 탭 시 상대 프로필로 이동
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  user?.name ?? '로딩 중...',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w600,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).push(
+                MemberDetailScreen.route(follow.followerId),
+              ),
+              child: Row(
+                children: [
+                  ClayAvatar(
+                    imageUrl: user?.profileImageUrl,
+                    size: AvatarSize.small,
                   ),
-                ),
-                if (user?.groupName != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    user!.groupName!,
-                    style: AppTextStyles.bodySmall.copyWith(fontSize: 12),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.name ?? '로딩 중...',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (user?.groupName != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            user!.groupName!,
+                            style: AppTextStyles.bodySmall,
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ],
-              ],
+              ),
             ),
           ),
           BouncyButton(

@@ -1,31 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../models/prayer.dart';
 import '../../../models/prayer_visibility.dart';
+import '../../../repositories/user_repository.dart';
 import '../../../theme/app_theme.dart';
-import '../../../widgets/common/bouncy_tap_wrapper.dart';
 import '../../../widgets/common/clay_card.dart';
 import '../../../widgets/common/core/soft_chip.dart';
+import '../../../widgets/common/skeleton_card.dart';
 
 /// 공동체 기도 탭용 카드 — 작성자 정보 + 출처 라벨 포함
-class CommunityPrayerCard extends StatelessWidget {
+class CommunityPrayerCard extends ConsumerWidget {
   final Prayer prayer;
-  final String authorName;
-  final String? authorImageUrl;
+  final String userId;
 
   const CommunityPrayerCard({
     super.key,
     required this.prayer,
-    required this.authorName,
-    this.authorImageUrl,
+    required this.userId,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return BouncyTapWrapper(
-      onTap: () {}, // 공동체 기도는 상세 없음 (v1)
-      child: ClayCard(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(userByIdProvider(userId));
+
+    return ClayCard(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -34,9 +34,16 @@ class CommunityPrayerCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: _AuthorRow(
-                    name: authorName,
-                    imageUrl: authorImageUrl,
+                  child: userAsync.when(
+                    loading: () => const SkeletonCard(width: 120, height: 14),
+                    error: (_, _) => const _AuthorRow(
+                      name: '기도자',
+                      imageUrl: null,
+                    ),
+                    data: (user) => _AuthorRow(
+                      name: user?.name ?? '기도자',
+                      imageUrl: user?.profileImageUrl,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -67,7 +74,6 @@ class CommunityPrayerCard extends StatelessWidget {
             _PeriodRow(prayer: prayer),
           ],
         ),
-      ),
     );
   }
 }

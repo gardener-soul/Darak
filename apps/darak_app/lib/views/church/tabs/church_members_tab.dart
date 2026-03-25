@@ -5,9 +5,11 @@ import '../../../models/church_member.dart';
 import '../../../models/church_member_profile.dart';
 import '../../../theme/app_theme.dart';
 import '../../../viewmodels/church/church_members_viewmodel.dart';
+import '../../../widgets/common/bouncy_tap_wrapper.dart';
 import '../../../widgets/common/clay_card.dart';
 import '../../../widgets/common/role_badge.dart';
 import '../../../widgets/common/soft_text_field.dart';
+import '../../church/member_detail_screen.dart';
 
 /// 교회 상세 - 구성원 탭
 /// 검색 + 교인 프로필 목록
@@ -103,16 +105,34 @@ class _MemberCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClayCard(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      child: Row(
-        children: [
-          _MemberAvatar(imageUrl: profile.profileImageUrl, name: profile.name),
-          const SizedBox(width: 12),
-          Expanded(child: _MemberInfo(profile: profile)),
-          RoleBadge(roleName: profile.roleName, roleLevel: profile.roleLevel),
-        ],
+    return BouncyTapWrapper(
+      onTap: () => Navigator.of(context).push(
+        MemberDetailScreen.route(profile.userId),
+      ),
+      child: ClayCard(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        child: Row(
+          children: [
+            _MemberAvatar(
+              imageUrl: profile.profileImageUrl,
+              name: profile.name,
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: _MemberInfo(profile: profile)),
+            RoleBadge(
+              roleName: profile.roleName,
+              roleLevel: profile.roleLevel,
+            ),
+            const SizedBox(width: 4),
+            // 탭 가능함을 암시하는 화살표 아이콘
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textGrey,
+              size: 18,
+            ),
+          ],
+        ),
       ),
     );
   }

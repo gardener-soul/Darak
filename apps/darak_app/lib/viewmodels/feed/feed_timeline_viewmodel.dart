@@ -216,6 +216,36 @@ class FeedTimelineViewModel extends _$FeedTimelineViewModel {
     );
   }
 
+  /// 피드 삭제 — 낙관적 UI 적용 후 서버 반영 (실패 시 롤백)
+  Future<void> deleteFeed(String feedId) async {
+    final snapshot = state.feeds;
+    removeLocalFeed(feedId);
+    try {
+      await ref.read(feedRepositoryProvider).deleteFeed(feedId: feedId);
+    } catch (e) {
+      // 서버 삭제 실패 시 낙관적 UI 롤백
+      state = state.copyWith(feeds: snapshot);
+      debugPrint('피드 삭제 실패: $e');
+      rethrow;
+    }
+  }
+
+  /// 피드 신고
+  Future<void> reportFeed({
+    required String feedId,
+    required String reporterId,
+  }) async {
+    try {
+      await ref.read(feedRepositoryProvider).reportFeed(
+            feedId: feedId,
+            reporterId: reporterId,
+          );
+    } catch (e) {
+      debugPrint('피드 신고 실패: $e');
+      rethrow;
+    }
+  }
+
   // ─── 내부 헬퍼 ──────────────────────────────────────────────────────────
 
   Future<List<String>> _getFolloweeIds(

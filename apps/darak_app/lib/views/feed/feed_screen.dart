@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/user_providers.dart';
 import '../../models/feed/feed.dart';
-import '../../repositories/feed_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../viewmodels/feed/feed_timeline_viewmodel.dart';
+import '../../viewmodels/follow/follow_list_viewmodel.dart';
 import '../../widgets/common/core/soft_chip.dart';
 import '../../widgets/common/skeleton_card.dart';
 import 'widgets/feed_card.dart';
@@ -78,6 +78,12 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final userAsync = ref.watch(currentUserProvider);
     final filter = ref.watch(selectedFeedFilterProvider);
 
+    // 팔로잉 필터일 때만 팔로우 ID 목록 구독 (불필요한 Firestore 리스너 방지)
+    final currentUser = userAsync.valueOrNull;
+    final followingIdList = (filter == FeedFilter.following && currentUser != null)
+        ? ref.watch(followingIdsProvider(currentUser.id)).valueOrNull ?? []
+        : <String>[];
+
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
       body: SafeArea(
@@ -109,7 +115,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   }
 
                   // 필터에 따른 피드 필터링
-                  final feeds = _filteredFeeds(timeline, filter, user.groupId);
+                  final feeds = _filteredFeeds(timeline, filter, user.groupId, followingIdList);
 
                   if (feeds.isEmpty) {
                     return FeedEmptyState(onCreateTap: _openCreateSheet);
@@ -170,7 +176,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: _openCreateSheet,
         backgroundColor: AppColors.softCoral,
-        child: const Icon(Icons.add_rounded, color: Colors.white),
+        child: const Icon(Icons.add_rounded, color: AppColors.pureWhite),
       ),
     );
   }
@@ -180,6 +186,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     FeedTimelineState timeline,
     FeedFilter filter,
     String? myGroupId,
+    List<String> followingIds,
   ) {
     switch (filter) {
       case FeedFilter.group:
@@ -187,9 +194,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             .where((f) => f.groupId == myGroupId)
             .toList();
       case FeedFilter.following:
-        // 팔로잉 피드만: groupId가 없거나 다른 다락방
+        // 내가 팔로우하는 사람의 피드만 표시
         return timeline.feeds
-            .where((f) => f.groupId != myGroupId)
+            .where((f) => followingIds.contains(f.userId))
             .toList();
       case FeedFilter.all:
         return timeline.feeds;
@@ -218,16 +225,23 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: Text('삭제',
-                style: TextStyle(color: Colors.red.shade400)),
+                style: TextStyle(color: AppColors.softCoral)),
           ),
         ],
       ),
     );
     if (confirmed == true && mounted) {
-      ref
-          .read(feedTimelineViewModelProvider.notifier)
-          .removeLocalFeed(feedId);
-      await ref.read(feedRepositoryProvider).deleteFeed(feedId: feedId);
+      try {
+        await ref
+            .read(feedTimelineViewModelProvider.notifier)
+            .deleteFeed(feedId);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('게시물 삭제에 실패했어요. 다시 시도해주세요.')),
+          );
+        }
+      }
     }
   }
 
@@ -258,17 +272,25 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       ),
     );
     if (confirmed == true && mounted) {
-      await ref.read(feedRepositoryProvider).reportFeed(
-            feedId: feedId,
-            reporterId: reporterId,
+      try {
+        await ref.read(feedTimelineViewModelProvider.notifier).reportFeed(
+              feedId: feedId,
+              reporterId: reporterId,
+            );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('신고가 접수되었어요.'),
+              behavior: SnackBarBehavior.floating,
+            ),
           );
-      if (mounted) {
-        ScaffoldMessenger.of(this.context).showSnackBar(
-          const SnackBar(
-            content: Text('신고가 접수되었어요.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('신고에 실패했어요. 다시 시도해주세요.')),
+          );
+        }
       }
     }
   }

@@ -13,6 +13,7 @@ class FeedCardHeader extends StatelessWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onReport;
+  final VoidCallback? onAuthorTap; // 작성자 프로필 이동 콜백 (본인 제외)
 
   const FeedCardHeader({
     super.key,
@@ -22,6 +23,7 @@ class FeedCardHeader extends StatelessWidget {
     this.onEdit,
     this.onDelete,
     this.onReport,
+    this.onAuthorTap,
   });
 
   bool get _isOwner => feed.userId == currentUserId;
@@ -30,29 +32,40 @@ class FeedCardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        ClayAvatar(
-          imageUrl: author?.profileImageUrl,
-          size: AvatarSize.small,
-        ),
-        const SizedBox(width: 10),
+        // 아바타+이름 영역 — 본인이 아닐 때 탭 시 프로필 이동
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                author?.name ?? '...',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDark,
+          child: GestureDetector(
+            onTap: !_isOwner ? onAuthorTap : null,
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              children: [
+                ClayAvatar(
+                  imageUrl: author?.profileImageUrl,
+                  size: AvatarSize.small,
                 ),
-              ),
-              Text(
-                _relativeTime(feed.createdAt),
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textGrey,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        author?.name ?? '...',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      Text(
+                        _relativeTime(feed.createdAt),
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textGrey,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         _MoreMenu(
@@ -101,7 +114,7 @@ class _MoreMenu extends StatelessWidget {
           PopupMenuItem(
             value: 'delete',
             child: Text('삭제하기',
-                style: TextStyle(color: Colors.red.shade400)),
+                style: TextStyle(color: AppColors.softCoral)),
           ),
         ] else
           const PopupMenuItem(value: 'report', child: Text('신고하기')),

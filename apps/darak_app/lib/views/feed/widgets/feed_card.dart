@@ -8,6 +8,7 @@ import '../../../theme/app_theme.dart';
 import '../../../viewmodels/feed/feed_reaction_viewmodel.dart';
 import '../../../viewmodels/feed/feed_timeline_viewmodel.dart';
 import '../../../widgets/common/clay_card.dart';
+import '../../church/member_detail_screen.dart';
 import 'feed_card_content.dart';
 import 'feed_card_encouragements.dart';
 import 'feed_card_header.dart';
@@ -50,6 +51,12 @@ class FeedCard extends ConsumerWidget {
               onEdit: onEdit,
               onDelete: onDelete,
               onReport: onReport,
+              // 본인 피드가 아닌 경우 작성자 프로필 화면으로 이동
+              onAuthorTap: feed.userId != currentUserId
+                  ? () => Navigator.of(context).push(
+                        MemberDetailScreen.route(feed.userId),
+                      )
+                  : null,
             ),
             const SizedBox(height: 12),
 
