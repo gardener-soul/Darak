@@ -6,7 +6,6 @@ import '../../../widgets/common/bouncy_button.dart';
 import '../../../widgets/common/core/soft_chip.dart';
 import '../../../models/prayer.dart';
 import '../../../models/prayer_period_type.dart';
-import '../prayer_archive_screen.dart';
 
 class PrayerArchivePreview extends StatelessWidget {
   final int count;
@@ -61,13 +60,7 @@ class PrayerArchivePreview extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             BouncyButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const PrayerArchiveScreen(),
-                  ),
-                );
-              },
+              onPressed: onGoToPrayer,
               text: '전체 응답 보기',
               color: AppColors.sageGreen,
               textColor: AppColors.pureWhite,
