@@ -7,7 +7,7 @@ part of 'feed_timeline_viewmodel.dart';
 // **************************************************************************
 
 String _$feedTimelineViewModelHash() =>
-    r'a8acfad98244bc0cfedb9963f0c23bf49a4de1f4';
+    r'7659a06a69b70575eef60973c3f823c7b9d7936f';
 
 /// See also [FeedTimelineViewModel].
 @ProviderFor(FeedTimelineViewModel)
