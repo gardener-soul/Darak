@@ -373,9 +373,7 @@ class _CommunityPrayerList extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 12),
           child: CommunityPrayerCard(
             prayer: p,
-            authorName: p.userId.length >= 6
-                ? '기도자 ${p.userId.substring(0, 6)}'
-                : '기도자',
+            userId: p.userId,
           ),
         );
       },
