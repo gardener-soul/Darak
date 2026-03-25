@@ -1,27 +1,27 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'meetup_repository.dart';
+part of 'feed_repository.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$meetupRepositoryHash() => r'8ae150e6e8f2158d7facb711ef5a829410bcc257';
+String _$feedRepositoryHash() => r'118a0473aa30607a6027f4e9d34a735d7d8e17bf';
 
-/// See also [meetupRepository].
-@ProviderFor(meetupRepository)
-final meetupRepositoryProvider = AutoDisposeProvider<MeetupRepository>.internal(
-  meetupRepository,
-  name: r'meetupRepositoryProvider',
+/// See also [feedRepository].
+@ProviderFor(feedRepository)
+final feedRepositoryProvider = AutoDisposeProvider<FeedRepository>.internal(
+  feedRepository,
+  name: r'feedRepositoryProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$meetupRepositoryHash,
+      : _$feedRepositoryHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef MeetupRepositoryRef = AutoDisposeProviderRef<MeetupRepository>;
+typedef FeedRepositoryRef = AutoDisposeProviderRef<FeedRepository>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

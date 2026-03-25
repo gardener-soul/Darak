@@ -6,11 +6,12 @@ import '../../theme/app_theme.dart';
 import '../../widgets/common/empty_state_view.dart';
 import '../church/church_detail_screen.dart';
 import '../church/church_list_screen.dart';
+import '../feed/feed_screen.dart';
 import '../prayer/prayer_screen.dart';
 import '../user/user_profile_screen.dart';
 
 /// 홈 화면 — 5탭 하단 네비게이션
-/// 교제 / 기도 / 말씀 / 공동체 / 나
+/// 나눔(피드) / 기도 / 말씀 / 공동체 / 나
 class HomeScreen extends ConsumerStatefulWidget {
   final bool isPreview;
 
@@ -34,14 +35,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: IndexedStack(
         index: _selectedIndex,
         children: [
-          // 0. 교제 (준비 중)
-          const SafeArea(
-            child: EmptyStateView(
-              icon: Icons.handshake_rounded,
-              message: '교제 기능 준비 중이에요',
-              subMessage: '곧 만나요 :)',
-            ),
-          ),
+          // 0. 나눔 (피드 타임라인)
+          const FeedScreen(),
           // 1. 기도
           const PrayerScreen(),
           // 2. 말씀 (준비 중)
@@ -149,8 +144,8 @@ class _BottomNav extends StatelessWidget {
         child: BottomNavigationBar(
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.handshake_rounded),
-              label: '교제',
+              icon: Icon(Icons.favorite_rounded),
+              label: '나눔',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.volunteer_activism_rounded),

@@ -226,6 +226,22 @@ class FollowRepository {
     );
   }
 
+  /// 내가 팔로우 중인 사용자 ID 목록 일회성 조회 (피드 타임라인 쿼리용)
+  Future<List<String>> getFolloweeIds({required String userId}) async {
+    try {
+      final snap = await _col
+          .where('followerId', isEqualTo: userId)
+          .where('status', isEqualTo: FollowStatus.accepted.toJson())
+          .get();
+      return snap.docs
+          .map((doc) => doc.data()['followeeId'] as String)
+          .toList();
+    } catch (e) {
+      debugPrint('팔로잉 ID 목록 조회 실패: $e');
+      return [];
+    }
+  }
+
   // ─── 내부 헬퍼 ───────────────────────────────────────────────────────────
 
   static const _dateTimeFields = {'createdAt', 'acceptedAt', 'updatedAt'};

@@ -6,7 +6,7 @@ part of 'meetup_viewmodel.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$meetupViewModelHash() => r'c5c3aed6c84ea7b5f10683435e48a239083873dc';
+String _$meetupViewModelHash() => r'b174374588f9864d01adb448997e6b9594fd8187';
 
 /// Copied from Dart SDK
 class _SystemHash {
