@@ -23,15 +23,21 @@ MeetUp _$MeetUpFromJson(Map<String, dynamic> json) {
 mixin _$MeetUp {
   String get id => throw _privateConstructorUsedError; // 고유 ID
   String get name => throw _privateConstructorUsedError; // 모임 이름
-  int get participantCount => throw _privateConstructorUsedError; // 참여 인원 수
+  String get churchId => throw _privateConstructorUsedError; // 소속 교회 ID
   String get meetLeaderId =>
       throw _privateConstructorUsedError; // 모임 주최자 ID (User 참조)
-  List<String>? get participantIds =>
-      throw _privateConstructorUsedError; // 모임 참여자 ID 리스트
-  String? get description => throw _privateConstructorUsedError; // 모임 설명
-  DateTime? get scheduledAt => throw _privateConstructorUsedError; // 모임 예정 일시
   DateTime get createdAt => throw _privateConstructorUsedError; // 생성일시
   DateTime get updatedAt => throw _privateConstructorUsedError; // 수정일시
+  List<String> get participantIds =>
+      throw _privateConstructorUsedError; // 참여자 ID 리스트
+  String? get description => throw _privateConstructorUsedError; // 모임 설명
+  DateTime? get scheduledAt => throw _privateConstructorUsedError; // 모임 예정 일시
+  int? get maxParticipants =>
+      throw _privateConstructorUsedError; // 최대 참여 인원 (null = 무제한)
+  List<String> get reportedBy =>
+      throw _privateConstructorUsedError; // 신고한 사용자 ID 배열
+  bool get notificationSent =>
+      throw _privateConstructorUsedError; // 푸시 알림 발송 여부 (추후 확장용)
   DateTime? get deletedAt => throw _privateConstructorUsedError;
 
   /// Serializes this MeetUp to a JSON map.
@@ -51,13 +57,16 @@ abstract class $MeetUpCopyWith<$Res> {
   $Res call({
     String id,
     String name,
-    int participantCount,
+    String churchId,
     String meetLeaderId,
-    List<String>? participantIds,
-    String? description,
-    DateTime? scheduledAt,
     DateTime createdAt,
     DateTime updatedAt,
+    List<String> participantIds,
+    String? description,
+    DateTime? scheduledAt,
+    int? maxParticipants,
+    List<String> reportedBy,
+    bool notificationSent,
     DateTime? deletedAt,
   });
 }
@@ -79,13 +88,16 @@ class _$MeetUpCopyWithImpl<$Res, $Val extends MeetUp>
   $Res call({
     Object? id = null,
     Object? name = null,
-    Object? participantCount = null,
+    Object? churchId = null,
     Object? meetLeaderId = null,
-    Object? participantIds = freezed,
-    Object? description = freezed,
-    Object? scheduledAt = freezed,
     Object? createdAt = null,
     Object? updatedAt = null,
+    Object? participantIds = null,
+    Object? description = freezed,
+    Object? scheduledAt = freezed,
+    Object? maxParticipants = freezed,
+    Object? reportedBy = null,
+    Object? notificationSent = null,
     Object? deletedAt = freezed,
   }) {
     return _then(
@@ -98,26 +110,14 @@ class _$MeetUpCopyWithImpl<$Res, $Val extends MeetUp>
                 ? _value.name
                 : name // ignore: cast_nullable_to_non_nullable
                       as String,
-            participantCount: null == participantCount
-                ? _value.participantCount
-                : participantCount // ignore: cast_nullable_to_non_nullable
-                      as int,
+            churchId: null == churchId
+                ? _value.churchId
+                : churchId // ignore: cast_nullable_to_non_nullable
+                      as String,
             meetLeaderId: null == meetLeaderId
                 ? _value.meetLeaderId
                 : meetLeaderId // ignore: cast_nullable_to_non_nullable
                       as String,
-            participantIds: freezed == participantIds
-                ? _value.participantIds
-                : participantIds // ignore: cast_nullable_to_non_nullable
-                      as List<String>?,
-            description: freezed == description
-                ? _value.description
-                : description // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            scheduledAt: freezed == scheduledAt
-                ? _value.scheduledAt
-                : scheduledAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
             createdAt: null == createdAt
                 ? _value.createdAt
                 : createdAt // ignore: cast_nullable_to_non_nullable
@@ -126,6 +126,30 @@ class _$MeetUpCopyWithImpl<$Res, $Val extends MeetUp>
                 ? _value.updatedAt
                 : updatedAt // ignore: cast_nullable_to_non_nullable
                       as DateTime,
+            participantIds: null == participantIds
+                ? _value.participantIds
+                : participantIds // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+            description: freezed == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            scheduledAt: freezed == scheduledAt
+                ? _value.scheduledAt
+                : scheduledAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            maxParticipants: freezed == maxParticipants
+                ? _value.maxParticipants
+                : maxParticipants // ignore: cast_nullable_to_non_nullable
+                      as int?,
+            reportedBy: null == reportedBy
+                ? _value.reportedBy
+                : reportedBy // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+            notificationSent: null == notificationSent
+                ? _value.notificationSent
+                : notificationSent // ignore: cast_nullable_to_non_nullable
+                      as bool,
             deletedAt: freezed == deletedAt
                 ? _value.deletedAt
                 : deletedAt // ignore: cast_nullable_to_non_nullable
@@ -147,13 +171,16 @@ abstract class _$$MeetUpImplCopyWith<$Res> implements $MeetUpCopyWith<$Res> {
   $Res call({
     String id,
     String name,
-    int participantCount,
+    String churchId,
     String meetLeaderId,
-    List<String>? participantIds,
-    String? description,
-    DateTime? scheduledAt,
     DateTime createdAt,
     DateTime updatedAt,
+    List<String> participantIds,
+    String? description,
+    DateTime? scheduledAt,
+    int? maxParticipants,
+    List<String> reportedBy,
+    bool notificationSent,
     DateTime? deletedAt,
   });
 }
@@ -174,13 +201,16 @@ class __$$MeetUpImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? name = null,
-    Object? participantCount = null,
+    Object? churchId = null,
     Object? meetLeaderId = null,
-    Object? participantIds = freezed,
-    Object? description = freezed,
-    Object? scheduledAt = freezed,
     Object? createdAt = null,
     Object? updatedAt = null,
+    Object? participantIds = null,
+    Object? description = freezed,
+    Object? scheduledAt = freezed,
+    Object? maxParticipants = freezed,
+    Object? reportedBy = null,
+    Object? notificationSent = null,
     Object? deletedAt = freezed,
   }) {
     return _then(
@@ -193,26 +223,14 @@ class __$$MeetUpImplCopyWithImpl<$Res>
             ? _value.name
             : name // ignore: cast_nullable_to_non_nullable
                   as String,
-        participantCount: null == participantCount
-            ? _value.participantCount
-            : participantCount // ignore: cast_nullable_to_non_nullable
-                  as int,
+        churchId: null == churchId
+            ? _value.churchId
+            : churchId // ignore: cast_nullable_to_non_nullable
+                  as String,
         meetLeaderId: null == meetLeaderId
             ? _value.meetLeaderId
             : meetLeaderId // ignore: cast_nullable_to_non_nullable
                   as String,
-        participantIds: freezed == participantIds
-            ? _value._participantIds
-            : participantIds // ignore: cast_nullable_to_non_nullable
-                  as List<String>?,
-        description: freezed == description
-            ? _value.description
-            : description // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        scheduledAt: freezed == scheduledAt
-            ? _value.scheduledAt
-            : scheduledAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
         createdAt: null == createdAt
             ? _value.createdAt
             : createdAt // ignore: cast_nullable_to_non_nullable
@@ -221,6 +239,30 @@ class __$$MeetUpImplCopyWithImpl<$Res>
             ? _value.updatedAt
             : updatedAt // ignore: cast_nullable_to_non_nullable
                   as DateTime,
+        participantIds: null == participantIds
+            ? _value._participantIds
+            : participantIds // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+        description: freezed == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        scheduledAt: freezed == scheduledAt
+            ? _value.scheduledAt
+            : scheduledAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        maxParticipants: freezed == maxParticipants
+            ? _value.maxParticipants
+            : maxParticipants // ignore: cast_nullable_to_non_nullable
+                  as int?,
+        reportedBy: null == reportedBy
+            ? _value._reportedBy
+            : reportedBy // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+        notificationSent: null == notificationSent
+            ? _value.notificationSent
+            : notificationSent // ignore: cast_nullable_to_non_nullable
+                  as bool,
         deletedAt: freezed == deletedAt
             ? _value.deletedAt
             : deletedAt // ignore: cast_nullable_to_non_nullable
@@ -236,15 +278,19 @@ class _$MeetUpImpl implements _MeetUp {
   const _$MeetUpImpl({
     required this.id,
     required this.name,
-    required this.participantCount,
+    required this.churchId,
     required this.meetLeaderId,
-    final List<String>? participantIds,
-    this.description,
-    this.scheduledAt,
     required this.createdAt,
     required this.updatedAt,
+    final List<String> participantIds = const [],
+    this.description,
+    this.scheduledAt,
+    this.maxParticipants,
+    final List<String> reportedBy = const [],
+    this.notificationSent = false,
     this.deletedAt,
-  }) : _participantIds = participantIds;
+  }) : _participantIds = participantIds,
+       _reportedBy = reportedBy;
 
   factory _$MeetUpImpl.fromJson(Map<String, dynamic> json) =>
       _$$MeetUpImplFromJson(json);
@@ -256,23 +302,28 @@ class _$MeetUpImpl implements _MeetUp {
   final String name;
   // 모임 이름
   @override
-  final int participantCount;
-  // 참여 인원 수
+  final String churchId;
+  // 소속 교회 ID
   @override
   final String meetLeaderId;
   // 모임 주최자 ID (User 참조)
-  final List<String>? _participantIds;
-  // 모임 주최자 ID (User 참조)
   @override
-  List<String>? get participantIds {
-    final value = _participantIds;
-    if (value == null) return null;
+  final DateTime createdAt;
+  // 생성일시
+  @override
+  final DateTime updatedAt;
+  // 수정일시
+  final List<String> _participantIds;
+  // 수정일시
+  @override
+  @JsonKey()
+  List<String> get participantIds {
     if (_participantIds is EqualUnmodifiableListView) return _participantIds;
     // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(value);
+    return EqualUnmodifiableListView(_participantIds);
   }
 
-  // 모임 참여자 ID 리스트
+  // 참여자 ID 리스트
   @override
   final String? description;
   // 모임 설명
@@ -280,17 +331,29 @@ class _$MeetUpImpl implements _MeetUp {
   final DateTime? scheduledAt;
   // 모임 예정 일시
   @override
-  final DateTime createdAt;
-  // 생성일시
+  final int? maxParticipants;
+  // 최대 참여 인원 (null = 무제한)
+  final List<String> _reportedBy;
+  // 최대 참여 인원 (null = 무제한)
   @override
-  final DateTime updatedAt;
-  // 수정일시
+  @JsonKey()
+  List<String> get reportedBy {
+    if (_reportedBy is EqualUnmodifiableListView) return _reportedBy;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_reportedBy);
+  }
+
+  // 신고한 사용자 ID 배열
+  @override
+  @JsonKey()
+  final bool notificationSent;
+  // 푸시 알림 발송 여부 (추후 확장용)
   @override
   final DateTime? deletedAt;
 
   @override
   String toString() {
-    return 'MeetUp(id: $id, name: $name, participantCount: $participantCount, meetLeaderId: $meetLeaderId, participantIds: $participantIds, description: $description, scheduledAt: $scheduledAt, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
+    return 'MeetUp(id: $id, name: $name, churchId: $churchId, meetLeaderId: $meetLeaderId, createdAt: $createdAt, updatedAt: $updatedAt, participantIds: $participantIds, description: $description, scheduledAt: $scheduledAt, maxParticipants: $maxParticipants, reportedBy: $reportedBy, notificationSent: $notificationSent, deletedAt: $deletedAt)';
   }
 
   @override
@@ -300,10 +363,14 @@ class _$MeetUpImpl implements _MeetUp {
             other is _$MeetUpImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.name, name) || other.name == name) &&
-            (identical(other.participantCount, participantCount) ||
-                other.participantCount == participantCount) &&
+            (identical(other.churchId, churchId) ||
+                other.churchId == churchId) &&
             (identical(other.meetLeaderId, meetLeaderId) ||
                 other.meetLeaderId == meetLeaderId) &&
+            (identical(other.createdAt, createdAt) ||
+                other.createdAt == createdAt) &&
+            (identical(other.updatedAt, updatedAt) ||
+                other.updatedAt == updatedAt) &&
             const DeepCollectionEquality().equals(
               other._participantIds,
               _participantIds,
@@ -312,10 +379,14 @@ class _$MeetUpImpl implements _MeetUp {
                 other.description == description) &&
             (identical(other.scheduledAt, scheduledAt) ||
                 other.scheduledAt == scheduledAt) &&
-            (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt) &&
-            (identical(other.updatedAt, updatedAt) ||
-                other.updatedAt == updatedAt) &&
+            (identical(other.maxParticipants, maxParticipants) ||
+                other.maxParticipants == maxParticipants) &&
+            const DeepCollectionEquality().equals(
+              other._reportedBy,
+              _reportedBy,
+            ) &&
+            (identical(other.notificationSent, notificationSent) ||
+                other.notificationSent == notificationSent) &&
             (identical(other.deletedAt, deletedAt) ||
                 other.deletedAt == deletedAt));
   }
@@ -326,13 +397,16 @@ class _$MeetUpImpl implements _MeetUp {
     runtimeType,
     id,
     name,
-    participantCount,
+    churchId,
     meetLeaderId,
+    createdAt,
+    updatedAt,
     const DeepCollectionEquality().hash(_participantIds),
     description,
     scheduledAt,
-    createdAt,
-    updatedAt,
+    maxParticipants,
+    const DeepCollectionEquality().hash(_reportedBy),
+    notificationSent,
     deletedAt,
   );
 
@@ -354,13 +428,16 @@ abstract class _MeetUp implements MeetUp {
   const factory _MeetUp({
     required final String id,
     required final String name,
-    required final int participantCount,
+    required final String churchId,
     required final String meetLeaderId,
-    final List<String>? participantIds,
-    final String? description,
-    final DateTime? scheduledAt,
     required final DateTime createdAt,
     required final DateTime updatedAt,
+    final List<String> participantIds,
+    final String? description,
+    final DateTime? scheduledAt,
+    final int? maxParticipants,
+    final List<String> reportedBy,
+    final bool notificationSent,
     final DateTime? deletedAt,
   }) = _$MeetUpImpl;
 
@@ -371,19 +448,25 @@ abstract class _MeetUp implements MeetUp {
   @override
   String get name; // 모임 이름
   @override
-  int get participantCount; // 참여 인원 수
+  String get churchId; // 소속 교회 ID
   @override
   String get meetLeaderId; // 모임 주최자 ID (User 참조)
   @override
-  List<String>? get participantIds; // 모임 참여자 ID 리스트
+  DateTime get createdAt; // 생성일시
+  @override
+  DateTime get updatedAt; // 수정일시
+  @override
+  List<String> get participantIds; // 참여자 ID 리스트
   @override
   String? get description; // 모임 설명
   @override
   DateTime? get scheduledAt; // 모임 예정 일시
   @override
-  DateTime get createdAt; // 생성일시
+  int? get maxParticipants; // 최대 참여 인원 (null = 무제한)
   @override
-  DateTime get updatedAt; // 수정일시
+  List<String> get reportedBy; // 신고한 사용자 ID 배열
+  @override
+  bool get notificationSent; // 푸시 알림 발송 여부 (추후 확장용)
   @override
   DateTime? get deletedAt;
 

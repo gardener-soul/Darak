@@ -7,7 +7,7 @@ part of 'onboarding_view_model.dart';
 // **************************************************************************
 
 String _$onboardingViewModelHash() =>
-    r'1e1903de766576c3648657250677d8bbb9b3df70';
+    r'ec1156efbef4d89039f302b0673e4572848e43e4';
 
 /// 온보딩 과정을 관리하는 ViewModel입니다.
 /// 사용자가 입력한 프로필 정보를 메모리에 보관하다가,

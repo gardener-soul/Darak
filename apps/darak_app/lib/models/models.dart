@@ -16,6 +16,10 @@ export 'village.dart';
 export 'club.dart';
 export 'club_status.dart';
 
+// 교회 관련
+export 'church.dart';
+export 'church_status.dart';
+
 // 번개 모임 관련
 export 'meetup.dart';
 
@@ -26,3 +30,13 @@ export 'note.dart';
 export 'attendance.dart';
 export 'attendance_type.dart';
 export 'attendance_status.dart';
+
+// 기도 관련
+export 'prayer.dart';
+export 'prayer_visibility.dart';
+export 'prayer_status.dart';
+export 'prayer_period_type.dart';
+
+// 팔로우 관련
+export 'follow/follow.dart';
+export 'follow/follow_status.dart';

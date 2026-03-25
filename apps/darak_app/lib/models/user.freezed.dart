@@ -36,6 +36,9 @@ mixin _$User {
       throw _privateConstructorUsedError; // 소속 다락방 이미지 URL (비정규화)
   List<String>? get clubIds =>
       throw _privateConstructorUsedError; // 소속 클럽/동아리 ID 리스트 (여러 개 가능)
+  String? get churchId => throw _privateConstructorUsedError; // 소속 교회 ID
+  String? get churchName =>
+      throw _privateConstructorUsedError; // 소속 교회명 (비정규화 캐시)
   String? get profileImageUrl =>
       throw _privateConstructorUsedError; // 프로필 이미지 URL
   String? get bio => throw _privateConstructorUsedError; // 상태 메시지 (마이페이지)
@@ -73,6 +76,8 @@ abstract class $UserCopyWith<$Res> {
     String? groupName,
     String? groupImageUrl,
     List<String>? clubIds,
+    String? churchId,
+    String? churchName,
     String? profileImageUrl,
     String? bio,
     List<String>? prayerRequests,
@@ -109,6 +114,8 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? groupName = freezed,
     Object? groupImageUrl = freezed,
     Object? clubIds = freezed,
+    Object? churchId = freezed,
+    Object? churchName = freezed,
     Object? profileImageUrl = freezed,
     Object? bio = freezed,
     Object? prayerRequests = freezed,
@@ -163,6 +170,14 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
                 ? _value.clubIds
                 : clubIds // ignore: cast_nullable_to_non_nullable
                       as List<String>?,
+            churchId: freezed == churchId
+                ? _value.churchId
+                : churchId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            churchName: freezed == churchName
+                ? _value.churchName
+                : churchName // ignore: cast_nullable_to_non_nullable
+                      as String?,
             profileImageUrl: freezed == profileImageUrl
                 ? _value.profileImageUrl
                 : profileImageUrl // ignore: cast_nullable_to_non_nullable
@@ -217,6 +232,8 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
     String? groupName,
     String? groupImageUrl,
     List<String>? clubIds,
+    String? churchId,
+    String? churchName,
     String? profileImageUrl,
     String? bio,
     List<String>? prayerRequests,
@@ -250,6 +267,8 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? groupName = freezed,
     Object? groupImageUrl = freezed,
     Object? clubIds = freezed,
+    Object? churchId = freezed,
+    Object? churchName = freezed,
     Object? profileImageUrl = freezed,
     Object? bio = freezed,
     Object? prayerRequests = freezed,
@@ -304,6 +323,14 @@ class __$$UserImplCopyWithImpl<$Res>
             ? _value._clubIds
             : clubIds // ignore: cast_nullable_to_non_nullable
                   as List<String>?,
+        churchId: freezed == churchId
+            ? _value.churchId
+            : churchId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        churchName: freezed == churchName
+            ? _value.churchName
+            : churchName // ignore: cast_nullable_to_non_nullable
+                  as String?,
         profileImageUrl: freezed == profileImageUrl
             ? _value.profileImageUrl
             : profileImageUrl // ignore: cast_nullable_to_non_nullable
@@ -352,6 +379,8 @@ class _$UserImpl implements _User {
     this.groupName,
     this.groupImageUrl,
     final List<String>? clubIds,
+    this.churchId,
+    this.churchName,
     this.profileImageUrl,
     this.bio,
     final List<String>? prayerRequests,
@@ -409,6 +438,12 @@ class _$UserImpl implements _User {
 
   // 소속 클럽/동아리 ID 리스트 (여러 개 가능)
   @override
+  final String? churchId;
+  // 소속 교회 ID
+  @override
+  final String? churchName;
+  // 소속 교회명 (비정규화 캐시)
+  @override
   final String? profileImageUrl;
   // 프로필 이미지 URL
   @override
@@ -449,7 +484,7 @@ class _$UserImpl implements _User {
 
   @override
   String toString() {
-    return 'User(id: $id, name: $name, phone: $phone, email: $email, role: $role, birthDate: $birthDate, registerDate: $registerDate, groupId: $groupId, groupName: $groupName, groupImageUrl: $groupImageUrl, clubIds: $clubIds, profileImageUrl: $profileImageUrl, bio: $bio, prayerRequests: $prayerRequests, attendanceStats: $attendanceStats, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
+    return 'User(id: $id, name: $name, phone: $phone, email: $email, role: $role, birthDate: $birthDate, registerDate: $registerDate, groupId: $groupId, groupName: $groupName, groupImageUrl: $groupImageUrl, clubIds: $clubIds, churchId: $churchId, churchName: $churchName, profileImageUrl: $profileImageUrl, bio: $bio, prayerRequests: $prayerRequests, attendanceStats: $attendanceStats, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
   }
 
   @override
@@ -472,6 +507,10 @@ class _$UserImpl implements _User {
             (identical(other.groupImageUrl, groupImageUrl) ||
                 other.groupImageUrl == groupImageUrl) &&
             const DeepCollectionEquality().equals(other._clubIds, _clubIds) &&
+            (identical(other.churchId, churchId) ||
+                other.churchId == churchId) &&
+            (identical(other.churchName, churchName) ||
+                other.churchName == churchName) &&
             (identical(other.profileImageUrl, profileImageUrl) ||
                 other.profileImageUrl == profileImageUrl) &&
             (identical(other.bio, bio) || other.bio == bio) &&
@@ -493,7 +532,7 @@ class _$UserImpl implements _User {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     runtimeType,
     id,
     name,
@@ -506,6 +545,8 @@ class _$UserImpl implements _User {
     groupName,
     groupImageUrl,
     const DeepCollectionEquality().hash(_clubIds),
+    churchId,
+    churchName,
     profileImageUrl,
     bio,
     const DeepCollectionEquality().hash(_prayerRequests),
@@ -513,7 +554,7 @@ class _$UserImpl implements _User {
     createdAt,
     updatedAt,
     deletedAt,
-  );
+  ]);
 
   /// Create a copy of User
   /// with the given fields replaced by the non-null parameter values.
@@ -542,6 +583,8 @@ abstract class _User implements User {
     final String? groupName,
     final String? groupImageUrl,
     final List<String>? clubIds,
+    final String? churchId,
+    final String? churchName,
     final String? profileImageUrl,
     final String? bio,
     final List<String>? prayerRequests,
@@ -575,6 +618,10 @@ abstract class _User implements User {
   String? get groupImageUrl; // 소속 다락방 이미지 URL (비정규화)
   @override
   List<String>? get clubIds; // 소속 클럽/동아리 ID 리스트 (여러 개 가능)
+  @override
+  String? get churchId; // 소속 교회 ID
+  @override
+  String? get churchName; // 소속 교회명 (비정규화 캐시)
   @override
   String? get profileImageUrl; // 프로필 이미지 URL
   @override

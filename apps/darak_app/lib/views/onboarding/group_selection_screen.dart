@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/bouncy_button.dart';
 import '../../widgets/common/soft_text_field.dart';
+import '../../widgets/common/empty_state_view.dart';
 import '../../repositories/group_repository.dart';
 import '../../models/group.dart';
 import 'widgets/group_card.dart';
@@ -31,11 +32,16 @@ class _GroupSelectionScreenState extends ConsumerState<GroupSelectionScreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounceTimer;
   String _searchQuery = '';
-  String? _selectedGroupId;
+  Group? _selectedGroup;
 
-  // 캐싱용 변수
-  List<Group>? _cachedGroups;
-  String _lastQuery = '';
+  // Future를 필드로 저장하여 매 build마다 새 Future가 생성되는 것을 방지
+  late Future<List<Group>> _groupsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _groupsFuture = _fetchGroups();
+  }
 
   @override
   void dispose() {
@@ -49,46 +55,30 @@ class _GroupSelectionScreenState extends ConsumerState<GroupSelectionScreen> {
     _debounceTimer = Timer(const Duration(milliseconds: 300), () {
       setState(() {
         _searchQuery = query;
-        _cachedGroups = null;
+        _groupsFuture = _fetchGroups();
       });
     });
   }
 
   Future<List<Group>> _fetchGroups() async {
-    if (_searchQuery == _lastQuery && _cachedGroups != null) {
-      return _cachedGroups!;
-    }
-
     final repository = ref.read(groupRepositoryProvider);
-    final List<Group> groups;
-
     if (_searchQuery.trim().isEmpty) {
-      groups = await repository.getAllGroups(limit: 20);
+      return repository.getAllGroups(limit: 20);
     } else {
-      groups = await repository.searchGroups(_searchQuery.trim(), limit: 20);
+      return repository.searchGroups(_searchQuery.trim(), limit: 20);
     }
-
-    _lastQuery = _searchQuery;
-    _cachedGroups = groups;
-    return groups;
   }
 
   void _onGroupTap(Group group) {
     setState(() {
-      _selectedGroupId = group.id;
+      _selectedGroup = group;
     });
-  }
-
-  void _confirmSelection(Group group) {
-    widget.onGroupSelected?.call(group);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.creamWhite,
       appBar: AppBar(
-        backgroundColor: AppColors.creamWhite,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
@@ -123,7 +113,7 @@ class _GroupSelectionScreenState extends ConsumerState<GroupSelectionScreen> {
 
           Expanded(
             child: FutureBuilder<List<Group>>(
-              future: _fetchGroups(),
+              future: _groupsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -135,75 +125,25 @@ class _GroupSelectionScreenState extends ConsumerState<GroupSelectionScreen> {
                 }
 
                 if (snapshot.hasError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.error_outline_rounded,
-                            size: 64,
-                            color: AppColors.textGrey,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            '그룹 목록을 불러오지 못했습니다.',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.textGrey,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '인터넷 연결을 확인해주세요.',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.textGrey,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          BouncyButton(
-                            onPressed: () {
-                              setState(() {
-                                _cachedGroups = null;
-                                _lastQuery = '';
-                              });
-                            },
-                            text: '다시 시도',
-                            icon: const Icon(Icons.refresh_rounded),
-                            isFullWidth: false,
-                          ),
-                        ],
-                      ),
-                    ),
+                  return EmptyStateView(
+                    icon: Icons.error_outline_rounded,
+                    message: '그룹 목록을 불러오지 못했습니다.',
+                    subMessage: '인터넷 연결을 확인해주세요.',
+                    actionLabel: '다시 시도',
+                    onAction: () => setState(() {
+                      _groupsFuture = _fetchGroups();
+                    }),
                   );
                 }
 
                 final groups = snapshot.data ?? [];
 
                 if (groups.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.search_off_rounded,
-                            size: 64,
-                            color: AppColors.textGrey,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _searchQuery.isEmpty
-                                ? '아직 다락방이 없습니다.'
-                                : '검색 결과가 없습니다.',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.textGrey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  return EmptyStateView(
+                    icon: Icons.search_off_rounded,
+                    message: _searchQuery.isEmpty
+                        ? '아직 다락방이 없습니다.'
+                        : '검색 결과가 없습니다.',
                   );
                 }
 
@@ -214,7 +154,7 @@ class _GroupSelectionScreenState extends ConsumerState<GroupSelectionScreen> {
                     final group = groups[index];
                     return GroupCard(
                       group: group,
-                      isSelected: _selectedGroupId == group.id,
+                      isSelected: _selectedGroup?.id == group.id,
                       onTap: () => _onGroupTap(group),
                     );
                   },
@@ -223,22 +163,13 @@ class _GroupSelectionScreenState extends ConsumerState<GroupSelectionScreen> {
             ),
           ),
 
-          if (_selectedGroupId != null)
+          if (_selectedGroup != null)
             Padding(
               padding: const EdgeInsets.all(24),
-              child: FutureBuilder<List<Group>>(
-                future: _fetchGroups(),
-                builder: (context, snapshot) {
-                  final selected = snapshot.data?.where(
-                    (g) => g.id == _selectedGroupId,
-                  ).firstOrNull;
-                  if (selected == null) return const SizedBox.shrink();
-                  return BouncyButton(
-                    onPressed: () => _confirmSelection(selected),
-                    text: '가입하기',
-                    icon: const Icon(Icons.check_rounded),
-                  );
-                },
+              child: BouncyButton(
+                onPressed: () => widget.onGroupSelected?.call(_selectedGroup!),
+                text: '가입하기',
+                icon: const Icon(Icons.check_rounded),
               ),
             ),
         ],

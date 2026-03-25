@@ -30,6 +30,8 @@ mixin _$Village {
   List<String>? get memberIds =>
       throw _privateConstructorUsedError; // 마을 소속 순원 ID 리스트
   String? get description => throw _privateConstructorUsedError; // 마을 설명
+  String? get churchId =>
+      throw _privateConstructorUsedError; // 소속 교회 ID (마이그레이션 기간 동안 null 허용)
   DateTime get createdAt => throw _privateConstructorUsedError; // 생성일시
   DateTime get updatedAt => throw _privateConstructorUsedError; // 수정일시
   DateTime? get deletedAt => throw _privateConstructorUsedError;
@@ -55,6 +57,7 @@ abstract class $VillageCopyWith<$Res> {
     List<String>? darakLeaderIds,
     List<String>? memberIds,
     String? description,
+    String? churchId,
     DateTime createdAt,
     DateTime updatedAt,
     DateTime? deletedAt,
@@ -82,6 +85,7 @@ class _$VillageCopyWithImpl<$Res, $Val extends Village>
     Object? darakLeaderIds = freezed,
     Object? memberIds = freezed,
     Object? description = freezed,
+    Object? churchId = freezed,
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? deletedAt = freezed,
@@ -111,6 +115,10 @@ class _$VillageCopyWithImpl<$Res, $Val extends Village>
             description: freezed == description
                 ? _value.description
                 : description // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            churchId: freezed == churchId
+                ? _value.churchId
+                : churchId // ignore: cast_nullable_to_non_nullable
                       as String?,
             createdAt: null == createdAt
                 ? _value.createdAt
@@ -145,6 +153,7 @@ abstract class _$$VillageImplCopyWith<$Res> implements $VillageCopyWith<$Res> {
     List<String>? darakLeaderIds,
     List<String>? memberIds,
     String? description,
+    String? churchId,
     DateTime createdAt,
     DateTime updatedAt,
     DateTime? deletedAt,
@@ -171,6 +180,7 @@ class __$$VillageImplCopyWithImpl<$Res>
     Object? darakLeaderIds = freezed,
     Object? memberIds = freezed,
     Object? description = freezed,
+    Object? churchId = freezed,
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? deletedAt = freezed,
@@ -201,6 +211,10 @@ class __$$VillageImplCopyWithImpl<$Res>
             ? _value.description
             : description // ignore: cast_nullable_to_non_nullable
                   as String?,
+        churchId: freezed == churchId
+            ? _value.churchId
+            : churchId // ignore: cast_nullable_to_non_nullable
+                  as String?,
         createdAt: null == createdAt
             ? _value.createdAt
             : createdAt // ignore: cast_nullable_to_non_nullable
@@ -228,6 +242,7 @@ class _$VillageImpl implements _Village {
     final List<String>? darakLeaderIds,
     final List<String>? memberIds,
     this.description,
+    this.churchId,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -274,6 +289,9 @@ class _$VillageImpl implements _Village {
   final String? description;
   // 마을 설명
   @override
+  final String? churchId;
+  // 소속 교회 ID (마이그레이션 기간 동안 null 허용)
+  @override
   final DateTime createdAt;
   // 생성일시
   @override
@@ -284,7 +302,7 @@ class _$VillageImpl implements _Village {
 
   @override
   String toString() {
-    return 'Village(id: $id, name: $name, leaderId: $leaderId, darakLeaderIds: $darakLeaderIds, memberIds: $memberIds, description: $description, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
+    return 'Village(id: $id, name: $name, leaderId: $leaderId, darakLeaderIds: $darakLeaderIds, memberIds: $memberIds, description: $description, churchId: $churchId, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
   }
 
   @override
@@ -306,6 +324,8 @@ class _$VillageImpl implements _Village {
             ) &&
             (identical(other.description, description) ||
                 other.description == description) &&
+            (identical(other.churchId, churchId) ||
+                other.churchId == churchId) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -324,6 +344,7 @@ class _$VillageImpl implements _Village {
     const DeepCollectionEquality().hash(_darakLeaderIds),
     const DeepCollectionEquality().hash(_memberIds),
     description,
+    churchId,
     createdAt,
     updatedAt,
     deletedAt,
@@ -351,6 +372,7 @@ abstract class _Village implements Village {
     final List<String>? darakLeaderIds,
     final List<String>? memberIds,
     final String? description,
+    final String? churchId,
     required final DateTime createdAt,
     required final DateTime updatedAt,
     final DateTime? deletedAt,
@@ -370,6 +392,8 @@ abstract class _Village implements Village {
   List<String>? get memberIds; // 마을 소속 순원 ID 리스트
   @override
   String? get description; // 마을 설명
+  @override
+  String? get churchId; // 소속 교회 ID (마이그레이션 기간 동안 null 허용)
   @override
   DateTime get createdAt; // 생성일시
   @override

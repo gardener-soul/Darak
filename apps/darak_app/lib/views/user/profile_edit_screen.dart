@@ -66,54 +66,43 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
   /// 유효성 검사
   bool _validate() {
-    setState(() {
-      _nameError = null;
-      _phoneError = null;
-    });
-
-    bool isValid = true;
+    String? nameError;
+    String? phoneError;
 
     // 이름 검증
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() {
-        _nameError = '이름을 입력해주세요.';
-      });
-      isValid = false;
+      nameError = '이름을 입력해주세요.';
     } else if (name.length > 50) {
-      setState(() {
-        _nameError = '이름은 50자 이내로 입력해주세요.';
-      });
-      isValid = false;
+      nameError = '이름은 50자 이내로 입력해주세요.';
     }
 
     // 전화번호 검증
     final phone = _phoneController.text.trim();
     if (phone.isEmpty) {
-      setState(() {
-        _phoneError = '전화번호를 입력해주세요.';
-      });
-      isValid = false;
+      phoneError = '전화번호를 입력해주세요.';
     } else if (!StringUtils.isValidKoreanPhone(phone)) {
-      setState(() {
-        _phoneError = '올바른 전화번호 형식을 입력해주세요. (예: 010-1234-5678)';
-      });
-      isValid = false;
+      phoneError = '올바른 전화번호 형식을 입력해주세요. (예: 010-1234-5678)';
     }
 
+    setState(() {
+      _nameError = nameError;
+      _phoneError = phoneError;
+    });
+
     // 생년월일 검증 (선택 사항이지만, 입력된 경우 유효성 체크)
-    if (_selectedBirthDate != null &&
-        !StringUtils.isValidBirthDate(_selectedBirthDate)) {
+    final birthDate = _selectedBirthDate;
+    if (birthDate != null && !StringUtils.isValidBirthDate(birthDate)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('올바른 생년월일을 선택해주세요.'),
           backgroundColor: AppColors.softCoral,
         ),
       );
-      isValid = false;
+      return false;
     }
 
-    return isValid;
+    return nameError == null && phoneError == null;
   }
 
   /// 프로필 업데이트 제출
@@ -193,10 +182,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // 섹션 제목
-                      Text(
-                        '내 정보 수정',
-                        style: AppTextStyles.headlineMedium,
-                      ),
+                      Text('내 정보 수정', style: AppTextStyles.headlineMedium),
                       const SizedBox(height: 8),
                       Text(
                         '변경된 정보는 즉시 반영됩니다',
@@ -302,17 +288,12 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   Widget _buildFieldLabel(String label, {required bool isRequired}) {
     return Row(
       children: [
-        Text(
-          label,
-          style: AppTextStyles.bodyLarge,
-        ),
+        Text(label, style: AppTextStyles.bodyLarge),
         if (isRequired) ...[
           const SizedBox(width: 4),
           Text(
             '*',
-            style: AppTextStyles.bodyLarge.copyWith(
-              color: AppColors.softCoral,
-            ),
+            style: AppTextStyles.bodyLarge.copyWith(color: AppColors.softCoral),
           ),
         ],
       ],
@@ -331,9 +312,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         Expanded(
           child: Text(
             error,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.softCoral,
-            ),
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.softCoral),
           ),
         ),
       ],

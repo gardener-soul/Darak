@@ -74,7 +74,8 @@ class _VerificationWaitingScreenState
     } catch (e) {
       // Ignore
     } finally {
-      if (mounted) setState(() => _isChecking = false);
+      // auto 호출은 _isChecking을 설정하지 않았으므로 리셋도 하지 않음
+      if (!auto && mounted) setState(() => _isChecking = false);
     }
   }
 
@@ -117,8 +118,6 @@ class _VerificationWaitingScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.creamWhite,
-      // 닫기 버튼을 상단에 추가 (모달/페이지 종료)
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         automaticallyImplyLeading: false,

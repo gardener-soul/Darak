@@ -8,7 +8,7 @@ import '../../../widgets/common/core/clay_avatar.dart';
 /// 디자인 컨셉 (MYPAGE_PLAN §6.1):
 /// - 둥근 아바타 이미지에 4px 두께의 Soft Indigo 보더로 Clay 질감
 /// - 아바타 하단에 은은한 BoxShadow로 입체감(Tactile)
-/// - 이름, 이메일(마스킹), 상태 메시지(bio), 교회 등록일 표시
+/// - 이름, 이메일(마스킹), 상태 메시지(bio), 함께한 지 N일째 표시
 class UserProfileHeader extends StatelessWidget {
   final String displayName;
   final String email;
@@ -16,6 +16,9 @@ class UserProfileHeader extends StatelessWidget {
   final String? bio;
   final DateTime? registerDate;
   final VoidCallback onEditPressed;
+
+  /// 교인 검색 탭 콜백
+  final VoidCallback? onSearchTap;
 
   const UserProfileHeader({
     super.key,
@@ -25,6 +28,7 @@ class UserProfileHeader extends StatelessWidget {
     required this.onEditPressed,
     this.bio,
     this.registerDate,
+    this.onSearchTap,
   });
 
   // ─── 이메일 마스킹 헬퍼 ─────────────────────────────────────
@@ -38,10 +42,23 @@ class UserProfileHeader extends StatelessWidget {
     return '${name.substring(0, 2)}${'*' * (name.length - 2)}@$domain';
   }
 
-  // ─── 날짜 포맷 헬퍼 ─────────────────────────────────────────
-  String _formatDate(DateTime? date) {
+  // ─── 날짜 포맷 헬퍼 (함께한 지 N일째) ────────────────────────
+  String _formatJoinDays(DateTime? date) {
     if (date == null) return '';
-    return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
+    final now = DateTime.now();
+    // 시간 부분을 제거하고 날짜만 비교
+    final today = DateTime(now.year, now.month, now.day);
+    final joinDate = DateTime(date.year, date.month, date.day);
+    final diff = today.difference(joinDate).inDays + 1;
+
+    if (diff < 365) {
+      return '함께한 지 ${diff}일째';
+    } else {
+      final years = diff ~/ 365;
+      final days = diff % 365;
+      if (days == 0) return '함께한 지 ${years}년째';
+      return '함께한 지 ${years}년 ${days}일째';
+    }
   }
 
   @override
@@ -64,8 +81,8 @@ class UserProfileHeader extends StatelessWidget {
             _buildBioSection(),
           ],
           const SizedBox(height: 20),
-          // ─── 프로필 수정 버튼 ───────────────────────────────
-          _buildEditButton(),
+          // ─── 프로필 수정 + 교인 찾기 버튼 행 ───────────────
+          _buildActionButtons(),
         ],
       ),
     );
@@ -99,20 +116,24 @@ class UserProfileHeader extends StatelessWidget {
             ),
           ],
         ),
-        // 교회 등록일
+        // 함께한 지 N일째 표시
         if (registerDate != null) ...[
           const SizedBox(height: 4),
           Row(
             children: [
               Icon(
-                Icons.calendar_today_rounded,
+                Icons.favorite_rounded,
                 size: 14,
-                color: AppColors.textGrey,
+                color: AppColors.softCoral,
               ),
               const SizedBox(width: 6),
               Text(
-                '등록일 ${_formatDate(registerDate)}',
-                style: AppTextStyles.bodySmall.copyWith(fontSize: 12),
+                _formatJoinDays(registerDate),
+                style: AppTextStyles.bodySmall.copyWith(
+                  fontSize: 12,
+                  color: AppColors.softCoral,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -150,25 +171,51 @@ class UserProfileHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildEditButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: onEditPressed,
-        icon: const Icon(Icons.edit_rounded, size: 18),
-        label: const Text('프로필 수정'),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.softCoral,
-          side: const BorderSide(color: AppColors.softCoral, width: 1.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: AppDecorations.buttonRadius,
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          textStyle: AppTextStyles.bodyMedium.copyWith(
-            fontWeight: FontWeight.w700,
+  /// 프로필 수정 + 교인 찾기 버튼 행
+  Widget _buildActionButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: onEditPressed,
+            icon: const Icon(Icons.edit_rounded, size: 18),
+            label: const Text('프로필 수정'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.softCoral,
+              side: const BorderSide(color: AppColors.softCoral, width: 1.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: AppDecorations.buttonRadius,
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              textStyle: AppTextStyles.bodyMedium.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ),
-      ),
+        if (onSearchTap != null) ...[
+          const SizedBox(width: 8),
+          OutlinedButton.icon(
+            onPressed: onSearchTap,
+            icon: const Icon(Icons.person_search_rounded, size: 18),
+            label: const Text('교인 찾기'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.warmTangerine,
+              side: const BorderSide(
+                color: AppColors.warmTangerine,
+                width: 1.5,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: AppDecorations.buttonRadius,
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              textStyle: AppTextStyles.bodyMedium.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

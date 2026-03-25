@@ -16,6 +16,7 @@ _$GroupImpl _$$GroupImplFromJson(Map<String, dynamic> json) => _$GroupImpl(
       .toList(),
   villageId: json['villageId'] as String?,
   description: json['description'] as String?,
+  churchId: json['churchId'] as String?,
   createdAt: DateTime.parse(json['createdAt'] as String),
   updatedAt: DateTime.parse(json['updatedAt'] as String),
   deletedAt: json['deletedAt'] == null
@@ -32,6 +33,7 @@ Map<String, dynamic> _$$GroupImplToJson(_$GroupImpl instance) =>
       'memberIds': instance.memberIds,
       'villageId': instance.villageId,
       'description': instance.description,
+      'churchId': instance.churchId,
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),
       'deletedAt': instance.deletedAt?.toIso8601String(),

@@ -1,17 +1,25 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../core/providers/user_providers.dart';
 import '../../models/user.dart' as app_user;
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/clay_card.dart';
+import '../../widgets/common/skeleton_card.dart';
 import '../../widgets/common/core/clay_list_tile.dart';
 import '../../widgets/common/core/soft_dialog.dart';
-import 'widgets/user_profile_header.dart';
-import 'widgets/user_stats_dashboard.dart';
 import 'profile_edit_screen.dart';
+import 'widgets/attendance_heatmap.dart';
+import 'widgets/monthly_attendance_bar.dart';
+import 'widgets/prayer_archive_preview.dart';
+import 'widgets/relationship_summary_card.dart';
+import 'widgets/spiritual_dashboard_card.dart';
+import 'widgets/user_profile_header.dart';
+
+import '../../viewmodels/follow/follow_stats_viewmodel.dart';
+import '../../viewmodels/user/prayer_archive_viewmodel.dart';
+import '../../viewmodels/user/spiritual_dashboard_viewmodel.dart';
+import '../follow/follow_list_screen.dart';
 
 /// 마이페이지 (사용자 프로필) 화면
 ///
@@ -26,21 +34,14 @@ class UserProfileScreen extends ConsumerStatefulWidget {
 
 class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   bool _isLoggingOut = false;
-  Timer? _shimmerTimer;
-  bool _shimmerFlag = false;
 
   @override
   void initState() {
     super.initState();
-    // 800ms 주기로 Shimmer 깜빡임 애니메이션 (Pulse) 강제 발생
-    _shimmerTimer = Timer.periodic(const Duration(milliseconds: 800), (timer) {
-      if (mounted) setState(() => _shimmerFlag = !_shimmerFlag);
-    });
   }
 
   @override
   void dispose() {
-    _shimmerTimer?.cancel();
     super.dispose();
   }
 
@@ -87,11 +88,31 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     }
   }
 
+  // ─── 준비 중 기능 알림 SnackBar ──────────────────────────
+  void _showComingSoonSnackBar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('준비 중인 기능입니다 🔜'),
+        backgroundColor: AppColors.warmTangerine,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   // ─── 프로필 수정 화면 열기 ────────────────────────────────
   void _openEditProfileScreen() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const ProfileEditScreen()));
+  }
+
+  // ─── 팔로잉/팔로워 목록 열기 ─────────────────────────────
+  /// [initialTab] 0 = 팔로잉, 1 = 팔로워
+  void _openFollowList(int initialTab) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const ProfileEditScreen(),
+        builder: (context) => FollowListScreen(initialTab: initialTab),
       ),
     );
   }
@@ -123,11 +144,17 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   // 정상 데이터 UI (메인 프로필 화면)
   // ═══════════════════════════════════════════════════════════════
   Widget _buildProfileContent(app_user.User user) {
-    // 출석 통계 파싱 (null 안전)
-    final stats = user.attendanceStats;
-    final attendanceTotal = stats?['total'] as int?;
-    final attendanceAttended = stats?['attended'] as int?;
-    final prayerCount = user.prayerRequests?.length ?? 0;
+    final prayerPreviewAsync = ref.watch(
+      answeredPrayerPreviewProvider(user.id),
+    );
+    final prayerCountAsync = ref.watch(answeredPrayerCountProvider(user.id));
+    // 팔로잉/팔로워 수 실데이터 (§3-4 기획서)
+    final followStatsAsync = ref.watch(followStatsProvider(user.id));
+    // 연속 출석 주수 — 뱃지 시스템에 전달 (로딩/에러 시 0으로 fallback)
+    final dashboardAsync = ref.watch(
+      spiritualDashboardProvider((userId: user.id, groupId: user.groupId)),
+    );
+    final consecutiveWeeks = dashboardAsync.valueOrNull?.consecutiveWeeks ?? 0;
 
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
@@ -136,7 +163,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ─── 타이틀 ──────────────────────────────────────────
-          Text('마이페이지', style: AppTextStyles.headlineLarge),
+          Text('나의 여정', style: AppTextStyles.headlineLarge),
           const SizedBox(height: 24),
 
           // ─── 프로필 헤더 카드 (§6.1 Clay Avatar) ──────────────
@@ -150,15 +177,39 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
           ),
           const SizedBox(height: 24),
 
-          // ─── 통계 대시보드 (§6.2 Stats Dashboard) ─────────────
-          Text('내 활동 요약', style: AppTextStyles.headlineMedium),
+          // ─── 영적 여정 요약 ────────────────────────────────────
+          SpiritualDashboardCard(userId: user.id, groupId: user.groupId),
+          const SizedBox(height: 24),
+
+          // ─── 출석 히트맵 ───────────────────────────────────────
+          AttendanceHeatmap(
+            userId: user.id,
+            consecutiveWeeks: consecutiveWeeks,
+          ),
           const SizedBox(height: 16),
-          UserStatsDashboard(
-            // Phase 3: Firestore 실데이터 바인딩
-            groupName: null, // TODO: groupId로 group name 조회 (추후 구현)
-            attendanceTotal: attendanceTotal,
-            attendanceAttended: attendanceAttended,
-            prayerRequestCount: prayerCount,
+          MonthlyAttendanceBar(userId: user.id),
+          const SizedBox(height: 24),
+
+          // ─── 기도 응답 아카이브 ────────────────────────────────
+          prayerPreviewAsync.when(
+            loading: () => _shimmerBox(double.infinity, 140),
+            error: (err, st) => const SizedBox.shrink(),
+            data: (prayers) => PrayerArchivePreview(
+              count: prayerCountAsync.valueOrNull ?? 0,
+              prayers: prayers,
+              onGoToPrayer: _showComingSoonSnackBar,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ─── 관계망 요약 (팔로잉/팔로워 실데이터 연결) ────────────
+          RelationshipSummaryCard(
+            followingCount: followStatsAsync.valueOrNull?.following ?? 0,
+            followerCount: followStatsAsync.valueOrNull?.follower ?? 0,
+            clubCount: user.clubIds?.length ?? 0,
+            onFollowingTap: () => _openFollowList(0),
+            onFollowerTap: () => _openFollowList(1),
+            onFindMembers: _showComingSoonSnackBar,
           ),
           const SizedBox(height: 24),
 
@@ -182,7 +233,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('마이페이지', style: AppTextStyles.headlineLarge),
+          Text('나의 여정', style: AppTextStyles.headlineLarge),
           const SizedBox(height: 24),
           // 프로필 헤더 스켈레톤
           ClayCard(
@@ -225,16 +276,10 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     double? width,
     bool isCircle = false,
   }) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 800),
-      curve: Curves.easeInOut,
+    return SkeletonCard(
       width: width ?? maxWidth,
       height: height,
-      decoration: BoxDecoration(
-        color: AppColors.divider.withValues(alpha: _shimmerFlag ? 0.2 : 0.6),
-        borderRadius: isCircle ? null : BorderRadius.circular(12),
-        shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
-      ),
+      borderRadius: isCircle ? 999 : 12,
     );
   }
 
@@ -308,37 +353,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             title: '내 다락방(공동체)',
             subtitle: '소속 공동체 확인',
             leadingColor: AppColors.softLavender,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('준비 중인 기능입니다 🔜'),
-                  backgroundColor: AppColors.warmTangerine,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              );
-            },
-          ),
-          _buildDivider(),
-          ClayListTile(
-            leadingIcon: Icons.menu_book_rounded,
-            title: '내 기도 제목',
-            subtitle: '기도 제목 관리',
-            leadingColor: AppColors.sageGreen,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('준비 중인 기능입니다 🔜'),
-                  backgroundColor: AppColors.warmTangerine,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              );
-            },
+            onTap: _showComingSoonSnackBar,
           ),
           _buildDivider(),
           ClayListTile(
@@ -346,18 +361,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             title: '알림 설정',
             subtitle: '푸시 알림 관리',
             leadingColor: AppColors.warmTangerine,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('준비 중인 기능입니다 🔜'),
-                  backgroundColor: AppColors.warmTangerine,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              );
-            },
+            onTap: _showComingSoonSnackBar,
           ),
           _buildDivider(),
           ClayListTile(

@@ -1,3 +1,5 @@
+import 'input_sanitizer.dart';
+
 /// 문자열 관련 유틸리티 함수 모음
 /// XSS 방어, 전화번호 검증 등 공통 로직을 제공합니다.
 class StringUtils {
@@ -8,15 +10,7 @@ class StringUtils {
   /// [maxLength]: 최대 길이 (기본값: 100)
   /// 반환: 정제된 문자열
   static String sanitize(String input, {int maxLength = 100}) {
-    // HTML 태그 제거
-    final stripped = input.replaceAll(RegExp(r'<[^>]*>'), '');
-    // 앞뒤 공백 제거
-    final trimmed = stripped.trim();
-    // 길이 제한
-    if (trimmed.length > maxLength) {
-      return trimmed.substring(0, maxLength);
-    }
-    return trimmed;
+    return sanitizeInput(input, maxLength: maxLength);
   }
 
   /// 한국 전화번호 형식 검증
@@ -58,6 +52,12 @@ class StringUtils {
 
     // 포맷팅 불가능하면 원본 반환
     return phone;
+  }
+
+  /// Exception 메시지에서 'Exception: ' 접두사를 제거하여 사용자에게 표시할 메시지를 반환
+  /// try-catch에서 caught된 에러를 ScaffoldMessenger/SnackBar에 전달하기 전에 사용합니다.
+  static String cleanExceptionMessage(Object exception) {
+    return exception.toString().replaceAll(RegExp(r'^Exception:\s*'), '');
   }
 
   /// 생년월일 유효성 검증
