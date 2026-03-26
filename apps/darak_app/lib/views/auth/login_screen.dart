@@ -7,6 +7,7 @@ import '../../widgets/common/bouncy_button.dart';
 
 import '../../widgets/common/soft_text_field.dart';
 import 'sign_up_screen.dart';
+import 'verification_waiting_screen.dart';
 
 /// 로그인 화면
 class LoginScreen extends ConsumerStatefulWidget {
@@ -45,8 +46,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!success) {
       final error = ref.read(authViewModelProvider).error;
 
-      // 이메일 미인증 → 인증 대기 화면 (더 이상 강제하지 않음)
-      // if (error.toString().contains('email-not-verified')) { ... }
+      // H-05: 이메일 미인증 사용자 → 인증 대기 화면으로 강제 이동
+      if (error.toString().contains('email-not-verified')) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const VerificationWaitingScreen(),
+          ),
+        );
+        return;
+      }
 
       _showError(_formatError(error));
     }

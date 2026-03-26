@@ -49,9 +49,14 @@ class AuthService {
       email: email,
       password: password,
     );
-    await credential.user!.updateDisplayName(name);
 
-    final uid = credential.user!.uid;
+    // H-06: credential.user null 가드 — Firebase Auth 내부 오류 시 크래시 방지
+    final firebaseUser = credential.user;
+    if (firebaseUser == null) throw Exception('계정 생성에 실패했습니다.');
+
+    await firebaseUser.updateDisplayName(name);
+
+    final uid = firebaseUser.uid;
     final now = DateTime.now();
 
     final user = User(
@@ -69,7 +74,7 @@ class AuthService {
         .doc(uid)
         .set(user.toJson());
 
-    await credential.user!.sendEmailVerification();
+    await firebaseUser.sendEmailVerification();
 
     return user;
   }
