@@ -45,11 +45,6 @@ service cloud.firestore {
              role == 'pastor' || role == 'admin';
     }
     
-    // 유효한 타임스탬프 확인
-    function hasValidTimestamps() {
-      return request.resource.data.keys().hasAll(['createdAt', 'updatedAt']);
-    }
-
     // 교회 문서 데이터 조회
     function getChurchData(churchId) {
       return get(/databases/$(database)/documents/churches/$(churchId)).data;
@@ -106,9 +101,13 @@ service cloud.firestore {
     // ============================================
     match /users/{userId} {
       // 읽기: 본인이거나, 같은 교회의 리더만 조회 가능 (교차 교회 개인정보 접근 차단)
+      // churchId가 null인 신규 사용자에 대해 isChurchMember(null) 호출 방지
       allow read: if isAuthenticated()
         && (isOwner(userId)
-          || (isLeader() && isChurchMember(resource.data.churchId)));
+          || (isLeader()
+            && resource.data.keys().hasAll(['churchId'])
+            && resource.data.churchId != null
+            && isChurchMember(resource.data.churchId)));
 
       // 생성: 본인 계정만 생성 가능 (회원가입 시)
       allow create: if isAuthenticated() && isOwner(userId);
@@ -431,11 +430,15 @@ service cloud.firestore {
     // Feeds (피드) 컬렉션
     // ============================================
     match /feeds/{feedId} {
-      // 읽기: 본인 게시물 또는 팔로우 수락된 상대 또는 같은 교회 멤버
+      // 읽기: visibility에 따라 접근 범위 제한
+      //   - private: 작성자 본인만
+      //   - 그 외(public / visibility 필드 없음): 팔로우 수락된 상대 또는 같은 교회 멤버도 허용
       allow read: if isAuthenticated()
         && (resource.data.userId == request.auth.uid
-          || exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + resource.data.userId))
-          || isChurchMember(resource.data.churchId));
+          || ((!resource.data.keys().hasAll(['visibility'])
+                || resource.data.visibility != 'private')
+              && (exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + resource.data.userId))
+                || isChurchMember(resource.data.churchId))));
 
       // 생성: 본인 userId로만 생성 + 필수 필드 포함
       allow create: if isAuthenticated()

@@ -95,7 +95,7 @@ class _PrayerArchiveScreenState extends ConsumerState<PrayerArchiveScreen> {
       backgroundColor: AppColors.pureWhite,
       appBar: AppBar(
         title: const Text(
-          '기도 응답 아카이브',
+          '기도 응답 목록',
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
         backgroundColor: AppColors.pureWhite,
@@ -179,10 +179,6 @@ class _PrayerArchiveScreenState extends ConsumerState<PrayerArchiveScreen> {
 
           final prayer = prayers[index - 1];
           final answeredDate = prayer.answeredAt;
-          if (answeredDate == null) {
-            debugPrint('[WARN] prayerId=${prayer.id} has no answeredAt');
-          }
-          final displayDate = answeredDate ?? prayer.updatedAt;
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 16.0),
@@ -224,8 +220,11 @@ class _PrayerArchiveScreenState extends ConsumerState<PrayerArchiveScreen> {
                             isSelected: true,
                           ),
                           const Spacer(),
+                          // answeredAt이 null이면 날짜 미기록으로 표시
                           Text(
-                            '응답 ${_formatDate(displayDate)}',
+                            answeredDate != null
+                                ? '응답 ${_formatDate(answeredDate)}'
+                                : '날짜 미기록',
                             style: AppTextStyles.bodySmall.copyWith(
                               color: AppColors.textGrey,
                             ),

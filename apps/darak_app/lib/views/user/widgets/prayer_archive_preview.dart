@@ -7,6 +7,11 @@ import '../../../widgets/common/core/soft_chip.dart';
 import '../../../models/prayer.dart';
 import '../../../models/prayer_period_type.dart';
 
+// 기도 응답 마일스톤 기준 건수
+const _milestoneGold = 100;
+const _milestoneSilver = 50;
+const _milestoneBronze = 10;
+
 class PrayerArchivePreview extends StatelessWidget {
   final int count;
   final List<Prayer> prayers;
@@ -32,7 +37,7 @@ class PrayerArchivePreview extends StatelessWidget {
           Row(
             children: [
               Text(
-                '기도 응답 아카이브',
+                '기도 응답 목록',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const Spacer(),
@@ -75,9 +80,9 @@ class PrayerArchivePreview extends StatelessWidget {
   ///
   /// 마일스톤 미달성이면 null 반환.
   String? _resolveMilestoneMessage(int count) {
-    if (count >= 100) return '🏆 기도 응답 100건! 놀라운 믿음의 여정이에요!';
-    if (count >= 50) return '⭐ 기도 응답 50건! 꾸준한 기도가 응답받고 있어요!';
-    if (count >= 10) return '🎉 기도 응답 10건! 기도의 열매가 맺히고 있어요!';
+    if (count >= _milestoneGold) return '🏆 기도 응답 $_milestoneGold건! 놀라운 믿음의 여정이에요!';
+    if (count >= _milestoneSilver) return '⭐ 기도 응답 $_milestoneSilver건! 꾸준한 기도가 응답받고 있어요!';
+    if (count >= _milestoneBronze) return '🎉 기도 응답 $_milestoneBronze건! 기도의 열매가 맺히고 있어요!';
     return null;
   }
 
@@ -189,7 +194,7 @@ class _PrayerItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final answeredDate = prayer.answeredAt ?? prayer.updatedAt;
+    final answeredDate = prayer.answeredAt;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -221,9 +226,11 @@ class _PrayerItem extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              // 응답일
+              // answeredAt이 null이면 날짜 미기록으로 표시
               Text(
-                '응답 ${DateFormat('M월 d일').format(answeredDate)}',
+                answeredDate != null
+                    ? '응답 ${DateFormat('M월 d일').format(answeredDate)}'
+                    : '날짜 미기록',
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.textGrey,
                 ),

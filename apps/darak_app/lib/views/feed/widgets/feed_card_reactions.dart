@@ -51,14 +51,17 @@ class _FeedCardReactionsState extends State<FeedCardReactions> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 반응 선택 팝오버
+        // 반응 선택 팝오버 (가로 스크롤로 overflow 방지)
         if (_showPicker) ...[
-          ReactionPicker(
-            currentReaction: _myReaction,
-            onSelect: (type) {
-              setState(() => _showPicker = false);
-              widget.onReactionTap(type);
-            },
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ReactionPicker(
+              currentReaction: _myReaction,
+              onSelect: (type) {
+                setState(() => _showPicker = false);
+                widget.onReactionTap(type);
+              },
+            ),
           ),
           const SizedBox(height: 8),
         ],
@@ -83,33 +86,25 @@ class _FeedCardReactionsState extends State<FeedCardReactions> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (_myReaction != null) ...[
-                      Text(
-                        _myReaction!.emoji,
-                        style: const TextStyle(fontSize: 14),
+                    Icon(
+                      Icons.add_reaction_outlined,
+                      size: 16,
+                      color: _myReaction != null
+                          ? AppColors.softCoral
+                          : AppColors.textGrey,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '반응',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: _myReaction != null
+                            ? AppColors.softCoral
+                            : AppColors.textGrey,
+                        fontWeight: _myReaction != null
+                            ? FontWeight.w600
+                            : FontWeight.w400,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _myReaction!.label,
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textDark,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ] else ...[
-                      Icon(
-                        Icons.add_reaction_outlined,
-                        size: 16,
-                        color: AppColors.textGrey,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '반응',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textGrey,
-                        ),
-                      ),
-                    ],
+                    ),
                   ],
                 ),
               ),
