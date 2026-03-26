@@ -10,7 +10,6 @@ import '../../widgets/common/core/clay_list_tile.dart';
 import '../../widgets/common/core/soft_dialog.dart';
 import 'profile_edit_screen.dart';
 import 'widgets/attendance_heatmap.dart';
-import 'widgets/monthly_attendance_bar.dart';
 import 'widgets/prayer_archive_preview.dart';
 import 'widgets/relationship_summary_card.dart';
 import 'widgets/spiritual_dashboard_card.dart';
@@ -180,8 +179,10 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       // ─── 데이터 상태: 메인 UI ──────────────────────────────
       data: (user) {
         if (user == null) {
-          // Firestore에 유저 문서가 아직 없거나 로그아웃 진행 중
-          return _buildLoadingState();
+          // 로그아웃 진행 중이면 로딩 UI 유지, 그렇지 않으면 에러 UI 표시
+          // (Firestore 문서 없음 등 비정상 상태를 무한 로딩으로 방치하지 않음)
+          if (_isLoggingOut) return _buildLoadingState();
+          return _buildErrorState('사용자 정보를 찾을 수 없어요. 다시 시도해주세요.');
         }
         return _buildProfileContent(user);
       },
@@ -285,8 +286,6 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             userId: user.id,
             consecutiveWeeks: consecutiveWeeks,
           ),
-          const SizedBox(height: 16),
-          MonthlyAttendanceBar(userId: user.id),
           const SizedBox(height: 24),
 
           // ─── 기도 응답 아카이브 ────────────────────────────────
@@ -469,25 +468,15 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             subtitle: '버전 1.0.0 (MVP)',
             leadingColor: AppColors.skyBlue,
             onTap: () {
-              showAboutDialog(
+              SoftDialog.show<void>(
                 context: context,
-                applicationName: '다락(Darak)',
-                applicationVersion: '1.0.0 (MVP)',
-                applicationIcon: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.softCoral,
-                    borderRadius: BorderRadius.circular(12),
+                title: '다락(Darak) 1.0.0',
+                content: '교회 청년부를 위한 공동체 앱입니다.',
+                actions: [
+                  SoftDialogAction(
+                    label: '확인',
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
-                  child: const Icon(
-                    Icons.church_rounded,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-                children: [
-                  Text('교회 청년부를 위한 공동체 앱', style: AppTextStyles.bodyMedium),
                 ],
               );
             },
