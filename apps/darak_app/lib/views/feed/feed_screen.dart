@@ -6,8 +6,12 @@ import '../../models/feed/feed.dart';
 import '../../theme/app_theme.dart';
 import '../../viewmodels/feed/feed_timeline_viewmodel.dart';
 import '../../viewmodels/follow/follow_list_viewmodel.dart';
+import '../../widgets/common/bouncy_button.dart';
+import '../../widgets/common/bouncy_tap_wrapper.dart';
+import '../../widgets/common/core/app_bottom_sheet.dart';
 import '../../widgets/common/core/soft_chip.dart';
 import '../../widgets/common/skeleton_card.dart';
+import '../../widgets/common/soft_text_field.dart';
 import 'widgets/feed_card.dart';
 import 'widgets/feed_create_sheet.dart';
 import 'widgets/feed_empty_state.dart';
@@ -89,8 +93,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // 앱바
-            const _FeedAppBar(),
+            // 앱바 (우측 상단 + 버튼 포함)
+            _FeedAppBar(onCreateTap: _openCreateSheet),
 
             // 필터 칩
             _FilterRow(selected: filter),
@@ -151,17 +155,13 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                           feed: feed,
                           currentUserId: user.id,
                           onEdit: feed.userId == user.id
-                              ? () => _showEditDialog(context, feed)
+                              ? () => _showEditSheet(feed)
                               : null,
                           onDelete: feed.userId == user.id
-                              ? () => _confirmDelete(context, feed.id)
+                              ? () => _confirmDelete(feed.id)
                               : null,
                           onReport: feed.userId != user.id
-                              ? () => _confirmReport(
-                                    context,
-                                    feed.id,
-                                    user.id,
-                                  )
+                              ? () => _confirmReport(feed.id, user.id)
                               : null,
                         );
                       },
@@ -172,11 +172,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openCreateSheet,
-        backgroundColor: AppColors.softCoral,
-        child: const Icon(Icons.add_rounded, color: AppColors.pureWhite),
       ),
     );
   }
@@ -203,11 +198,23 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     }
   }
 
-  void _showEditDialog(BuildContext context, Feed feed) {
-    // TODO: 수정 다이얼로그 구현 (v2)
+  void _showEditSheet(Feed feed) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _FeedEditSheet(
+        feed: feed,
+        onUpdate: (newText) async {
+          await ref
+              .read(feedTimelineViewModelProvider.notifier)
+              .updateFeedText(feedId: feed.id, text: newText);
+        },
+      ),
+    );
   }
 
-  Future<void> _confirmDelete(BuildContext context, String feedId) async {
+  Future<void> _confirmDelete(String feedId) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -245,11 +252,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     }
   }
 
-  Future<void> _confirmReport(
-    BuildContext context,
-    String feedId,
-    String reporterId,
-  ) async {
+  Future<void> _confirmReport(String feedId, String reporterId) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -300,7 +303,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 // ─── 앱바 ─────────────────────────────────────────────────────────────────────
 
 class _FeedAppBar extends StatelessWidget {
-  const _FeedAppBar();
+  final VoidCallback onCreateTap;
+
+  const _FeedAppBar({required this.onCreateTap});
 
   @override
   Widget build(BuildContext context) {
@@ -312,6 +317,23 @@ class _FeedAppBar extends StatelessWidget {
             '나눔',
             style: AppTextStyles.headlineLarge.copyWith(
               color: AppColors.textDark,
+            ),
+          ),
+          const Spacer(),
+          BouncyTapWrapper(
+            onTap: onCreateTap,
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(
+                color: AppColors.softCoral,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.add_rounded,
+                color: AppColors.pureWhite,
+                size: 20,
+              ),
             ),
           ),
         ],
@@ -387,6 +409,92 @@ class _ErrorView extends StatelessWidget {
             onPressed: onRetry,
             child: Text('다시 시도',
                 style: TextStyle(color: AppColors.softCoral)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── 피드 수정 시트 ────────────────────────────────────────────────────────────
+
+class _FeedEditSheet extends StatefulWidget {
+  final Feed feed;
+  final Future<void> Function(String text) onUpdate;
+
+  const _FeedEditSheet({required this.feed, required this.onUpdate});
+
+  @override
+  State<_FeedEditSheet> createState() => _FeedEditSheetState();
+}
+
+class _FeedEditSheetState extends State<_FeedEditSheet> {
+  late final TextEditingController _controller;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.feed.text ?? '');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    setState(() => _isLoading = true);
+    try {
+      await widget.onUpdate(text);
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('나눔이 수정되었어요.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('수정에 실패했어요. 다시 시도해주세요.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBottomSheet(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '나눔 수정',
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.textDark,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SoftTextField(
+            controller: _controller,
+            hintText: '내용을 수정해주세요 (최대 500자)',
+            maxLines: 5,
+            maxLength: 500,
+          ),
+          const SizedBox(height: 16),
+          BouncyButton(
+            onPressed: _isLoading ? null : _submit,
+            text: _isLoading ? '저장 중...' : '저장',
+            color: AppColors.softCoral,
           ),
         ],
       ),

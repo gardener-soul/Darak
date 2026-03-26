@@ -16,6 +16,8 @@ class SoftTextField extends StatelessWidget {
   final int? maxLines;
   /// 최소 줄 수. null이면 자동 조절하지 않음.
   final int? minLines;
+  /// 최대 입력 글자 수. null이면 제한 없음.
+  final int? maxLength;
 
   const SoftTextField({
     super.key,
@@ -30,6 +32,7 @@ class SoftTextField extends StatelessWidget {
     this.inputFormatters,
     this.maxLines = 1,
     this.minLines,
+    this.maxLength,
   });
 
   @override
@@ -49,12 +52,14 @@ class SoftTextField extends StatelessWidget {
         inputFormatters: inputFormatters,
         maxLines: obscureText ? 1 : maxLines,
         minLines: minLines,
+        maxLength: maxLength,
         style: AppTextStyles.bodyMedium,
         decoration: InputDecoration(
           hintText: hintText,
           prefixIcon: prefixIcon,
           suffixIcon: suffixIcon,
           filled: false, // Container가 배경 처리 (테마의 filled: true 덮어씀)
+          counterText: maxLength != null ? '' : null, // maxLength 설정 시 기본 카운터 숨김
         ),
       ),
     );

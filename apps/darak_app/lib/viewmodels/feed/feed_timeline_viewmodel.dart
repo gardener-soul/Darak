@@ -8,6 +8,9 @@ import '../../repositories/follow_repository.dart';
 
 part 'feed_timeline_viewmodel.g.dart';
 
+// 피드 페이지네이션 단위 — hasMore 판단 기준
+const _feedPageSize = 20;
+
 // ─── 피드 필터 타입 ───────────────────────────────────────────────────────────
 
 enum FeedFilter {
@@ -127,8 +130,8 @@ class FeedTimelineViewModel extends _$FeedTimelineViewModel {
       state = state.copyWith(
         feeds: merged,
         isLoading: false,
-        hasMore: groupResult.feeds.length == 20 ||
-            followingResult.feeds.length == 20,
+        hasMore: groupResult.feeds.length == _feedPageSize ||
+            followingResult.feeds.length == _feedPageSize,
       );
     } catch (e) {
       debugPrint('피드 타임라인 로딩 실패: $e');
@@ -186,8 +189,8 @@ class FeedTimelineViewModel extends _$FeedTimelineViewModel {
       state = state.copyWith(
         feeds: [...state.feeds, ...newFeeds],
         isLoadingMore: false,
-        hasMore: groupResult.feeds.length == 20 ||
-            followingResult.feeds.length == 20,
+        hasMore: groupResult.feeds.length == _feedPageSize ||
+            followingResult.feeds.length == _feedPageSize,
       );
     } catch (e) {
       debugPrint('피드 추가 로딩 실패: $e');
@@ -226,6 +229,28 @@ class FeedTimelineViewModel extends _$FeedTimelineViewModel {
       // 서버 삭제 실패 시 낙관적 UI 롤백
       state = state.copyWith(feeds: snapshot);
       debugPrint('피드 삭제 실패: $e');
+      rethrow;
+    }
+  }
+
+  /// 피드 텍스트 수정 — 서버 반영 후 로컬 상태 업데이트 (낙관적 UI)
+  Future<void> updateFeedText({
+    required String feedId,
+    required String text,
+  }) async {
+    try {
+      await ref.read(feedRepositoryProvider).updateFeedText(
+            feedId: feedId,
+            text: text,
+          );
+      // 서버 반영 성공 후 로컬 상태 갱신
+      final updated = state.feeds.firstWhere(
+        (f) => f.id == feedId,
+        orElse: () => throw StateError('피드를 찾을 수 없음: $feedId'),
+      );
+      updateLocalFeed(updated.copyWith(text: text, updatedAt: DateTime.now()));
+    } catch (e) {
+      debugPrint('피드 텍스트 수정 실패: $e');
       rethrow;
     }
   }
