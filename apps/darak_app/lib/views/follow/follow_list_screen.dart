@@ -221,7 +221,7 @@ class _FollowingItem extends ConsumerWidget {
                         if (user?.groupName != null) ...[
                           const SizedBox(height: 2),
                           Text(
-                            user!.groupName!,
+                            user?.groupName ?? '',
                             style: AppTextStyles.bodySmall,
                           ),
                         ],
@@ -393,7 +393,7 @@ class _FollowerItem extends ConsumerWidget {
                         if (user?.groupName != null) ...[
                           const SizedBox(height: 2),
                           Text(
-                            user!.groupName!,
+                            user?.groupName ?? '',
                             style: AppTextStyles.bodySmall,
                           ),
                         ],
