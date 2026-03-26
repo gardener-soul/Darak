@@ -105,8 +105,10 @@ service cloud.firestore {
     // Users 컬렉션
     // ============================================
     match /users/{userId} {
-      // 읽기: 본인 또는 리더는 모든 사용자 정보 조회 가능
-      allow read: if isAuthenticated() && (isOwner(userId) || isLeader());
+      // 읽기: 본인이거나, 같은 교회의 리더만 조회 가능 (교차 교회 개인정보 접근 차단)
+      allow read: if isAuthenticated()
+        && (isOwner(userId)
+          || (isLeader() && isChurchMember(resource.data.churchId)));
 
       // 생성: 본인 계정만 생성 가능 (회원가입 시)
       allow create: if isAuthenticated() && isOwner(userId);
@@ -181,11 +183,11 @@ service cloud.firestore {
         && request.resource.data.keys().hasAll(['churchId', 'name', 'createdAt', 'updatedAt'])
         && isChurchAdmin(request.resource.data.churchId);
 
-      // 수정: 마을 리더 본인 또는 해당 교회 관리자
-      allow update: if isAuthenticated() && (
-        resource.data.leaderId == request.auth.uid ||
-        isChurchAdmin(resource.data.churchId)
-      );
+      // 수정: 마을 리더 또는 교회 관리자 + 수정 가능 필드 제한 (leaderId/churchId 변조 차단)
+      allow update: if isAuthenticated()
+        && (resource.data.leaderId == request.auth.uid || isChurchAdmin(resource.data.churchId))
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['name', 'description', 'updatedAt']);
 
       // 삭제: 해당 교회 관리자만 가능
       allow delete: if isAuthenticated() && isChurchAdmin(resource.data.churchId);
@@ -198,8 +200,10 @@ service cloud.firestore {
       // 읽기: 로그인한 사용자는 모든 동아리 조회 가능
       allow read: if isAuthenticated();
       
-      // 생성: 로그인한 사용자는 동아리 신청 가능
-      allow create: if isAuthenticated();
+      // 생성: 본인이 clubLeaderId여야 하고, 필수 필드 포함 (타인 명의 동아리 생성 차단)
+      allow create: if isAuthenticated()
+        && request.resource.data.clubLeaderId == request.auth.uid
+        && request.resource.data.keys().hasAll(['name', 'churchId', 'clubLeaderId', 'createdAt', 'updatedAt']);
       
       // 수정: 동아리장 또는 관리자만 가능
       allow update: if isAuthenticated() && (
@@ -362,25 +366,26 @@ service cloud.firestore {
     // ============================================
     match /attendances/{attendanceId} {
       // 읽기: 본인 기록, 소속 다락방 순장, 마을장/관리자 이상
+      // M-08: village_leader (@JsonValue 기준) 로 통일하여 역할값 불일치 버그 수정
       allow read: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid || 
-        isGroupLeader(resource.data.groupId) || 
-        isAdmin() || 
-        getUserRole() in ['villageLeader', 'evangelist', 'preacher']
+        resource.data.userId == request.auth.uid ||
+        isGroupLeader(resource.data.groupId) ||
+        isAdmin() ||
+        getUserRole() in ['village_leader', 'evangelist', 'preacher']
       );
-      
+
       // 생성: 다락방 순장(7일 이내 제한), 마을장/관리자(제한 없음)
       allow create: if isAuthenticated() && (
-        (isGroupLeader(request.resource.data.groupId) && isWithin7Days(request.resource.data.date)) || 
-        isAdmin() || 
-        getUserRole() in ['villageLeader', 'evangelist', 'preacher']
+        (isGroupLeader(request.resource.data.groupId) && isWithin7Days(request.resource.data.date)) ||
+        isAdmin() ||
+        getUserRole() in ['village_leader', 'evangelist', 'preacher']
       );
-      
+
       // 수정: 다락방 순장(7일 이내 제한), 마을장/관리자(제한 없음)
       allow update: if isAuthenticated() && (
         (isGroupLeader(resource.data.groupId) && isWithin7Days(resource.data.date)) ||
         isAdmin() ||
-        getUserRole() in ['villageLeader', 'evangelist', 'preacher']
+        getUserRole() in ['village_leader', 'evangelist', 'preacher']
       );
       
       // 삭제: 관리자만 가능 (실제로는 Soft Delete인 update로 처리 권장)
@@ -423,6 +428,43 @@ service cloud.firestore {
     }
 
     // ============================================
+    // Feeds (피드) 컬렉션
+    // ============================================
+    match /feeds/{feedId} {
+      // 읽기: 본인 게시물 또는 팔로우 수락된 상대 또는 같은 교회 멤버
+      allow read: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid
+          || exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + resource.data.userId))
+          || isChurchMember(resource.data.churchId));
+
+      // 생성: 본인 userId로만 생성 + 필수 필드 포함
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll(['userId', 'churchId', 'text', 'createdAt', 'updatedAt']);
+
+      // 수정: 본인 또는 교회 관리자 + 수정 가능 필드 제한
+      allow update: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid
+          || isChurchAdmin(resource.data.churchId))
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['text', 'updatedAt', 'reactions', 'encouragementCount', 'reportedBy', 'deletedAt']);
+
+      // 삭제(Soft Delete): 본인 또는 교회 관리자만 가능
+      allow delete: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid
+          || isChurchAdmin(resource.data.churchId));
+
+      // ── 격려 메시지(encouragements) 서브컬렉션 ──────────────
+      match /encouragements/{encId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated()
+          && request.resource.data.userId == request.auth.uid;
+        allow delete: if isAuthenticated()
+          && resource.data.userId == request.auth.uid;
+      }
+    }
+
+    // ============================================
     // Follows (팔로우 관계) 컬렉션
     // 문서 ID 패턴: {followerId}_{followeeId}
     // ============================================
@@ -443,8 +485,12 @@ service cloud.firestore {
            ]);
 
       // 수락 처리: followeeId 본인만 status를 accepted로 변경 가능
+      // affectedKeys 제한으로 followerId, churchId 등 핵심 필드 변조 차단
       allow update: if isAuthenticated()
-        && resource.data.followeeId == request.auth.uid;
+        && resource.data.followeeId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'updatedAt', 'acceptedAt'])
+        && request.resource.data.status == 'accepted';
 
       // 삭제 (팔로우 취소, 팔로워 삭제, 거절): 당사자만 가능
       allow delete: if isAuthenticated() && (
