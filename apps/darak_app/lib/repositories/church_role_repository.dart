@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../core/constants/firestore_paths.dart';
 import '../core/providers/firebase_providers.dart';
+import '../core/utils/input_sanitizer.dart';
 import '../models/church_role.dart';
 
 part 'church_role_repository.g.dart';
@@ -135,13 +136,13 @@ class ChurchRoleRepository {
 
   // ─── 역할 이름 변경 ─────────────────────────────────────────
   /// [roleId] 역할의 표시 이름을 [newName]으로 변경합니다.
-  /// 저장 전 trim() 처리로 앞뒤 공백이 포함된 이름 저장을 방지합니다.
+  /// 저장 전 sanitizeInput() 처리로 XSS 방어 및 앞뒤 공백 제거를 수행합니다.
   Future<void> updateRoleName({
     required String churchId,
     required String roleId,
     required String newName,
   }) async {
-    final sanitizedName = newName.trim();
+    final sanitizedName = sanitizeInput(newName, maxLength: 50);
     if (sanitizedName.isEmpty) {
       throw Exception('역할 이름은 비워둘 수 없습니다.');
     }
