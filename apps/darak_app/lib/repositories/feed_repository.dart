@@ -8,6 +8,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../core/constants/firestore_paths.dart';
 import '../core/providers/firebase_providers.dart';
+import '../core/utils/input_sanitizer.dart';
 import '../models/feed/encouragement.dart';
 import '../models/feed/feed.dart';
 import '../models/feed/feed_content_type.dart';
@@ -207,7 +208,7 @@ class FeedRepository {
         churchId: churchId,
         groupId: groupId,
         contentType: contentType,
-        text: text.trim(),
+        text: sanitizeInput(text, maxLength: 500),
         visibility: visibility,
         linkedPrayerId: linkedPrayerId,
         createdAt: now,
@@ -230,7 +231,7 @@ class FeedRepository {
   }) async {
     try {
       await _col.doc(feedId).update({
-        'text': text.trim(),
+        'text': sanitizeInput(text, maxLength: 500),
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
@@ -352,7 +353,7 @@ class FeedRepository {
       final encouragement = Encouragement(
         id: docRef.id,
         userId: userId,
-        text: text.trim(),
+        text: sanitizeInput(text, maxLength: 500),
         createdAt: now,
       );
       final payload = _toFirestore(encouragement.toJson())
